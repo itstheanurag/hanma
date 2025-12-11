@@ -1,6 +1,6 @@
 import { Registry, registrySchema } from "../schema";
 
-const REGISTRY_URL = "http://localhost:3000/registry.json"; // TODO: Make this configurable or point to prod
+const REGISTRY_URL = "http://localhost:5173/registry.json"; // TODO: Make this configurable or point to prod
 
 export async function fetchRegistry(): Promise<Registry> {
   const res = await fetch(REGISTRY_URL);

@@ -1,0 +1,12 @@
+{
+  "name": "express-cors",
+  "description": "Basic CORS setup for Express",
+  "dependencies": ["cors"],
+  "devDependencies": ["@types/cors"],
+  "files": [
+    {
+      "name": "cors.ts",
+      "source": "cors.ts" 
+    }
+  ]
+}

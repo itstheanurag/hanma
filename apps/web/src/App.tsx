@@ -19,12 +19,13 @@ function App() {
           </>
         )}
         
-        <Navbar />
+        {!isDocs && <Navbar />}
         
         <main className={`flex-1 flex flex-col ${!isDocs ? 'max-w-7xl mx-auto border-x border-border relative z-10 bg-background/40 backdrop-blur-[2px] w-full' : 'w-full'}`}>
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/docs" element={<Docs />} />
+
           </Routes>
         </main>
         

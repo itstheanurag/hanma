@@ -32,7 +32,7 @@ const Navbar = () => {
           </div>
 
           <Link to="/docs" className="bg-secondary hover:brightness-90 text-black font-semibold text-sm px-4 py-2 rounded-md transition-all">
-            Get Components
+            Docs
           </Link>
         </div>
       </div>

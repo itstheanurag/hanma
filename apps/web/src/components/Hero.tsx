@@ -50,7 +50,7 @@ const Hero = () => {
 
           <div className="flex flex-wrap gap-4 pt-4">
             <button className="flex items-center gap-2 bg-foreground text-background px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-opacity">
-              Browse Components
+              Docs
             </button>
             <button className="flex items-center gap-2 bg-surface text-foreground px-6 py-3 rounded-lg font-medium hover:bg-surface-hover transition-colors border border-border">
               <LuGithub size={18} />

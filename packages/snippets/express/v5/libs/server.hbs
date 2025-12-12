@@ -1,0 +1,86 @@
+---
+name: express-v5-server
+description: Production-ready HTTP server setup with graceful shutdown
+dependencies:
+  - express
+  - cors
+  - helmet
+  - dotenv
+  - winston
+  - morgan
+devDependencies:
+  - "@types/node"
+  - "@types/express"
+  - "@types/cors"
+  - "@types/morgan"
+files:
+  - name: server.ts
+  - name: cors.ts
+    source: ./cors.hbs
+  - name: middleware/logger.ts
+    source: ../middleware/logger.hbs
+---
+import express from "express";
+import helmet from "helmet";
+import dotenv from "dotenv";
+import {
+  corsMiddleware,
+} from "./cors";
+import { apiLogger } from "middleware/logger";
+
+dotenv.config();
+
+const app = express();
+
+const PORT = process.env.APP_PORT! || 3000;
+
+app.use(express.json());
+app.use(express.urlencoded({ limit: "2mb", extended: true }));
+app.use(helmet());
+app.use(corsMiddleware);
+app.use(apiLogger);
+
+// Routes
+app.use("/api/v1", () => console.log("Addd your routes here"));
+
+export const startServer = async () => {
+  // db connection
+  // redis connection 
+  // socket connection
+  // and more....
+
+  const server = app.listen(PORT, () => {
+    console.log(`User service is running on Port: ${PORT}`);
+  });
+
+  return { server };
+};
+
+export const gracefulShutdown = async (
+  server?: ReturnType<typeof app.listen>
+) => {
+  console.log("\n Shutting down gracefully...");
+  try {
+    if (server && server.listening) {
+      await new Promise<void>((resolve, reject) => {
+        server.close((err) => {
+          if (err) return reject(err);
+          console.log("HTTP server closed.");
+          resolve();
+        });
+      });
+    } else {
+      console.log("No HTTP server running, skipping server.close()");
+    }
+
+    // close db connection
+    // close redis connection
+    // close socket connection
+    // and more....
+
+    process.exit(0);
+  } catch (err) {
+    console.error("Error during shutdown:", err);
+    process.exit(1);
+  }
+};

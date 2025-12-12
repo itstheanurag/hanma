@@ -1,4 +1,7 @@
 
+import { FaGithub } from 'react-icons/fa6';
+import { LuTerminal } from 'react-icons/lu';
+
 export function Hero() {
   return (
     <div className="flex flex-col items-center justify-center text-center py-20 min-h-[80vh] relative overflow-hidden container mx-auto px-4">
@@ -13,10 +16,12 @@ export function Hero() {
       </p>
       
       <div className="flex gap-4 mb-20">
-        <a href="#snippets" className="px-6 py-3 bg-neutral-100 text-neutral-950 rounded-lg font-semibold hover:bg-white hover:-translate-y-px transition-all">
+        <a href="#snippets" className="px-6 py-3 bg-neutral-100 text-neutral-950 rounded-lg font-semibold hover:bg-white hover:-translate-y-px transition-all flex items-center gap-2">
+          <LuTerminal />
           Browse Snippets
         </a>
-        <a href="https://github.com/itstheanurag/hanma" target="_blank" rel="noreferrer" className="px-6 py-3 bg-neutral-900 text-neutral-100 rounded-lg font-medium border border-neutral-800 hover:bg-neutral-800 hover:border-neutral-700 transition-all">
+        <a href="https://github.com/itstheanurag/hanma" target="_blank" rel="noreferrer" className="px-6 py-3 bg-neutral-900 text-neutral-100 rounded-lg font-medium border border-neutral-800 hover:bg-neutral-800 hover:border-neutral-700 transition-all flex items-center gap-2">
+          <FaGithub />
           GitHub
         </a>
       </div>

@@ -1,4 +1,5 @@
 import { Hero } from './components/Hero';
+import { FaGithub } from 'react-icons/fa6';
 import { Stats } from './components/Stats';
 import { Features } from './components/Features';
 import { SnippetBrowser } from './components/SnippetBrowser';
@@ -19,7 +20,9 @@ function App() {
           </div>
           <nav className="flex items-center gap-6 text-sm font-medium text-neutral-400">
             <a href="#snippets" className="hover:text-white transition-colors">Snippets</a>
-            <a href="https://github.com/itstheanurag/hanma" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">GitHub</a>
+            <a href="https://github.com/itstheanurag/hanma" target="_blank" rel="noreferrer" className="hover:text-white transition-colors flex items-center gap-2">
+              <FaGithub className="text-xl" />
+            </a>
           </nav>
         </div>
       </header>

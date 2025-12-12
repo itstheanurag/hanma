@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { LuCopy } from 'react-icons/lu';
 
 interface RegistryItem {
   name: string;
@@ -95,12 +96,12 @@ export function SnippetBrowser() {
                          </div>
                          <p className="text-neutral-400 text-sm">{snippet.description}</p>
                        </div>
-                       <button 
+                       <button
                          onClick={() => copyCommand(snippet.name)}
-                         className="p-2 text-neutral-400 hover:text-orange-500 hover:bg-orange-500/10 rounded-lg transition-colors"
+                         className="p-2 text-neutral-400 hover:text-orange-500 hover:bg-orange-500/10 rounded-lg transition-colors cursor-pointer"
                          title="Copy command"
                        >
-                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                         <LuCopy size={18} />
                        </button>
                     </div>
                     <div className="mt-4 pt-4 border-t border-neutral-800 flex items-center justify-between text-xs text-neutral-500 font-mono">

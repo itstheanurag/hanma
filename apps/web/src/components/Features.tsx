@@ -1,34 +1,36 @@
+import { LuRocket, LuShield, LuZap, LuSettings, LuPackage, LuTerminal } from 'react-icons/lu';
+
 export function Features() {
   const features = [
     {
       title: "Production Ready",
       description: "Snippets include best practices like graceful shutdown, security headers, and structured logging.",
-      icon: "🚀"
+      icon: <LuRocket />
     },
     {
       title: "Type-Safe",
       description: "Built with TypeScript in mind. All snippets come with full type definition and interfaces.",
-      icon: "🛡️"
+      icon: <LuShield />
     },
     {
       title: "Framework Agnostic",
       description: "Supports Express, Hono, NestJS, and more. Consistent patterns across all frameworks.",
-      icon: "⚡"
+      icon: <LuZap />
     },
     {
       title: "Customizable",
       description: "Pure code tailored to your needs. No hidden abstractions or vendor lock-in.",
-      icon: "🔧"
+      icon: <LuSettings />
     },
     {
       title: "Zero Runtime Ops",
       description: "Add the code to your project and you own it. No external dependencies or services.",
-      icon: "📦"
+      icon: <LuPackage />
     },
     {
       title: "Developer First",
       description: "CLI tool designed for speed. Interactive mode or quick flags to get what you need.",
-      icon: "👨‍💻"
+      icon: <LuTerminal />
     }
   ];
 

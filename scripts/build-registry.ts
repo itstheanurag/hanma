@@ -25,36 +25,63 @@ async function main() {
     const frameworkPath = path.join(SNIPPETS_DIR, framework);
     if (!(await fs.stat(frameworkPath)).isDirectory()) continue;
 
-    const files = await fs.readdir(frameworkPath);
-    for (const file of files) {
-      if (file.endsWith(".json")) {
-        const metaPath = path.join(frameworkPath, file);
-        const meta = await fs.readJSON(metaPath);
+    // Recursive function to find json files
+    async function findSnippetConfigs(dir: string) {
+      const entries = await fs.readdir(dir);
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry);
+        const stat = await fs.stat(fullPath);
 
-        // Enhance meta with raw content and copy files
-        const registryItem = { ...meta, files: [] };
+        if (stat.isDirectory()) {
+          await findSnippetConfigs(fullPath);
+        } else if (entry.endsWith(".json")) {
+          // Process snippet config
+          const meta = await fs.readJSON(fullPath);
+          const registryItem = { ...meta, files: [] };
 
-        for (const f of meta.files) {
-          const sourcePath = path.join(frameworkPath, f.source || f.name);
-          const content = await fs.readFile(sourcePath, "utf-8");
+          // Construct relative path for source resolution
+          // The JSON file is at fullPath. The sources in it are relative to this JSON file.
+          const configDir = path.dirname(fullPath);
 
-          registryItem.files.push({
-            name: f.name,
-            content: content,
-          });
+          for (const f of meta.files) {
+            const sourcePath = path.join(configDir, f.source || f.name);
 
-          // Copy to public/snippets for static hosting if needed (optional, since we embed content in registry for now)
-          const targetPath = path.join(SNIPPETS_PUBLIC_DIR, framework, f.name);
-          await fs.ensureDir(path.dirname(targetPath));
-          await fs.writeFile(targetPath, content);
+            try {
+              const content = await fs.readFile(sourcePath, "utf-8");
+
+              registryItem.files.push({
+                name: f.name,
+                content: content,
+              });
+
+              // Copy to public/snippets preserving structure if needed
+              // For now, let's flat map to framework/name ?? Or should we preserve version path?
+              // The user requirement said "maintain version directory for each framework".
+              // Let's stick to framework/name for the registry output path for now as per previous logic,
+              // BUT we might get collisions if we have v4/cors and v5/cors.
+              // Ideally the registry item 'name' should be unique like "express-v5-cors".
+              // Let's assume the JSON 'name' field handles uniqueness.
+
+              const targetPath = path.join(
+                SNIPPETS_PUBLIC_DIR,
+                framework,
+                f.name
+              );
+              await fs.ensureDir(path.dirname(targetPath));
+              await fs.writeFile(targetPath, content);
+            } catch (err) {
+              console.error(
+                `Error reading source file for ${meta.name}: ${sourcePath}`,
+                err
+              );
+            }
+          }
+          registry.push(registryItem);
         }
-
-        // Add framework prefix to name if not present? Or just use name from json
-        // Currently assuming name in json is unique e.g. "express-cors"
-
-        registry.push(registryItem);
       }
     }
+
+    await findSnippetConfigs(frameworkPath);
   }
 
   await fs.writeJSON(REGISTRY_FILE, registry, { spaces: 2 });

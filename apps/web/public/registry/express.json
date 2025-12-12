@@ -107,6 +107,25 @@
     "framework": "express"
   },
   {
+    "name": "socket-server",
+    "description": "Socket.io server setup with optional JWT authentication",
+    "dependencies": [
+      "socket.io",
+      "jsonwebtoken"
+    ],
+    "devDependencies": [
+      "@types/jsonwebtoken"
+    ],
+    "files": [
+      {
+        "name": "libs/socket.server.ts",
+        "content": "import { Server, Socket } from \"socket.io\";\nimport jwt from \"jsonwebtoken\";\nimport type { Server as HTTPServer } from \"http\";\n\ninterface JwtPayloadOptions {\n  id: string;\n  email: string;\n  name: string;\n}\n\nexport interface AuthenticatedSocket extends Socket {\n  user?: JwtPayloadOptions;\n}\n\ninterface InitSocketOptions {\n  /** The HTTP server instance to attach socket.io to */\n  server: HTTPServer;\n  /**\n   * Allowed CORS origins\n   * @default \"*\"\n   */\n  allowedOrigins?: string | string[];\n  /**\n   * Allowed HTTP methods for CORS\n   * @default [\"GET\", \"POST\"]\n   */\n  allowedMethods?: string[];\n  /** Allowed headers for CORS */\n  allowedHeaders?: string[];\n  /**\n   * Whether to validate JWT token on connection handshake\n   * @default true\n   */\n  validateToken?: boolean;\n}\n\nexport function initializeSocket({\n  server,\n  allowedOrigins = \"*\",\n  allowedMethods = [\"GET\", \"POST\"],\n  allowedHeaders,\n  validateToken = true,\n}: InitSocketOptions): Server {\n  const io = new Server(server, {\n    cors: {\n      origin: allowedOrigins,\n      methods: allowedMethods,\n      allowedHeaders,\n      credentials: true,\n    },\n  });\n\n  io.use((socket: AuthenticatedSocket, next) => {\n    console.log(\n      `[${new Date().toISOString()}] Socket connected: ${socket.id}, ` +\n        `IP: ${socket.handshake.address}, ` +\n        `Transport: ${socket.conn.transport}`\n    );\n\n    // If validation is disabled, skip auth check\n    if (!validateToken) return next();\n\n    const token = socket.handshake.query.token as string;\n    if (!token) return next(new Error(\"Authentication error\"));\n\n    try {\n      const secret: jwt.Secret = process.env.JWT_ACCESS_SECRET!;\n      const decoded = jwt.verify(token, secret) as JwtPayloadOptions;\n      socket.user = decoded;\n      next();\n    } catch (err) {\n      console.error(\"JWT verification failed:\", err);\n      next(new Error(\"Authentication error\"));\n    }\n  });\n\n  return io;\n}\n"
+      }
+    ],
+    "version": "v5",
+    "framework": "express"
+  },
+  {
     "name": "upload-multer",
     "description": "File upload configuration using Multer",
     "dependencies": [

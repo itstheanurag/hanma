@@ -8,3 +8,16 @@
     @apply bg-orange-500/30 text-orange-100;
   }
 }
+
+@layer utilities {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-neutral-800 rounded-full hover:bg-neutral-700 transition-colors;
+  }
+}

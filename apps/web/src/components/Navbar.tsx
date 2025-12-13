@@ -18,7 +18,7 @@ const Navbar = () => {
         <div className="flex items-center gap-4">
           <a href="https://github.com" target="_blank" rel="noreferrer" className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface border border-border text-xs font-medium text-muted hover:text-foreground transition-colors">
             <LuGithub size={14} />
-            <span>14.2k Stars</span>
+            <span>0 Stars</span>
           </a>
           
           <div className="flex items-center gap-2 text-muted">

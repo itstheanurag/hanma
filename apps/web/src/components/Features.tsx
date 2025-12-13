@@ -29,7 +29,7 @@ const features = [
   {
      icon: <LuGitBranch className="text-foreground" />,
      title: "Version Controlled",
-     description: "Track changes to components in your own git history. No black-box npm updates."
+     description: "Track changes to Snippets in your own git history. No black-box npm updates."
   }
 ];
 

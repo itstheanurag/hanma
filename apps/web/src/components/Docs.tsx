@@ -144,7 +144,7 @@ const Docs = () => {
           case 'middleware': return "Express middleware for request handling and safety.";
           case 'utils': return "Helper functions and shared utilities.";
           case 'config': return "Configuration strategies and environment validation.";
-          default: return "Components and utilities.";
+          default: return "Snippets and utilities.";
       }
   };
 

@@ -110,7 +110,7 @@ export function SnippetBrowser() {
                 .map(([group, groupSnippets]) => (
                   <div key={group}>
                     <h3 className="text-lg font-semibold text-neutral-400 mb-4 capitalize flex items-center gap-2 border-b border-neutral-800 pb-2">
-                       <span className="text-neutral-600">📁</span> {group === 'root' ? 'Base Components' : group}
+                       <span className="text-neutral-600">📁</span> {group === 'root' ? 'Base Snippets' : group}
                     </h3>
                     <div className="grid grid-cols-1 gap-4">
                       {groupSnippets.map((snippet) => (

@@ -20,7 +20,7 @@ const Community = () => {
                     Join the developers building the future.
                  </h2>
                  <p className="text-muted text-lg mb-8 leading-relaxed">
-                    Hanma is community-driven. Join our Discord to discuss architecture, request components, or show off what you've built.
+                    Hanma is community-driven. Join our Discord to discuss architecture, request Snippets, or show off what you've built.
                  </p>
                  <div className="flex flex-wrap gap-4">
                     <button className="flex items-center gap-2 bg-[#5865F2] hover:bg-[#4752C4] text-white px-6 py-3 rounded-lg font-medium transition-colors shadow-lg shadow-indigo-500/20">

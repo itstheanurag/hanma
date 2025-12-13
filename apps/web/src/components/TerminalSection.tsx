@@ -63,7 +63,7 @@ const TerminalSection = () => {
                         <span>hanma init</span>
                     </div>
                     <div className="mt-1 pl-4 text-zinc-400">
-                        <span>✓ Configuration initialized (components.json)</span>
+                        <span>✓ Configuration initialized (Snippets.json)</span>
                     </div>
                  </div>
 
@@ -118,19 +118,19 @@ const TerminalSection = () => {
             </h2>
             
             <p className="text-muted text-lg leading-relaxed">
-                Hanma comes with a powerful CLI to help you scaffold backend components in seconds. 
+                Hanma comes with a powerful CLI to help you scaffold backend Snippets in seconds. 
                 Specify the destination folder, and let us handle the rest.
             </p>
 
             <div className="flex flex-col gap-4">
                 <div className="p-4 rounded-lg bg-surface border border-border hover:border-foreground/20 transition-colors">
                     <h3 className="font-semibold text-foreground mb-1">Init</h3>
-                    <p className="text-sm text-muted">Initialize your project with a single command. We auto-detect your framework and set up the <code>components.json</code> file.</p>
+                    <p className="text-sm text-muted">Initialize your project with a single command. We auto-detect your framework and set up the <code>Snippets.json</code> file.</p>
                 </div>
                  <div className="p-4 rounded-lg bg-surface border border-border hover:border-foreground/20 transition-colors">
                     <h3 className="font-semibold text-foreground mb-1">Add</h3>
                     <p className="text-sm text-muted">
-                        Download components directly to your source folder. 
+                        Download Snippets directly to your source folder. 
                         Example: <code className="bg-background px-1.5 py-0.5 rounded border border-border text-xs">src/lib/</code> indicates exactly where the files should live.
                     </p>
                 </div>

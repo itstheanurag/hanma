@@ -15,7 +15,7 @@ const Hero = () => {
                 v1.0 Public Beta
              </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.1]">
-              Backend Components.<br />
+              Backend Snippets.<br />
               <span className="text-muted">Copy. Paste. Ship.</span>
             </h1>
             <p className="mt-6 text-lg text-muted max-w-xl leading-relaxed">
@@ -32,7 +32,7 @@ const Hero = () => {
                     <LuSearch className="text-muted ml-3" size={20} />
                     <input 
                         type="text" 
-                        placeholder="Search for components..." 
+                        placeholder="Search for Snippets..." 
                         className="w-full bg-transparent text-foreground placeholder-muted outline-none py-2"
                     />
                     <div className="hidden md:flex gap-1 text-[10px] font-mono text-muted border border-border px-2 py-1 rounded bg-background">
@@ -93,7 +93,7 @@ const Hero = () => {
            <div className="grid grid-cols-2 gap-px bg-border border border-border mt-8 rounded-lg overflow-hidden">
                <div className="bg-surface p-4 flex flex-col items-center justify-center text-center">
                   <div className="text-2xl font-bold text-foreground">200+</div>
-                  <div className="text-[10px] uppercase tracking-wider text-muted font-semibold mt-1">Components</div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted font-semibold mt-1">Snippets</div>
                </div>
                <div className="bg-surface p-4 flex flex-col items-center justify-center text-center">
                   <div className="text-2xl font-bold text-foreground">Open</div>

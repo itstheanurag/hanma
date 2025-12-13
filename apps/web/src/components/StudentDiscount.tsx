@@ -12,7 +12,7 @@ const StudentDiscount = () => {
             </div>
             <h3 className="text-2xl font-bold text-white mb-3">Student discount available</h3>
             <p className="text-zinc-400 max-w-xl leading-relaxed">
-              Get Pro access for free while you're learning. Simply sign up with your university email address and we'll unlock all enterprise components automatically.
+              Get Pro access for free while you're learning. Simply sign up with your university email address and we'll unlock all enterprise Snippets automatically.
             </p>
           </div>
           

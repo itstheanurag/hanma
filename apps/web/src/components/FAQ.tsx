@@ -8,15 +8,15 @@ const faqs = [
   },
   {
     question: "Is it free to use?",
-    answer: "Yes, the core components are open source and free to use in personal and commercial projects. We also offer a Pro plan for advanced enterprise modules."
+    answer: "Yes, the core Snippets are open source and free to use in personal and commercial projects. We also offer a Pro plan for advanced enterprise modules."
   },
   {
-    question: "How do I update components?",
-    answer: "Since you own the code, updates are manual. However, we provide a CLI tool that can diff your local components against the latest version and help you patch changes."
+    question: "How do I update Snippets?",
+    answer: "Since you own the code, updates are manual. However, we provide a CLI tool that can diff your local Snippets against the latest version and help you patch changes."
   },
   {
     question: "Do you support microservices?",
-    answer: "Absolutely. Our components are designed to be modular. You can use our gRPC or RabbitMQ snippets to easily stitch together microservices."
+    answer: "Absolutely. Our Snippets are designed to be modular. You can use our gRPC or RabbitMQ snippets to easily stitch together microservices."
   }
 ];
 

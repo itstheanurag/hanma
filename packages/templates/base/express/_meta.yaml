@@ -1,0 +1,31 @@
+name: express
+category: base
+description: Express.js v5 API starter with TypeScript
+framework: express
+version: "5"
+
+# Include snippets from packages/snippets
+includes:
+  - snippet: express/v5/libs/server.hbs
+    path: src/libs/server.ts
+  - snippet: express/v5/libs/cors.hbs
+    path: src/libs/cors.ts
+  - snippet: express/v5/middleware/logger.hbs
+    path: src/middleware/logger.ts
+    
+dependencies:
+  - zod
+
+devDependencies:
+  - typescript
+  - "@types/node"
+  - tsx
+
+scripts:
+  dev: "tsx watch src/index.ts"
+  build: "tsc"
+  start: "node dist/index.js"
+
+envVars:
+  - PORT=3000
+  - NODE_ENV=development

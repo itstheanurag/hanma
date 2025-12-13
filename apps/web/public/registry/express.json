@@ -12,11 +12,14 @@
     "files": [
       {
         "name": "cors.ts",
+        "path": "cors.ts",
         "content": "import cors, { CorsOptions } from \"cors\";\n\n/**\n * Parses environment variables to get allowed origins, methods, and headers.\n */\nconst getEnvConfig = () => {\n  const allowedOrigins: string[] = (process.env.CORS_ORIGINS ?? \"\")\n    .split(\",\")\n    .map((o: string) => o.trim())\n    .filter((o: string) => o.length > 0);\n\n  const allowedMethods: string[] = (process.env.CORS_METHODS ?? \"\")\n    .split(\",\")\n    .map((m: string) => m.trim())\n    .filter((m: string) => m.length > 0);\n\n  const allowedHeaders: string[] = (process.env.CORS_HEADERS ?? \"\")\n    .split(\",\")\n    .map((h: string) => h.trim())\n    .filter((h: string) => h.length > 0);\n\n  return { allowedOrigins, allowedMethods, allowedHeaders };\n};\n\nexport const { allowedOrigins, allowedMethods, allowedHeaders } =\n  getEnvConfig();\n\n/**\n * Creates valid CorsOptions based on provided or environment configuration.\n */\nexport const createCorsOptions = (\n  overrides?: Partial<CorsOptions> & {\n    origins?: string[];\n    methods?: string[];\n    headers?: string[];\n  }\n): CorsOptions => {\n  const origins = overrides?.origins ?? allowedOrigins;\n  const methods = overrides?.methods ?? allowedMethods;\n  const headers = overrides?.headers ?? allowedHeaders;\n\n  return {\n    origin: (\n      origin: string,\n      callback: (error: Error | null, result: boolean) => void\n    ) => {\n      // Allow requests with no origin (like mobile apps or curl requests)\n      if (!origin) return callback(null, true);\n\n      if (origins.length === 0 || origins.includes(origin)) {\n        callback(null, true);\n      } else {\n        callback(new Error(\"Not allowed by CORS\"), false);\n      }\n    },\n    methods,\n    allowedHeaders: headers,\n    credentials: true,\n    ...overrides,\n  };\n};\n\n/**\n * Check if critical CORS configuration is missing.\n * Useful for validating environment setup on startup.\n */\nexport const validateCorsConfig = () => {\n  if (\n    !allowedOrigins.length ||\n    !allowedMethods.length ||\n    !allowedHeaders.length\n  ) {\n    console.warn(\n      \" CORS configuration might be incomplete. Check CORS_ORIGINS, CORS_METHODS, and CORS_HEADERS .env variables.\"\n    );\n    return false;\n  }\n  return true;\n};\n\n// Default export uses strict environment variables but doesn't hard exit only warns if missing,\n// unless strict validation is called.\nconst defaultOptions = createCorsOptions();\nexport const corsMiddleware = cors(defaultOptions);\n"
       }
     ],
     "version": "v5",
-    "framework": "express"
+    "framework": "express",
+    "category": "libs",
+    "type": "snippet"
   },
   {
     "name": "db-drizzle",
@@ -32,11 +35,14 @@
     "files": [
       {
         "name": "libs/db.ts",
+        "path": "libs/db.ts",
         "content": "import { drizzle } from 'drizzle-orm/node-postgres';\nimport { Pool } from 'pg';\n\nconst pool = new Pool({\n  connectionString: process.env.DATABASE_URL,\n});\n\nexport const db = drizzle(pool);\n"
       }
     ],
     "version": "v5",
-    "framework": "express"
+    "framework": "express",
+    "category": "libs/databases",
+    "type": "snippet"
   },
   {
     "name": "db-prisma",
@@ -50,11 +56,14 @@
     "files": [
       {
         "name": "libs/prisma.ts",
+        "path": "libs/prisma.ts",
         "content": "import { PrismaClient } from '@prisma/client';\n\nconst globalForPrisma = global as unknown as { prisma: PrismaClient };\n\nexport const prisma =\n  globalForPrisma.prisma ||\n  new PrismaClient({\n    log: ['query'],\n  });\n\nif (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;\n"
       }
     ],
     "version": "v5",
-    "framework": "express"
+    "framework": "express",
+    "category": "libs/databases",
+    "type": "snippet"
   },
   {
     "name": "env-validation",
@@ -66,11 +75,14 @@
     "files": [
       {
         "name": "config/env.ts",
+        "path": "config/env.ts",
         "content": "import 'dotenv/config';\nimport { z } from 'zod';\n\nconst envSchema = z.object({\n  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),\n  PORT: z.string().transform(Number).default('3000'),\n  // Add your environment variables here\n  // DATABASE_URL: z.string().url(),\n  // JWT_SECRET: z.string().min(1),\n});\n\nconst _env = envSchema.safeParse(process.env);\n\nif (!_env.success) {\n  console.error('❌ Invalid environment variables:');\n  _env.error.format()._errors.forEach((message) => {\n    console.error(message);\n  });\n  // Flatten errors for better readability\n  Object.entries(_env.error.flatten().fieldErrors).forEach(([key, errors]) => {\n      console.error(`  ${key}: ${errors.join(', ')}`);\n  });\n  \n  process.exit(1);\n}\n\nexport const env = _env.data;\n"
       }
     ],
     "version": "v5",
-    "framework": "express"
+    "framework": "express",
+    "category": "libs",
+    "type": "snippet"
   },
   {
     "name": "server",
@@ -92,19 +104,24 @@
     "files": [
       {
         "name": "server.ts",
+        "path": "server.ts",
         "content": "import express from \"express\";\nimport helmet from \"helmet\";\nimport dotenv from \"dotenv\";\nimport {\n  corsMiddleware,\n} from \"./cors\";\nimport { apiLogger } from \"middleware/logger\";\n\ndotenv.config();\n\nconst app = express();\n\nconst PORT = process.env.APP_PORT! || 3000;\n\napp.use(express.json());\napp.use(express.urlencoded({ limit: \"2mb\", extended: true }));\napp.use(helmet());\napp.use(corsMiddleware);\napp.use(apiLogger);\n\n// Routes\napp.use(\"/api/v1\", () => console.log(\"Addd your routes here\"));\n\nexport const startServer = async () => {\n  // db connection\n  // redis connection \n  // socket connection\n  // and more....\n\n  const server = app.listen(PORT, () => {\n    console.log(`User service is running on Port: ${PORT}`);\n  });\n\n  return { server };\n};\n\nexport const gracefulShutdown = async (\n  server?: ReturnType<typeof app.listen>\n) => {\n  console.log(\"\\n Shutting down gracefully...\");\n  try {\n    if (server && server.listening) {\n      await new Promise<void>((resolve, reject) => {\n        server.close((err) => {\n          if (err) return reject(err);\n          console.log(\"HTTP server closed.\");\n          resolve();\n        });\n      });\n    } else {\n      console.log(\"No HTTP server running, skipping server.close()\");\n    }\n\n    // close db connection\n    // close redis connection\n    // close socket connection\n    // and more....\n\n    process.exit(0);\n  } catch (err) {\n    console.error(\"Error during shutdown:\", err);\n    process.exit(1);\n  }\n};"
       },
       {
         "name": "cors.ts",
+        "path": "cors.ts",
         "content": "import cors, { CorsOptions } from \"cors\";\n\n/**\n * Parses environment variables to get allowed origins, methods, and headers.\n */\nconst getEnvConfig = () => {\n  const allowedOrigins: string[] = (process.env.CORS_ORIGINS ?? \"\")\n    .split(\",\")\n    .map((o: string) => o.trim())\n    .filter((o: string) => o.length > 0);\n\n  const allowedMethods: string[] = (process.env.CORS_METHODS ?? \"\")\n    .split(\",\")\n    .map((m: string) => m.trim())\n    .filter((m: string) => m.length > 0);\n\n  const allowedHeaders: string[] = (process.env.CORS_HEADERS ?? \"\")\n    .split(\",\")\n    .map((h: string) => h.trim())\n    .filter((h: string) => h.length > 0);\n\n  return { allowedOrigins, allowedMethods, allowedHeaders };\n};\n\nexport const { allowedOrigins, allowedMethods, allowedHeaders } =\n  getEnvConfig();\n\n/**\n * Creates valid CorsOptions based on provided or environment configuration.\n */\nexport const createCorsOptions = (\n  overrides?: Partial<CorsOptions> & {\n    origins?: string[];\n    methods?: string[];\n    headers?: string[];\n  }\n): CorsOptions => {\n  const origins = overrides?.origins ?? allowedOrigins;\n  const methods = overrides?.methods ?? allowedMethods;\n  const headers = overrides?.headers ?? allowedHeaders;\n\n  return {\n    origin: (\n      origin: string,\n      callback: (error: Error | null, result: boolean) => void\n    ) => {\n      // Allow requests with no origin (like mobile apps or curl requests)\n      if (!origin) return callback(null, true);\n\n      if (origins.length === 0 || origins.includes(origin)) {\n        callback(null, true);\n      } else {\n        callback(new Error(\"Not allowed by CORS\"), false);\n      }\n    },\n    methods,\n    allowedHeaders: headers,\n    credentials: true,\n    ...overrides,\n  };\n};\n\n/**\n * Check if critical CORS configuration is missing.\n * Useful for validating environment setup on startup.\n */\nexport const validateCorsConfig = () => {\n  if (\n    !allowedOrigins.length ||\n    !allowedMethods.length ||\n    !allowedHeaders.length\n  ) {\n    console.warn(\n      \" CORS configuration might be incomplete. Check CORS_ORIGINS, CORS_METHODS, and CORS_HEADERS .env variables.\"\n    );\n    return false;\n  }\n  return true;\n};\n\n// Default export uses strict environment variables but doesn't hard exit only warns if missing,\n// unless strict validation is called.\nconst defaultOptions = createCorsOptions();\nexport const corsMiddleware = cors(defaultOptions);\n"
       },
       {
         "name": "middleware/logger.ts",
+        "path": "middleware/logger.ts",
         "content": "\nimport winston from \"winston\";\nimport morgan from \"morgan\";\n\nconst levels = {\n  error: 0,\n  warn: 1,\n  info: 2,\n  http: 3,\n  debug: 4,\n};\n\nconst level = () => {\n  const env = process.env.NODE_ENV || \"development\";\n  const isDevelopment = env === \"development\";\n  return isDevelopment ? \"debug\" : \"warn\";\n};\n\nconst colors = {\n  error: \"red\",\n  warn: \"yellow\",\n  info: \"green\",\n  http: \"magenta\",\n  debug: \"white\",\n};\n\nwinston.addColors(colors);\n\nconst format = winston.format.combine(\n  winston.format.timestamp({ format: \"YYYY-MM-DD HH:mm:ss:ms\" }),\n  winston.format.colorize({ all: true }),\n  winston.format.printf(\n    (info) => `${info.timestamp} ${info.level}: ${info.message}`\n  )\n);\n\nconst transports = [\n  new winston.transports.Console(),\n  // Add File transport if needed for production\n  // new winston.transports.File({\n  //   filename: 'logs/error.log',\n  //   level: 'error',\n  // }),\n  // new winston.transports.File({ filename: 'logs/all.log' }),\n];\n\nexport const logger = winston.createLogger({\n  level: level(),\n  levels,\n  format,\n  transports,\n});\n\nexport const apiLogger = morgan(\n  \":method :url :status :res[content-length] - :response-time ms\",\n  {\n    stream: {\n      write: (message) => logger.http(message.trim()),\n    },\n  }\n);\n\n"
       }
     ],
     "version": "v5",
-    "framework": "express"
+    "framework": "express",
+    "category": "libs",
+    "type": "module"
   },
   {
     "name": "socket-server",
@@ -119,11 +136,14 @@
     "files": [
       {
         "name": "libs/socket.server.ts",
+        "path": "libs/socket.server.ts",
         "content": "import { Server, Socket } from \"socket.io\";\nimport jwt from \"jsonwebtoken\";\nimport type { Server as HTTPServer } from \"http\";\n\ninterface JwtPayloadOptions {\n  id: string;\n  email: string;\n  name: string;\n}\n\nexport interface AuthenticatedSocket extends Socket {\n  user?: JwtPayloadOptions;\n}\n\ninterface InitSocketOptions {\n  /** The HTTP server instance to attach socket.io to */\n  server: HTTPServer;\n  /**\n   * Allowed CORS origins\n   * @default \"*\"\n   */\n  allowedOrigins?: string | string[];\n  /**\n   * Allowed HTTP methods for CORS\n   * @default [\"GET\", \"POST\"]\n   */\n  allowedMethods?: string[];\n  /** Allowed headers for CORS */\n  allowedHeaders?: string[];\n  /**\n   * Whether to validate JWT token on connection handshake\n   * @default true\n   */\n  validateToken?: boolean;\n}\n\nexport function initializeSocket({\n  server,\n  allowedOrigins = \"*\",\n  allowedMethods = [\"GET\", \"POST\"],\n  allowedHeaders,\n  validateToken = true,\n}: InitSocketOptions): Server {\n  const io = new Server(server, {\n    cors: {\n      origin: allowedOrigins,\n      methods: allowedMethods,\n      allowedHeaders,\n      credentials: true,\n    },\n  });\n\n  io.use((socket: AuthenticatedSocket, next) => {\n    console.log(\n      `[${new Date().toISOString()}] Socket connected: ${socket.id}, ` +\n        `IP: ${socket.handshake.address}, ` +\n        `Transport: ${socket.conn.transport}`\n    );\n\n    // If validation is disabled, skip auth check\n    if (!validateToken) return next();\n\n    const token = socket.handshake.query.token as string;\n    if (!token) return next(new Error(\"Authentication error\"));\n\n    try {\n      const secret: jwt.Secret = process.env.JWT_ACCESS_SECRET!;\n      const decoded = jwt.verify(token, secret) as JwtPayloadOptions;\n      socket.user = decoded;\n      next();\n    } catch (err) {\n      console.error(\"JWT verification failed:\", err);\n      next(new Error(\"Authentication error\"));\n    }\n  });\n\n  return io;\n}\n"
       }
     ],
     "version": "v5",
-    "framework": "express"
+    "framework": "express",
+    "category": "libs",
+    "type": "snippet"
   },
   {
     "name": "upload-multer",
@@ -137,11 +157,14 @@
     "files": [
       {
         "name": "config/upload.ts",
+        "path": "config/upload.ts",
         "content": "import multer from 'multer';\nimport path from 'path';\n\n// Configure storage\nconst storage = multer.diskStorage({\n  destination: (req, file, cb) => {\n    cb(null, 'uploads/'); // Ensure this directory exists\n  },\n  filename: (req, file, cb) => {\n    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);\n    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));\n  },\n});\n\n// File filter (optional)\nconst fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {\n  if (file.mimetype.startsWith('image/')) {\n    cb(null, true);\n  } else {\n    cb(new Error('Only image files are allowed!'));\n  }\n};\n\nexport const upload = multer({ \n  storage: storage,\n  fileFilter: fileFilter,\n  limits: {\n    fileSize: 5 * 1024 * 1024, // 5MB limit\n  }\n});\n"
       }
     ],
     "version": "v5",
-    "framework": "express"
+    "framework": "express",
+    "category": "libs",
+    "type": "snippet"
   },
   {
     "name": "winston-logger",
@@ -155,11 +178,14 @@
     "files": [
       {
         "name": "logger.ts",
+        "path": "logger.ts",
         "content": "\nimport winston from \"winston\";\nimport morgan from \"morgan\";\n\nconst levels = {\n  error: 0,\n  warn: 1,\n  info: 2,\n  http: 3,\n  debug: 4,\n};\n\nconst level = () => {\n  const env = process.env.NODE_ENV || \"development\";\n  const isDevelopment = env === \"development\";\n  return isDevelopment ? \"debug\" : \"warn\";\n};\n\nconst colors = {\n  error: \"red\",\n  warn: \"yellow\",\n  info: \"green\",\n  http: \"magenta\",\n  debug: \"white\",\n};\n\nwinston.addColors(colors);\n\nconst format = winston.format.combine(\n  winston.format.timestamp({ format: \"YYYY-MM-DD HH:mm:ss:ms\" }),\n  winston.format.colorize({ all: true }),\n  winston.format.printf(\n    (info) => `${info.timestamp} ${info.level}: ${info.message}`\n  )\n);\n\nconst transports = [\n  new winston.transports.Console(),\n  // Add File transport if needed for production\n  // new winston.transports.File({\n  //   filename: 'logs/error.log',\n  //   level: 'error',\n  // }),\n  // new winston.transports.File({ filename: 'logs/all.log' }),\n];\n\nexport const logger = winston.createLogger({\n  level: level(),\n  levels,\n  format,\n  transports,\n});\n\nexport const apiLogger = morgan(\n  \":method :url :status :res[content-length] - :response-time ms\",\n  {\n    stream: {\n      write: (message) => logger.http(message.trim()),\n    },\n  }\n);\n\n"
       }
     ],
     "version": "v5",
-    "framework": "express"
+    "framework": "express",
+    "category": "middleware",
+    "type": "snippet"
   },
   {
     "name": "validation-zod",
@@ -170,11 +196,14 @@
     "files": [
       {
         "name": "middleware/validate.ts",
+        "path": "middleware/validate.ts",
         "content": "import { Request, Response, NextFunction } from 'express';\nimport { AnyZodObject, ZodError } from 'zod';\n\nexport const validate = (schema: AnyZodObject) => async (\n  req: Request,\n  res: Response,\n  next: NextFunction\n) => {\n  try {\n    await schema.parseAsync({\n      body: req.body,\n      query: req.query,\n      params: req.params,\n    });\n    return next();\n  } catch (error) {\n    if (error instanceof ZodError) {\n      return res.status(400).json({\n        success: false,\n        message: 'Validation failed',\n        errors: error.errors,\n      });\n    }\n    return res.status(500).json({ success: false, message: 'Internal server error' });\n  }\n};\n"
       }
     ],
     "version": "v5",
-    "framework": "express"
+    "framework": "express",
+    "category": "middleware",
+    "type": "snippet"
   },
   {
     "name": "jwt",
@@ -188,11 +217,14 @@
     "files": [
       {
         "name": "utils/jwt.ts",
+        "path": "utils/jwt.ts",
         "content": "import jwt, { SignOptions, VerifyOptions } from 'jsonwebtoken';\n\nconst JWT_SECRET = process.env.JWT_SECRET || 'changeme';\n\n/**\n * Signs a payload to create a JWT\n * @param payload Data to encode\n * @param options JWT sign options (expiresIn, etc.)\n */\nexport const signToken = (payload: object, options?: SignOptions): string => {\n  return jwt.sign(payload, JWT_SECRET, {\n    expiresIn: '1h', // Default expiration\n    ...options,\n  });\n};\n\n/**\n * Verifies a JWT and returns the decoded payload\n * @param token The JWT string\n */\nexport const verifyToken = <T = any>(token: string, options?: VerifyOptions): T => {\n  return jwt.verify(token, JWT_SECRET, options) as T;\n};\n\n/**\n * Decodes a JWT without verifying signature\n * @param token The JWT string\n */\nexport const decodeToken = <T = any>(token: string): T | null => {\n  return jwt.decode(token) as T;\n};\n"
       }
     ],
     "version": "v5",
-    "framework": "express"
+    "framework": "express",
+    "category": "utils",
+    "type": "snippet"
   },
   {
     "name": "password-argon2",
@@ -203,11 +235,14 @@
     "files": [
       {
         "name": "utils/password.ts",
+        "path": "utils/password.ts",
         "content": "import argon2 from 'argon2';\n\nexport const encryptPassword = async (password: string): Promise<string> => {\n  return argon2.hash(password);\n};\n\nexport const verifyPassword = async (password: string, hash: string): Promise<boolean> => {\n  return argon2.verify(hash, password);\n};\n"
       }
     ],
     "version": "v5",
-    "framework": "express"
+    "framework": "express",
+    "category": "utils/passwords",
+    "type": "snippet"
   },
   {
     "name": "password-bcrypt",
@@ -221,11 +256,14 @@
     "files": [
       {
         "name": "utils/password.ts",
+        "path": "utils/password.ts",
         "content": "import bcrypt from 'bcrypt';\n\nconst SALT_ROUNDS = 10;\n\nexport const encryptPassword = async (password: string): Promise<string> => {\n  return bcrypt.hash(password, SALT_ROUNDS);\n};\n\nexport const verifyPassword = async (password: string, hash: string): Promise<boolean> => {\n  return bcrypt.compare(password, hash);\n};\n"
       }
     ],
     "version": "v5",
-    "framework": "express"
+    "framework": "express",
+    "category": "utils/passwords",
+    "type": "snippet"
   },
   {
     "name": "password-crypto",
@@ -234,10 +272,13 @@
     "files": [
       {
         "name": "utils/password.ts",
+        "path": "utils/password.ts",
         "content": "import { scrypt, randomBytes, timingSafeEqual } from 'crypto';\nimport { promisify } from 'util';\n\nconst scryptAsync = promisify(scrypt);\n\nexport const encryptPassword = async (password: string): Promise<string> => {\n  const salt = randomBytes(16).toString('hex');\n  const derivedKey = (await scryptAsync(password, salt, 64)) as Buffer;\n  return `${salt}:${derivedKey.toString('hex')}`;\n};\n\nexport const verifyPassword = async (password: string, hash: string): Promise<boolean> => {\n  const [salt, key] = hash.split(':');\n  const keyBuffer = Buffer.from(key, 'hex');\n  const derivedKey = (await scryptAsync(password, salt, 64)) as Buffer;\n  return timingSafeEqual(keyBuffer, derivedKey);\n};"
       }
     ],
     "version": "v5",
-    "framework": "express"
+    "framework": "express",
+    "category": "utils/passwords",
+    "type": "snippet"
   }
 ]

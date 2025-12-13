@@ -42,12 +42,17 @@ async function main() {
         if (stat.isDirectory()) {
           await findSnippetConfigs(fullPath);
         } else if (entry.endsWith(".hbs")) {
-          // Identify version from path
+          // Identify version and category from path
           // Path relative to snippets dir: express/v5/libs/server.hbs
           const relativePath = path.relative(SNIPPETS_DIR, fullPath);
           const parts = relativePath.split(path.sep);
-          // parts[0] is framework, parts[1] is version (usually)
+          // parts[0] is framework, parts[1] is version, parts[2+] are category/subcategory
           const version = parts.length > 1 ? parts[1] : "unknown";
+
+          // Infer category from directory structure (everything after version)
+          const categoryParts = parts.slice(2, -1); // Exclude filename
+          const category =
+            categoryParts.length > 0 ? categoryParts.join("/") : undefined;
 
           const content = await fs.readFile(fullPath, "utf-8");
           const frontmatterMatch = content.match(
@@ -76,6 +81,13 @@ async function main() {
           // Injected inferred metadata if missing
           if (!meta.version) meta.version = version;
           if (!meta.framework) meta.framework = frameworkName;
+          if (!meta.category && category) meta.category = category;
+
+          // Infer type based on number of files
+          // If files array has multiple entries OR if there's a source reference to multiple files, it's a module
+          const isModule =
+            meta.files && Array.isArray(meta.files) && meta.files.length > 1;
+          if (!meta.type) meta.type = isModule ? "module" : "snippet";
 
           const registryItem = { ...meta, files: [] };
           const configDir = path.dirname(fullPath);
@@ -110,6 +122,7 @@ async function main() {
 
               registryItem.files.push({
                 name: f.name,
+                path: f.path || f.name, // Use explicit path or default to name
                 content: fileContent,
               });
             }

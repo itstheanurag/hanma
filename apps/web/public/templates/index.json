@@ -1,0 +1,133 @@
+{
+  "base": [
+    {
+      "name": "express",
+      "category": "base",
+      "description": "Express.js v5 API starter with TypeScript",
+      "framework": "express",
+      "version": "5",
+      "dependencies": [
+        "zod",
+        "express",
+        "cors",
+        "helmet",
+        "dotenv",
+        "winston",
+        "morgan"
+      ],
+      "devDependencies": [
+        "typescript",
+        "@types/node",
+        "tsx",
+        "@types/express",
+        "@types/cors",
+        "@types/morgan"
+      ],
+      "scripts": {
+        "dev": "tsx watch src/index.ts",
+        "build": "tsc",
+        "start": "node dist/index.js"
+      },
+      "envVars": [
+        "PORT=3000",
+        "NODE_ENV=development"
+      ],
+      "files": [
+        {
+          "path": "src/libs/server.ts",
+          "content": "import express from \"express\";\nimport helmet from \"helmet\";\nimport dotenv from \"dotenv\";\nimport {\n  corsMiddleware,\n} from \"./cors\";\nimport { apiLogger } from \"middleware/logger\";\n\ndotenv.config();\n\nconst app = express();\n\nconst PORT = process.env.APP_PORT! || 3000;\n\napp.use(express.json());\napp.use(express.urlencoded({ limit: \"2mb\", extended: true }));\napp.use(helmet());\napp.use(corsMiddleware);\napp.use(apiLogger);\n\n// Routes\napp.use(\"/api/v1\", () => console.log(\"Addd your routes here\"));\n\nexport const startServer = async () => {\n  // db connection\n  // redis connection \n  // socket connection\n  // and more....\n\n  const server = app.listen(PORT, () => {\n    console.log(`User service is running on Port: ${PORT}`);\n  });\n\n  return { server };\n};\n\nexport const gracefulShutdown = async (\n  server?: ReturnType<typeof app.listen>\n) => {\n  console.log(\"\\n Shutting down gracefully...\");\n  try {\n    if (server && server.listening) {\n      await new Promise<void>((resolve, reject) => {\n        server.close((err) => {\n          if (err) return reject(err);\n          console.log(\"HTTP server closed.\");\n          resolve();\n        });\n      });\n    } else {\n      console.log(\"No HTTP server running, skipping server.close()\");\n    }\n\n    // close db connection\n    // close redis connection\n    // close socket connection\n    // and more....\n\n    process.exit(0);\n  } catch (err) {\n    console.error(\"Error during shutdown:\", err);\n    process.exit(1);\n  }\n};"
+        },
+        {
+          "path": "src/libs/cors.ts",
+          "content": "import cors, { CorsOptions } from \"cors\";\n\n/**\n * Parses environment variables to get allowed origins, methods, and headers.\n */\nconst getEnvConfig = () => {\n  const allowedOrigins: string[] = (process.env.CORS_ORIGINS ?? \"\")\n    .split(\",\")\n    .map((o: string) => o.trim())\n    .filter((o: string) => o.length > 0);\n\n  const allowedMethods: string[] = (process.env.CORS_METHODS ?? \"\")\n    .split(\",\")\n    .map((m: string) => m.trim())\n    .filter((m: string) => m.length > 0);\n\n  const allowedHeaders: string[] = (process.env.CORS_HEADERS ?? \"\")\n    .split(\",\")\n    .map((h: string) => h.trim())\n    .filter((h: string) => h.length > 0);\n\n  return { allowedOrigins, allowedMethods, allowedHeaders };\n};\n\nexport const { allowedOrigins, allowedMethods, allowedHeaders } =\n  getEnvConfig();\n\n/**\n * Creates valid CorsOptions based on provided or environment configuration.\n */\nexport const createCorsOptions = (\n  overrides?: Partial<CorsOptions> & {\n    origins?: string[];\n    methods?: string[];\n    headers?: string[];\n  }\n): CorsOptions => {\n  const origins = overrides?.origins ?? allowedOrigins;\n  const methods = overrides?.methods ?? allowedMethods;\n  const headers = overrides?.headers ?? allowedHeaders;\n\n  return {\n    origin: (\n      origin: string | undefined,\n      callback: (error: Error | null, allow?: boolean) => void\n    ) => {\n      // Allow requests with no origin (mobile apps, curl, same-origin)\n      if (!origin) return callback(null, true);\n\n      if (origins.length === 0 || origins.includes(origin)) {\n        callback(null, true);\n      } else {\n        callback(new Error(\"Not allowed by CORS\"));\n      }\n    },\n    methods,\n    allowedHeaders: headers,\n    credentials: true,\n    ...overrides,\n  };\n};\n\n/**\n * Check if critical CORS configuration is missing.\n * Useful for validating environment setup on startup.\n */\nexport const validateCorsConfig = () => {\n  if (\n    !allowedOrigins.length ||\n    !allowedMethods.length ||\n    !allowedHeaders.length\n  ) {\n    console.warn(\n      \" CORS configuration might be incomplete. Check CORS_ORIGINS, CORS_METHODS, and CORS_HEADERS .env variables.\"\n    );\n    return false;\n  }\n  return true;\n};\n\n// Default export uses strict environment variables but doesn't hard exit only warns if missing,\n// unless strict validation is called.\nconst defaultOptions = createCorsOptions();\nexport const corsMiddleware = cors(defaultOptions);\n"
+        },
+        {
+          "path": "src/middleware/logger.ts",
+          "content": "\nimport winston from \"winston\";\nimport morgan from \"morgan\";\n\nconst levels = {\n  error: 0,\n  warn: 1,\n  info: 2,\n  http: 3,\n  debug: 4,\n};\n\nconst level = () => {\n  const env = process.env.NODE_ENV || \"development\";\n  const isDevelopment = env === \"development\";\n  return isDevelopment ? \"debug\" : \"warn\";\n};\n\nconst colors = {\n  error: \"red\",\n  warn: \"yellow\",\n  info: \"green\",\n  http: \"magenta\",\n  debug: \"white\",\n};\n\nwinston.addColors(colors);\n\nconst format = winston.format.combine(\n  winston.format.timestamp({ format: \"YYYY-MM-DD HH:mm:ss:ms\" }),\n  winston.format.colorize({ all: true }),\n  winston.format.printf(\n    (info) => `${info.timestamp} ${info.level}: ${info.message}`\n  )\n);\n\nconst transports = [\n  new winston.transports.Console(),\n  // Add File transport if needed for production\n  // new winston.transports.File({\n  //   filename: 'logs/error.log',\n  //   level: 'error',\n  // }),\n  // new winston.transports.File({ filename: 'logs/all.log' }),\n];\n\nexport const logger = winston.createLogger({\n  level: level(),\n  levels,\n  format,\n  transports,\n});\n\nexport const apiLogger = morgan(\n  \":method :url :status :res[content-length] - :response-time ms\",\n  {\n    stream: {\n      write: (message) => logger.http(message.trim()),\n    },\n  }\n);\n\n"
+        },
+        {
+          "path": ".env.example",
+          "content": "# Environment\nNODE_ENV=development\nPORT=3000\n\n# Add your environment variables below\n"
+        },
+        {
+          "path": "package.json.hbs",
+          "content": "{\n  \"name\": \"{{projectName}}\",\n  \"version\": \"1.0.0\",\n  \"type\": \"module\",\n  \"scripts\": {\n    \"dev\": \"tsx watch src/index.ts\",\n    \"build\": \"tsc\",\n    \"start\": \"node dist/index.js\"\n  },\n  \"dependencies\": {\n    \"express\": \"^5.0.0\",\n    \"dotenv\": \"^16.3.1\",\n    \"zod\": \"^3.22.4\"\n  },\n  \"devDependencies\": {\n    \"typescript\": \"^5.3.3\",\n    \"@types/express\": \"^5.0.0\",\n    \"@types/node\": \"^20.10.0\",\n    \"tsx\": \"^4.7.0\"\n  }\n}\n"
+        },
+        {
+          "path": "src/index.ts.hbs",
+          "content": "import { shutdown, startServer } from \"@/libs/server\";\n\nstartServer();\n\nprocess.on(\"SIGTERM\", () => shutdown(\"SIGTERM\"));\nprocess.on(\"SIGINT\", () => shutdown(\"SIGINT\"));\n\nprocess.on(\"unhandledRejection\", (reason, p) => {\n  console.error(\"Unhandled Rejection at:\", p, \"reason:\", reason);\n});\n\nprocess.on(\"uncaughtException\", (err) => {\n  console.error(\"Uncaught Exception:\", err);\n  process.exit(1);\n});"
+        },
+        {
+          "path": "tsconfig.json",
+          "content": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"module\": \"NodeNext\",\n    \"moduleResolution\": \"NodeNext\",\n    \"lib\": [\"ES2022\"],\n    \"rootDir\": \"./src\",\n    \"outDir\": \"./dist\",\n    \"baseUrl\": \".\",\n    \"paths\": {\n      \"@/*\": [\"src/*\"]\n    },\n    \"strict\": true,\n    \"esModuleInterop\": true,\n    \"skipLibCheck\": true,\n    \"forceConsistentCasingInFileNames\": true,\n    \"resolveJsonModule\": true,\n    \"declaration\": true,\n    \"declarationMap\": true,\n    \"sourceMap\": true\n  },\n  \"include\": [\"src/**/*\"],\n  \"exclude\": [\"node_modules\", \"dist\"]\n}\n"
+        }
+      ]
+    }
+  ],
+  "database": [
+    {
+      "name": "drizzle-postgres",
+      "category": "database",
+      "description": "Drizzle ORM with PostgreSQL setup",
+      "framework": "express",
+      "dependencies": [
+        "drizzle-orm",
+        "pg",
+        "dotenv"
+      ],
+      "devDependencies": [
+        "drizzle-kit",
+        "@types/pg"
+      ],
+      "scripts": {
+        "db:generate": "drizzle-kit generate",
+        "db:push": "drizzle-kit push",
+        "db:studio": "drizzle-kit studio"
+      },
+      "envVars": [
+        "DATABASE_URL"
+      ],
+      "files": [
+        {
+          "path": "drizzle.config.ts.hbs",
+          "content": "import \"dotenv/config\";\nimport { defineConfig } from \"drizzle-kit\";\n\nexport default defineConfig({\n  schema: \"./src/db/schema.ts\",\n  out: \"./drizzle\",\n  dialect: \"postgresql\",\n  dbCredentials: {\n    url: process.env.DATABASE_URL!,\n  },\n});\n"
+        },
+        {
+          "path": "src/db/index.ts.hbs",
+          "content": "import \"dotenv/config\";\nimport { drizzle } from \"drizzle-orm/node-postgres\";\nimport { Pool } from \"pg\";\nimport * as schema from \"./schema\";\n\nconst pool = new Pool({\n  connectionString: process.env.DATABASE_URL,\n});\n\nexport const db = drizzle(pool, { schema });\n\nexport type Database = typeof db;\n"
+        },
+        {
+          "path": "src/db/schema.ts.hbs",
+          "content": "import { pgTable, serial, text, timestamp, varchar } from \"drizzle-orm/pg-core\";\n\n// Example users table - modify as needed\nexport const users = pgTable(\"users\", {\n  id: serial(\"id\").primaryKey(),\n  email: varchar(\"email\", { length: 255 }).notNull().unique(),\n  name: text(\"name\"),\n  createdAt: timestamp(\"created_at\").defaultNow().notNull(),\n  updatedAt: timestamp(\"updated_at\").defaultNow().notNull(),\n});\n\nexport type User = typeof users.$inferSelect;\nexport type NewUser = typeof users.$inferInsert;\n"
+        }
+      ]
+    }
+  ],
+  "auth": [
+    {
+      "name": "better-auth",
+      "category": "auth",
+      "description": "better-auth setup with session management",
+      "framework": "express",
+      "dependencies": [
+        "better-auth"
+      ],
+      "devDependencies": [],
+      "envVars": [
+        "BETTER_AUTH_SECRET",
+        "BETTER_AUTH_URL"
+      ],
+      "files": [
+        {
+          "path": "src/auth/index.ts.hbs",
+          "content": "import { betterAuth } from \"better-auth\";\nimport { db } from \"../db\";\n\nexport const auth = betterAuth({\n  database: db,\n  emailAndPassword: {\n    enabled: true,\n  },\n  session: {\n    expiresIn: 60 * 60 * 24 * 7,\n    updateAge: 60 * 60 * 24,\n  },\n});\n\nexport type Session = typeof auth.$Infer.Session;\nexport type User = typeof auth.$Infer.User;\n"
+        },
+        {
+          "path": "src/auth/routes.ts.hbs",
+          "content": "import { Router } from \"express\";\nimport { toNodeHandler } from \"better-auth/node\";\nimport { auth } from \"./index\";\n\nconst router = Router();\nrouter.all(\"/api/auth/*\", toNodeHandler(auth));\n\nexport default router;\n"
+        }
+      ]
+    }
+  ],
+  "extra": []
+}

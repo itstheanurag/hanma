@@ -58,17 +58,17 @@ async function promptVersion(registry: RegistryItem[]): Promise<string> {
 }
 
 /**
- * Filter registry items by version (snippets only)
+ * Filter registry items by version (modules only)
  */
-function filterSnippets(
+function filterModules(
   registry: RegistryItem[],
   version: string
 ): RegistryItem[] {
   return registry.filter((item) => {
     const versionMatch =
       !version || version === "latest" || item.version === version;
-    const isSnippet = item.type === "snippet";
-    return versionMatch && isSnippet;
+    const isModule = item.type === "module";
+    return versionMatch && isModule;
   });
 }
 
@@ -110,15 +110,15 @@ async function promptCategory(
 }
 
 /**
- * Prompt for snippet selection from filtered list
+ * Prompt for module selection from filtered list
  */
-async function promptSnippet(
+async function promptModule(
   items: RegistryItem[]
 ): Promise<RegistryItem | null> {
-  const { snippet } = await prompts({
+  const { module } = await prompts({
     type: "autocomplete",
-    name: "snippet",
-    message: "Select a snippet to add",
+    name: "module",
+    message: "Select a module to add",
     choices: items.map((item) => ({
       title: item.name,
       value: item,
@@ -126,7 +126,7 @@ async function promptSnippet(
     })),
   });
 
-  return snippet || null;
+  return module || null;
 }
 
 // ============================================================================
@@ -134,14 +134,14 @@ async function promptSnippet(
 // ============================================================================
 
 /**
- * Install a snippet's dependencies and write its files
+ * Install a module's dependencies and write its files
  */
-async function installSnippet(
+async function installModule(
   item: RegistryItem,
   destinationPath: string | undefined,
   config: HanmaConfig
 ): Promise<void> {
-  console.log(chalk.blue(`\nInstalling snippet: ${item.name}...`));
+  console.log(chalk.blue(`\nInstalling module: ${item.name}...`));
 
   // Install dependencies
   if (item.dependencies?.length) {
@@ -172,25 +172,27 @@ async function installSnippet(
   }
 
   writeSpinner.succeed(`Files written to ${targetDir}`);
-  console.log(chalk.green(`\nSuccessfully added snippet: ${item.name}!`));
+  console.log(chalk.green(`\nSuccessfully added module: ${item.name}!`));
+  console.log(chalk.dim(`  ${item.files.length} file(s) installed`));
 }
 
 // ============================================================================
 // Main Command
 // ============================================================================
 
-export const add = new Command()
-  .name("add")
-  .description("Add a snippet to your project")
+export const module = new Command()
+  .name("module")
+  .alias("mod")
+  .description("Add a multi-file module to your project")
   .argument(
-    "[snippet]",
-    "The snippet to add (optional, use interactive mode if omitted)"
+    "[module]",
+    "The module to add (optional, use interactive mode if omitted)"
   )
   .argument(
     "[path]",
     "The destination path (optional, defaults to config.componentsPath)"
   )
-  .action(async (snippetName, destinationPath) => {
+  .action(async (moduleName, destinationPath) => {
     // 1. Get config
     const config = await getConfig();
     if (!config) {
@@ -239,32 +241,30 @@ export const add = new Command()
       process.exit(0);
     }
 
-    // 5. Filter snippets only
-    const snippets = filterSnippets(registry, selectedVersion);
+    // 5. Filter modules only
+    const modules = filterModules(registry, selectedVersion);
 
-    if (snippets.length === 0) {
+    if (modules.length === 0) {
       console.log(
-        chalk.yellow(
-          "No snippets found for the selected framework and version."
-        )
+        chalk.yellow("No modules found for the selected framework and version.")
       );
       process.exit(0);
     }
 
     // 6. Select category
-    const categoryFiltered = await promptCategory(snippets);
+    const categoryFiltered = await promptCategory(modules);
     if (!categoryFiltered) {
       console.log("Operation cancelled.");
       process.exit(0);
     }
 
-    // 7. Select snippet
-    const selectedSnippet = await promptSnippet(categoryFiltered);
-    if (!selectedSnippet) {
+    // 7. Select module
+    const selectedModule = await promptModule(categoryFiltered);
+    if (!selectedModule) {
       console.log("Operation cancelled.");
       process.exit(0);
     }
 
-    // 8. Install snippet
-    await installSnippet(selectedSnippet, destinationPath, config);
+    // 8. Install module
+    await installModule(selectedModule, destinationPath, config);
   });

@@ -6,25 +6,43 @@ export const help = new Command()
   .description("Display help for Hanma")
   .action(() => {
     console.log(`
-      ${chalk.bold.hex("#ea580c")("HANMA")} - Grapple your backend into shape 🥋
+  ${chalk.bold.hex("#ea580c")("HANMA")} - Grapple your backend into shape
 
-      ${chalk.bold("USAGE")}
-      ${chalk.cyan("hanma")} [command] [options]
+  ${chalk.bold("USAGE")}
+    ${chalk.cyan("hanma")} <command> [options]
 
-      ${chalk.bold("COMMANDS")}
-        ${chalk.yellow("create")}  Creates a backend project depending on your preferences.  
-      ${chalk.yellow("add")}       Interactive mode to browse and add snippets.
-      ${chalk.yellow("init")}      Initialize Hanma in your project.
-      ${chalk.yellow("help")}      Display this help message.
+  ${chalk.bold("COMMANDS")}
+    ${chalk.yellow("init")}              Initialize Hanma in your project (creates hanma.json)
+    ${chalk.yellow("create")} [name]     Scaffold a new backend project from templates
+    ${chalk.yellow("add")} [snippet]     Add a single-file snippet to your project
+    ${chalk.yellow("module")} [module]   Add a multi-file module to your project
+    ${chalk.yellow("help")}              Display this help message
 
-      ${chalk.bold("EXAMPLES")}
-      Start interactive mode:
-      ${chalk.dim("$")} hanma add
+  ${chalk.bold("ALIASES")}
+    ${chalk.dim("mod")} → module
 
-      Add a specific snippet (e.g. express server):
-      ${chalk.dim("$")} hanma add express
+  ${chalk.bold("OPTIONS")}
+    ${chalk.dim("-V, --version")}     Output the version number
+    ${chalk.dim("-h, --help")}        Display help for command
 
-      ${chalk.bold("DOCUMENTATION")}
-      https://github.com/itstheanurag/hanma
+  ${chalk.bold("EXAMPLES")}
+    ${chalk.dim("# Initialize Hanma in your project")}
+    $ hanma init
+
+    ${chalk.dim("# Create a new project with interactive prompts")}
+    $ hanma create my-api
+
+    ${chalk.dim("# Create with specific options")}
+    $ hanma create my-api --framework express --pm pnpm
+
+    ${chalk.dim("# Add a snippet interactively")}
+    $ hanma add
+
+    ${chalk.dim("# Add a module interactively")}
+    $ hanma module
+    $ hanma mod
+
+  ${chalk.bold("DOCUMENTATION")}
+    ${chalk.underline("https://github.com/itstheanurag/hanma")}
     `);
   });

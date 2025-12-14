@@ -8,6 +8,7 @@ const __dirname = path.dirname(__filename);
 
 const TEMPLATES_DIR = path.resolve(__dirname, "../apps/cli/content/templates");
 const SNIPPETS_DIR = path.resolve(__dirname, "../apps/cli/content/snippets");
+const MODULES_DIR = path.resolve(__dirname, "../apps/cli/content/modules");
 const PUBLIC_DIR = path.resolve(__dirname, "../apps/web/public");
 
 interface TemplateBlock {
@@ -185,6 +186,109 @@ async function main() {
           });
 
           console.log(`    ↳ Included snippet: ${snippetPath} → ${outputPath}`);
+        }
+      }
+
+      // Process modules (bundles of files that reference snippets)
+      if (meta.modules && Array.isArray(meta.modules)) {
+        for (const moduleRef of meta.modules) {
+          const modulePath =
+            typeof moduleRef === "string" ? moduleRef : moduleRef.module;
+          const moduleFullPath = path.join(MODULES_DIR, modulePath);
+          const moduleMetaPath = path.join(moduleFullPath, "_meta.yaml");
+
+          if (!(await fs.pathExists(moduleMetaPath))) {
+            console.warn(`  ⚠ Module not found: ${modulePath}`);
+            continue;
+          }
+
+          const moduleMetaContent = await fs.readFile(moduleMetaPath, "utf-8");
+          const moduleMeta = yaml.load(moduleMetaContent) as any;
+
+          console.log(`    ↳ Including module: ${modulePath}`);
+
+          // Process snippets referenced by the module
+          if (moduleMeta.snippets && Array.isArray(moduleMeta.snippets)) {
+            for (const snippetPath of moduleMeta.snippets) {
+              const parsed = await parseSnippetFile(snippetPath);
+              if (!parsed) continue;
+
+              // Merge dependencies
+              if (parsed.meta.dependencies) {
+                for (const dep of parsed.meta.dependencies) {
+                  if (!block.dependencies!.includes(dep)) {
+                    block.dependencies!.push(dep);
+                  }
+                }
+              }
+              if (parsed.meta.devDependencies) {
+                for (const dep of parsed.meta.devDependencies) {
+                  if (!block.devDependencies!.includes(dep)) {
+                    block.devDependencies!.push(dep);
+                  }
+                }
+              }
+
+              let outputPath: string;
+              if (parsed.meta.files && parsed.meta.files[0]) {
+                outputPath = parsed.meta.files[0].name;
+              } else {
+                outputPath = path.basename(snippetPath, ".hbs") + ".ts";
+              }
+
+              block.files.push({
+                path: outputPath,
+                content: parsed.body,
+              });
+
+              console.log(
+                `      ↳ Module snippet: ${snippetPath} → ${outputPath}`,
+              );
+            }
+          }
+
+          // Merge module's own dependencies
+          if (moduleMeta.dependencies) {
+            for (const dep of moduleMeta.dependencies) {
+              if (!block.dependencies!.includes(dep)) {
+                block.dependencies!.push(dep);
+              }
+            }
+          }
+          if (moduleMeta.devDependencies) {
+            for (const dep of moduleMeta.devDependencies) {
+              if (!block.devDependencies!.includes(dep)) {
+                block.devDependencies!.push(dep);
+              }
+            }
+          }
+
+          // Collect module's own files
+          async function collectModuleFiles(
+            dir: string,
+            basePath: string = "",
+          ) {
+            const entries = await fs.readdir(dir);
+            for (const entry of entries) {
+              if (entry === "_meta.yaml") continue;
+
+              const fullPath = path.join(dir, entry);
+              const relativePath = path.join(basePath, entry);
+              const stat = await fs.stat(fullPath);
+
+              if (stat.isDirectory()) {
+                await collectModuleFiles(fullPath, relativePath);
+              } else {
+                const content = await fs.readFile(fullPath, "utf-8");
+                block.files.push({
+                  path: relativePath,
+                  content,
+                });
+              }
+            }
+          }
+
+          await collectModuleFiles(moduleFullPath);
         }
       }
 

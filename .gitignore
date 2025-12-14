@@ -40,3 +40,4 @@ yarn-error.log*
 # Auto-generated (can be rebuilt with build-templates script)
 apps/web/public/registry/
 apps/web/public/templates/
+apps/web/public/modules/

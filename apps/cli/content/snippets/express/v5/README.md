@@ -7,6 +7,7 @@ A comprehensive collection of production-ready code snippets for Express.js v5 a
 - [Libs](#libs)
   - [Servers](#servers)
   - [Database Clients](#database-clients)
+  - [Queries / Storage](#queries--storage)
   - [Uploads](#uploads)
   - [Mailers](#mailers)
   - [External Services](#external-services)
@@ -118,6 +119,61 @@ Redis client using ioredis with automatic retry strategy and exponential backoff
 **Output:** `libs/db/redis.ts`
 
 **Dependencies:** `ioredis`
+
+---
+
+### Queries / Storage
+
+Generic Storage classes providing standardized CRUD operations, bulk operations, and pagination for various ORMs and database drivers.
+
+#### queries/drizzle-storage.hbs
+Generic Storage class for Drizzle ORM with type-safe operations. Includes filter builders with multiple operators (eq, neq, gt, gte, lt, lte, like, ilike), cursor and offset pagination, and bulk operations.
+
+**Output:** `libs/queries/drizzle-storage.ts`
+
+**Dependencies:** `drizzle-orm`, `pg`
+
+#### queries/prisma-storage.hbs
+Generic Storage class for Prisma ORM with full type safety. Includes relations support, upsert operations, transaction helpers, soft delete/restore, and cursor-based pagination with Prisma's native cursor API.
+
+**Output:** `libs/queries/prisma-storage.ts`
+
+**Dependencies:** `@prisma/client`
+
+#### queries/sequelize-storage.hbs
+Generic Storage class for Sequelize ORM. Supports paranoid mode for soft deletes, findOrCreate operations, transaction helpers, and findAndCountAll for efficient pagination.
+
+**Output:** `libs/queries/sequelize-storage.ts`
+
+**Dependencies:** `sequelize`, `pg`, `pg-hstore`
+
+#### queries/pg-storage.hbs
+Generic Storage class for raw PostgreSQL queries using pg Pool. Uses parameterized queries to prevent SQL injection, supports transactions with proper rollback, and includes RETURNING clauses for insert/update results.
+
+**Output:** `libs/queries/pg-storage.ts`
+
+**Dependencies:** `pg`
+
+#### queries/mysql-storage.hbs
+Generic Storage class for raw MySQL queries using mysql2. Uses prepared statements, supports connection pooling, transactions, and LAST_INSERT_ID for created records.
+
+**Output:** `libs/queries/mysql-storage.ts`
+
+**Dependencies:** `mysql2`
+
+#### queries/sqlite-storage.hbs
+Generic Storage class for SQLite using better-sqlite3. Synchronous API for maximum performance, WAL mode enabled, transaction support via .transaction(), and RETURNING clauses.
+
+**Output:** `libs/queries/sqlite-storage.ts`
+
+**Dependencies:** `better-sqlite3`
+
+#### queries/mongodb-storage.hbs
+Generic Storage class for MongoDB using native driver. Handles ObjectId conversion automatically, supports aggregation pipelines, cursor-based pagination, and soft delete/restore operations.
+
+**Output:** `libs/queries/mongodb-storage.ts`
+
+**Dependencies:** `mongodb`
 
 ---
 

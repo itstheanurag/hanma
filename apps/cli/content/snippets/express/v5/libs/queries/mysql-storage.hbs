@@ -1,0 +1,182 @@
+---
+name: mysql-storage
+description: Generic Storage class for raw MySQL queries using mysql2
+dependencies:
+  - mysql2
+files:
+  - name: libs/queries/mysql-storage.ts
+---
+import mysql, { Pool, PoolConnection, RowDataPacket, ResultSetHeader } from 'mysql2/promise';
+
+/**
+ * Generic Storage class for raw MySQL queries
+ * Uses prepared statements to prevent SQL injection
+ */
+
+export const pool = mysql.createPool({
+  uri: process.env.DATABASE_URL,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+});
+
+export interface PaginationOptions {
+  page?: number;
+  limit?: number;
+  cursor?: string | number;
+  cursorField?: string;
+  orderBy?: string;
+  orderDir?: 'ASC' | 'DESC';
+  where?: Record<string, unknown>;
+}
+
+export interface PaginatedResult<T> {
+  data: T[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+    nextCursor?: string | number;
+  };
+}
+
+export class MySqlStorage<T extends Record<string, unknown>> {
+  constructor(
+    private pool: Pool,
+    private tableName: string,
+    private primaryKey: string = 'id'
+  ) {}
+
+  private esc(id: string): string {
+    return `\`${id.replace(/`/g, '``')}\``;
+  }
+
+  async create(data: Partial<T>): Promise<T> {
+    const keys = Object.keys(data);
+    const values = Object.values(data);
+    const cols = keys.map(k => this.esc(k)).join(', ');
+    const ph = keys.map(() => '?').join(', ');
+    const [result] = await this.pool.execute<ResultSetHeader>(
+      `INSERT INTO ${this.esc(this.tableName)} (${cols}) VALUES (${ph})`, values
+    );
+    return this.findById(result.insertId) as Promise<T>;
+  }
+
+  async findAll(where?: Record<string, unknown>): Promise<T[]> {
+    let q = `SELECT * FROM ${this.esc(this.tableName)}`;
+    const v: unknown[] = [];
+    if (where && Object.keys(where).length) {
+      const conds = Object.keys(where).map(k => `${this.esc(k)} = ?`);
+      q += ` WHERE ${conds.join(' AND ')}`;
+      v.push(...Object.values(where));
+    }
+    const [rows] = await this.pool.execute<RowDataPacket[]>(q, v);
+    return rows as T[];
+  }
+
+  async findById(id: string | number): Promise<T | null> {
+    const [rows] = await this.pool.execute<RowDataPacket[]>(
+      `SELECT * FROM ${this.esc(this.tableName)} WHERE ${this.esc(this.primaryKey)} = ? LIMIT 1`, [id]
+    );
+    return (rows[0] as T) || null;
+  }
+
+  async findOne(where: Record<string, unknown>): Promise<T | null> {
+    const conds = Object.keys(where).map(k => `${this.esc(k)} = ?`);
+    const [rows] = await this.pool.execute<RowDataPacket[]>(
+      `SELECT * FROM ${this.esc(this.tableName)} WHERE ${conds.join(' AND ')} LIMIT 1`,
+      Object.values(where)
+    );
+    return (rows[0] as T) || null;
+  }
+
+  async update(id: string | number, data: Partial<T>): Promise<T | null> {
+    const keys = Object.keys(data);
+    if (!keys.length) return this.findById(id);
+    const set = keys.map(k => `${this.esc(k)} = ?`).join(', ');
+    await this.pool.execute(
+      `UPDATE ${this.esc(this.tableName)} SET ${set} WHERE ${this.esc(this.primaryKey)} = ?`,
+      [...Object.values(data), id]
+    );
+    return this.findById(id);
+  }
+
+  async delete(id: string | number): Promise<boolean> {
+    const [r] = await this.pool.execute<ResultSetHeader>(
+      `DELETE FROM ${this.esc(this.tableName)} WHERE ${this.esc(this.primaryKey)} = ?`, [id]
+    );
+    return r.affectedRows > 0;
+  }
+
+  async softDelete(id: string | number): Promise<T | null> {
+    await this.pool.execute(
+      `UPDATE ${this.esc(this.tableName)} SET deleted_at = NOW() WHERE ${this.esc(this.primaryKey)} = ?`, [id]
+    );
+    return this.findById(id);
+  }
+
+  async bulkCreate(data: Partial<T>[]): Promise<T[]> {
+    if (!data.length) return [];
+    const keys = Object.keys(data[0]);
+    const cols = keys.map(k => this.esc(k)).join(', ');
+    const ph = data.map(() => `(${keys.map(() => '?').join(', ')})`).join(', ');
+    const vals = data.flatMap(r => keys.map(k => (r as any)[k]));
+    const [res] = await this.pool.execute<ResultSetHeader>(
+      `INSERT INTO ${this.esc(this.tableName)} (${cols}) VALUES ${ph}`, vals
+    );
+    const ids = Array.from({ length: data.length }, (_, i) => res.insertId + i);
+    const [rows] = await this.pool.execute<RowDataPacket[]>(
+      `SELECT * FROM ${this.esc(this.tableName)} WHERE ${this.esc(this.primaryKey)} IN (${ids.map(() => '?').join(',')})`, ids
+    );
+    return rows as T[];
+  }
+
+  async bulkUpdate(ids: (string | number)[], data: Partial<T>): Promise<number> {
+    if (!ids.length) return 0;
+    const set = Object.keys(data).map(k => `${this.esc(k)} = ?`).join(', ');
+    const [r] = await this.pool.execute<ResultSetHeader>(
+      `UPDATE ${this.esc(this.tableName)} SET ${set} WHERE ${this.esc(this.primaryKey)} IN (${ids.map(() => '?').join(',')})`,
+      [...Object.values(data), ...ids]
+    );
+    return r.affectedRows;
+  }
+
+  async paginate(opts: PaginationOptions = {}): Promise<PaginatedResult<T>> {
+    const { page = 1, limit = 10, cursor, cursorField = this.primaryKey, orderBy = this.primaryKey, orderDir = 'DESC', where = {} } = opts;
+    const [[{ count: total }]] = await this.pool.execute<RowDataPacket[]>(
+      `SELECT COUNT(*) as count FROM ${this.esc(this.tableName)}`
+    ) as any;
+    const params: unknown[] = [];
+    let q = `SELECT * FROM ${this.esc(this.tableName)}`;
+    const conds: string[] = [];
+    if (Object.keys(where).length) {
+      conds.push(...Object.keys(where).map(k => `${this.esc(k)} = ?`));
+      params.push(...Object.values(where));
+    }
+    if (cursor) {
+      conds.push(`${this.esc(cursorField)} ${orderDir === 'ASC' ? '>' : '<'} ?`);
+      params.push(cursor);
+    }
+    if (conds.length) q += ` WHERE ${conds.join(' AND ')}`;
+    q += ` ORDER BY ${this.esc(orderBy)} ${orderDir} LIMIT ?`;
+    params.push(limit);
+    if (!cursor) { q += ` OFFSET ?`; params.push((page - 1) * limit); }
+    const [rows] = await this.pool.execute<RowDataPacket[]>(q, params);
+    const data = rows as T[];
+    const totalPages = Math.ceil(total / limit);
+    return {
+      data,
+      pagination: { total, page, limit, totalPages, hasNext: data.length === limit, hasPrev: page > 1, nextCursor: data.length ? (data[data.length - 1] as any)[cursorField] : undefined }
+    };
+  }
+
+  async transaction<R>(fn: (conn: PoolConnection) => Promise<R>): Promise<R> {
+    const conn = await this.pool.getConnection();
+    try { await conn.beginTransaction(); const r = await fn(conn); await conn.commit(); return r; }
+    catch (e) { await conn.rollback(); throw e; }
+    finally { conn.release(); }
+  }
+}

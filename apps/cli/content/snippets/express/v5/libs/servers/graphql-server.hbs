@@ -1,0 +1,112 @@
+---
+name: graphql-server
+description: Apollo GraphQL server setup with Express integration
+dependencies:
+  - "@apollo/server"
+  - graphql
+devDependencies:
+  - "@types/node"
+files:
+  - name: libs/servers/graphql-server.ts
+---
+import { ApolloServer } from '@apollo/server';
+import { expressMiddleware } from '@apollo/server/express4';
+import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
+import express from 'express';
+import http from 'http';
+import cors from 'cors';
+
+/**
+ * GraphQL type definitions
+ * Replace with your actual schema
+ */
+const typeDefs = `#graphql
+  type Query {
+    hello: String
+    health: HealthStatus
+  }
+
+  type HealthStatus {
+    status: String!
+    timestamp: String!
+  }
+`;
+
+/**
+ * GraphQL resolvers
+ * Replace with your actual resolvers
+ */
+const resolvers = {
+  Query: {
+    hello: () => 'Hello from GraphQL!',
+    health: () => ({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+    }),
+  },
+};
+
+/**
+ * Context interface for type-safe resolvers
+ */
+export interface GraphQLContext {
+  // Add your context properties here
+  // user?: { id: string; email: string };
+}
+
+/**
+ * Create and configure Apollo Server with Express
+ */
+export const createGraphQLServer = async (port = 4000) => {
+  const app = express();
+  const httpServer = http.createServer(app);
+
+  const server = new ApolloServer<GraphQLContext>({
+    typeDefs,
+    resolvers,
+    plugins: [
+      // Graceful shutdown plugin
+      ApolloServerPluginDrainHttpServer({ httpServer }),
+    ],
+    // Disable introspection in production
+    introspection: process.env.NODE_ENV !== 'production',
+  });
+
+  await server.start();
+
+  app.use(
+    '/graphql',
+    cors<cors.CorsRequest>(),
+    express.json(),
+    expressMiddleware(server, {
+      context: async ({ req }) => {
+        // Build your context here
+        // const token = req.headers.authorization || '';
+        // const user = await getUser(token);
+        return {
+          // user,
+        };
+      },
+    })
+  );
+
+  // Health check endpoint
+  app.get('/health', (_req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
+  await new Promise<void>((resolve) =>
+    httpServer.listen({ port }, resolve)
+  );
+
+  console.log(`GraphQL server running at http://localhost:${port}/graphql`);
+
+  return { app, httpServer, server };
+};
+
+/**
+ * Start the server
+ */
+if (require.main === module) {
+  createGraphQLServer().catch(console.error);
+}

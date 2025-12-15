@@ -1,0 +1,165 @@
+---
+name: http-server
+description: Standalone HTTP server without Express (native Node.js)
+dependencies: []
+devDependencies:
+  - "@types/node"
+files:
+  - name: libs/servers/http-server.ts
+---
+import http from 'http';
+import { URL } from 'url';
+
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'OPTIONS' | 'HEAD';
+
+interface RouteHandler {
+  (req: http.IncomingMessage, res: http.ServerResponse, params: Record<string, string>): void | Promise<void>;
+}
+
+interface Route {
+  method: HttpMethod;
+  pattern: RegExp;
+  paramNames: string[];
+  handler: RouteHandler;
+}
+
+/**
+ * Simple router for native HTTP server
+ */
+class Router {
+  private routes: Route[] = [];
+
+  private createRoute(method: HttpMethod, path: string, handler: RouteHandler) {
+    // Convert path params like :id to regex capture groups
+    const paramNames: string[] = [];
+    const pattern = path.replace(/:([^/]+)/g, (_, name) => {
+      paramNames.push(name);
+      return '([^/]+)';
+    });
+    
+    this.routes.push({
+      method,
+      pattern: new RegExp(`^${pattern}$`),
+      paramNames,
+      handler,
+    });
+  }
+
+  get(path: string, handler: RouteHandler) { this.createRoute('GET', path, handler); }
+  post(path: string, handler: RouteHandler) { this.createRoute('POST', path, handler); }
+  put(path: string, handler: RouteHandler) { this.createRoute('PUT', path, handler); }
+  patch(path: string, handler: RouteHandler) { this.createRoute('PATCH', path, handler); }
+  delete(path: string, handler: RouteHandler) { this.createRoute('DELETE', path, handler); }
+
+  match(method: string, path: string): { handler: RouteHandler; params: Record<string, string> } | null {
+    for (const route of this.routes) {
+      if (route.method !== method) continue;
+      
+      const match = path.match(route.pattern);
+      if (match) {
+        const params: Record<string, string> = {};
+        route.paramNames.forEach((name, i) => {
+          params[name] = match[i + 1];
+        });
+        return { handler: route.handler, params };
+      }
+    }
+    return null;
+  }
+}
+
+/**
+ * Parse JSON body from request
+ */
+const parseBody = <T>(req: http.IncomingMessage): Promise<T> => {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', (chunk) => { body += chunk; });
+    req.on('end', () => {
+      try {
+        resolve(body ? JSON.parse(body) : {} as T);
+      } catch (e) {
+        reject(new Error('Invalid JSON'));
+      }
+    });
+    req.on('error', reject);
+  });
+};
+
+/**
+ * Send JSON response
+ */
+const sendJson = (res: http.ServerResponse, statusCode: number, data: unknown) => {
+  res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(data));
+};
+
+/**
+ * Create HTTP server with router
+ */
+export const createHTTPServer = (port = 3000) => {
+  const router = new Router();
+
+  // Health check
+  router.get('/health', (_req, res) => {
+    sendJson(res, 200, { status: 'ok', timestamp: new Date().toISOString() });
+  });
+
+  // Example routes
+  router.get('/api/items', (_req, res) => {
+    sendJson(res, 200, { items: [] });
+  });
+
+  router.get('/api/items/:id', (_req, res, params) => {
+    sendJson(res, 200, { id: params.id, name: 'Item' });
+  });
+
+  router.post('/api/items', async (req, res) => {
+    const body = await parseBody<{ name: string }>(req);
+    sendJson(res, 201, { id: '1', ...body });
+  });
+
+  // Create server
+  const server = http.createServer(async (req, res) => {
+    const url = new URL(req.url || '/', `http://${req.headers.host}`);
+    const method = req.method || 'GET';
+    const path = url.pathname;
+
+    // CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    if (method === 'OPTIONS') {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    const matched = router.match(method, path);
+
+    if (matched) {
+      try {
+        await matched.handler(req, res, matched.params);
+      } catch (error) {
+        console.error('[ERROR]', error);
+        sendJson(res, 500, { error: 'Internal Server Error' });
+      }
+    } else {
+      sendJson(res, 404, { error: 'Not Found' });
+    }
+  });
+
+  server.listen(port, () => {
+    console.log(`HTTP server running on http://localhost:${port}`);
+  });
+
+  return { server, router };
+};
+
+/**
+ * Start the server
+ */
+if (require.main === module) {
+  createHTTPServer();
+}

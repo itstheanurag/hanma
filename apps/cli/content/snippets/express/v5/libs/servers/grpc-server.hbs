@@ -1,0 +1,188 @@
+---
+name: grpc-server
+description: gRPC server setup with health checking and graceful shutdown
+dependencies:
+  - "@grpc/grpc-js"
+  - "@grpc/proto-loader"
+devDependencies:
+  - "@types/node"
+files:
+  - name: libs/servers/grpc-server.ts
+---
+import * as grpc from '@grpc/grpc-js';
+import * as protoLoader from '@grpc/proto-loader';
+import path from 'path';
+
+/**
+ * Proto file loading options
+ */
+const PROTO_LOADER_OPTIONS: protoLoader.Options = {
+  keepCase: true,
+  longs: String,
+  enums: String,
+  defaults: true,
+  oneofs: true,
+};
+
+/**
+ * Load proto definition
+ * Create a .proto file and update the path
+ */
+const loadProtoDefinition = (protoPath: string) => {
+  const packageDefinition = protoLoader.loadSync(protoPath, PROTO_LOADER_OPTIONS);
+  return grpc.loadPackageDefinition(packageDefinition);
+};
+
+/**
+ * Example service implementation
+ * Replace with your actual service handlers
+ */
+const exampleServiceHandlers = {
+  // Unary RPC
+  SayHello: (
+    call: grpc.ServerUnaryCall<{ name: string }, { message: string }>,
+    callback: grpc.sendUnaryData<{ message: string }>
+  ) => {
+    const name = call.request.name || 'World';
+    callback(null, { message: `Hello ${name}!` });
+  },
+
+  // Server streaming RPC
+  StreamNumbers: (
+    call: grpc.ServerWritableStream<{ count: number }, { number: number }>
+  ) => {
+    const count = call.request.count || 5;
+    for (let i = 1; i <= count; i++) {
+      call.write({ number: i });
+    }
+    call.end();
+  },
+
+  // Client streaming RPC
+  AccumulateNumbers: (
+    call: grpc.ServerReadableStream<{ number: number }, { sum: number }>,
+    callback: grpc.sendUnaryData<{ sum: number }>
+  ) => {
+    let sum = 0;
+    call.on('data', (data: { number: number }) => {
+      sum += data.number;
+    });
+    call.on('end', () => {
+      callback(null, { sum });
+    });
+  },
+
+  // Bidirectional streaming RPC
+  Chat: (
+    call: grpc.ServerDuplexStream<{ message: string }, { reply: string }>
+  ) => {
+    call.on('data', (data: { message: string }) => {
+      call.write({ reply: `You said: ${data.message}` });
+    });
+    call.on('end', () => {
+      call.end();
+    });
+  },
+};
+
+/**
+ * Health check service implementation
+ * Standard gRPC health checking protocol
+ */
+const healthServiceHandlers = {
+  Check: (
+    call: grpc.ServerUnaryCall<{ service: string }, { status: number }>,
+    callback: grpc.sendUnaryData<{ status: number }>
+  ) => {
+    // 0 = UNKNOWN, 1 = SERVING, 2 = NOT_SERVING
+    callback(null, { status: 1 });
+  },
+  Watch: (
+    call: grpc.ServerWritableStream<{ service: string }, { status: number }>
+  ) => {
+    // Send current status
+    call.write({ status: 1 });
+    // Keep stream open for status updates
+  },
+};
+
+/**
+ * Create and configure gRPC server
+ */
+export const createGRPCServer = async (port = 50051) => {
+  const server = new grpc.Server();
+
+  // Add your services here
+  // const proto = loadProtoDefinition(path.join(__dirname, 'your-service.proto'));
+  // server.addService(proto.yourpackage.YourService.service, exampleServiceHandlers);
+  
+  // Example: Add health service
+  // const healthProto = loadProtoDefinition(path.join(__dirname, 'health.proto'));
+  // server.addService(healthProto.grpc.health.v1.Health.service, healthServiceHandlers);
+
+  return new Promise<grpc.Server>((resolve, reject) => {
+    server.bindAsync(
+      `0.0.0.0:${port}`,
+      grpc.ServerCredentials.createInsecure(),
+      (error, boundPort) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        console.log(`gRPC server running on port ${boundPort}`);
+        resolve(server);
+      }
+    );
+  });
+};
+
+/**
+ * Graceful shutdown handler
+ */
+export const shutdownGRPCServer = (server: grpc.Server): Promise<void> => {
+  return new Promise((resolve) => {
+    console.log('Shutting down gRPC server...');
+    server.tryShutdown((error) => {
+      if (error) {
+        console.error('[ERROR] gRPC shutdown error:', error);
+        server.forceShutdown();
+      }
+      console.log('gRPC server stopped');
+      resolve();
+    });
+  });
+};
+
+/**
+ * Start the server
+ */
+if (require.main === module) {
+  createGRPCServer()
+    .then((server) => {
+      process.on('SIGTERM', () => shutdownGRPCServer(server));
+      process.on('SIGINT', () => shutdownGRPCServer(server));
+    })
+    .catch(console.error);
+}
+
+/**
+ * Example .proto file content:
+ * 
+ * syntax = "proto3";
+ * package example;
+ * 
+ * service ExampleService {
+ *   rpc SayHello (HelloRequest) returns (HelloResponse);
+ *   rpc StreamNumbers (NumberRequest) returns (stream NumberResponse);
+ *   rpc AccumulateNumbers (stream NumberRequest) returns (SumResponse);
+ *   rpc Chat (stream ChatMessage) returns (stream ChatReply);
+ * }
+ * 
+ * message HelloRequest { string name = 1; }
+ * message HelloResponse { string message = 1; }
+ * message NumberRequest { int32 number = 1; }
+ * message NumberResponse { int32 number = 1; }
+ * message SumResponse { int32 sum = 1; }
+ * message ChatMessage { string message = 1; }
+ * message ChatReply { string reply = 1; }
+ */

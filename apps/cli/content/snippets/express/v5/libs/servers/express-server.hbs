@@ -1,0 +1,110 @@
+---
+name: express-server
+description: Production-ready HTTP server setup with graceful shutdown
+dependencies:
+  - express
+  - cors
+  - helmet
+devDependencies:
+  - "@types/node"
+  - "@types/express"
+  - "@types/cors"
+files:
+  - name: libs/server.ts
+---
+import http from "http";
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+
+const app = express();
+const server = http.createServer(app);
+
+// Track active connections for graceful shutdown
+const sockets = new Set<import("net").Socket>();
+
+server.on("connection", (socket) => {
+  sockets.add(socket);
+  socket.on("close", () => sockets.delete(socket));
+});
+
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cors());
+app.use(helmet());
+
+// Health check endpoint
+app.get("/health", (_req, res) => {
+  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+// TODO: Add your routes here
+// app.use("/api", yourRouter);
+
+// 404 handler
+app.use((_req, res) => {
+  res.status(404).json({ success: false, message: "Resource not found" });
+});
+
+// Error handler
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error("[ERROR]", err.stack || err.message);
+  res.status(500).json({
+    success: false,
+    message: process.env.NODE_ENV === "development" ? err.message : "Internal Server Error",
+  });
+});
+
+const PORT = process.env.PORT || 3000;
+
+export const startServer = async () => {
+  if (server.listening) {
+    console.log("Server already running");
+    return;
+  }
+
+  try {
+    server.listen(PORT, () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+      console.log(`Health check: http://localhost:${PORT}/health`);
+    });
+  } catch (err) {
+    console.error("Failed to start server:", err);
+    process.exit(1);
+  }
+};
+
+export const shutdown = async (signal: string) => {
+  console.log(`\n${signal} received. Shutting down gracefully...`);
+
+  server.close(() => {
+    console.log("HTTP server closed");
+    process.exit(0);
+  });
+
+  // Force shutdown after 10s
+  setTimeout(() => {
+    console.warn(
+      `Grace period expired. Forcing close of ${sockets.size} remaining connection(s).`
+    );
+    sockets.forEach((socket) => socket.destroy());
+    process.exit(1);
+  }, 10000).unref();
+};
+
+// Start the server
+startServer();
+
+// Graceful shutdown handlers
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
+
+process.on("unhandledRejection", (reason, p) => {
+  console.error("Unhandled Rejection at:", p, "reason:", reason);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception:", err);
+  process.exit(1);
+});

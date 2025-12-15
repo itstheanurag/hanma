@@ -1,0 +1,153 @@
+---
+name: pagination
+description: Cursor and offset pagination helpers for database queries
+dependencies: []
+devDependencies:
+  - "@types/express"
+files:
+  - name: utils/pagination.ts
+---
+/**
+ * Offset pagination result
+ */
+export interface OffsetPaginationResult<T> {
+  data: T[];
+  meta: {
+    total: number;
+    page: number;
+    perPage: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+}
+
+/**
+ * Cursor pagination result
+ */
+export interface CursorPaginationResult<T> {
+  data: T[];
+  meta: {
+    nextCursor: string | null;
+    prevCursor: string | null;
+    hasMore: boolean;
+  };
+}
+
+/**
+ * Parse pagination params from request query
+ */
+export const parseOffsetParams = (query: {
+  page?: string;
+  limit?: string;
+  perPage?: string;
+}) => {
+  const page = Math.max(1, parseInt(query.page || '1', 10));
+  const limit = Math.min(100, Math.max(1, parseInt(query.limit || query.perPage || '20', 10)));
+  const offset = (page - 1) * limit;
+
+  return { page, limit, offset };
+};
+
+/**
+ * Build offset pagination response
+ */
+export const buildOffsetResponse = <T>(
+  data: T[],
+  total: number,
+  page: number,
+  limit: number
+): OffsetPaginationResult<T> => {
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    data,
+    meta: {
+      total,
+      page,
+      perPage: limit,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
+  };
+};
+
+/**
+ * Parse cursor pagination params
+ */
+export const parseCursorParams = (query: {
+  cursor?: string;
+  limit?: string;
+  direction?: 'next' | 'prev';
+}) => {
+  const cursor = query.cursor || null;
+  const limit = Math.min(100, Math.max(1, parseInt(query.limit || '20', 10)));
+  const direction = query.direction || 'next';
+
+  return { cursor, limit, direction };
+};
+
+/**
+ * Encode cursor (base64)
+ */
+export const encodeCursor = (value: string | number | Date): string => {
+  const str = value instanceof Date ? value.toISOString() : String(value);
+  return Buffer.from(str).toString('base64url');
+};
+
+/**
+ * Decode cursor (base64)
+ */
+export const decodeCursor = (cursor: string): string => {
+  try {
+    return Buffer.from(cursor, 'base64url').toString('utf8');
+  } catch {
+    throw new Error('Invalid cursor');
+  }
+};
+
+/**
+ * Build cursor pagination response
+ * @param data - Query results (should include +1 extra item to detect hasMore)
+ * @param limit - Requested limit
+ * @param cursorField - Field to use for cursor (e.g., 'id', 'createdAt')
+ */
+export const buildCursorResponse = <T extends Record<string, unknown>>(
+  data: T[],
+  limit: number,
+  cursorField: keyof T
+): CursorPaginationResult<T> => {
+  const hasMore = data.length > limit;
+  const items = hasMore ? data.slice(0, limit) : data;
+
+  const nextCursor = hasMore && items.length > 0
+    ? encodeCursor(items[items.length - 1][cursorField] as string | number)
+    : null;
+
+  const prevCursor = items.length > 0
+    ? encodeCursor(items[0][cursorField] as string | number)
+    : null;
+
+  return {
+    data: items,
+    meta: {
+      nextCursor,
+      prevCursor,
+      hasMore,
+    },
+  };
+};
+
+/**
+ * Example usage with Prisma:
+ * 
+ * const { page, limit, offset } = parseOffsetParams(req.query);
+ * 
+ * const [users, total] = await Promise.all([
+ *   prisma.user.findMany({ skip: offset, take: limit }),
+ *   prisma.user.count(),
+ * ]);
+ * 
+ * res.json(buildOffsetResponse(users, total, page, limit));
+ */

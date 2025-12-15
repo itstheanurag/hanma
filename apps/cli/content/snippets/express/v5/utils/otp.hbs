@@ -1,0 +1,141 @@
+---
+name: otp-generator
+description: TOTP/HOTP 2FA utilities for authentication
+dependencies:
+  - otpauth
+  - qrcode
+devDependencies:
+  - "@types/qrcode"
+files:
+  - name: utils/otp.ts
+---
+import * as OTPAuth from 'otpauth';
+import QRCode from 'qrcode';
+
+/**
+ * OTP configuration
+ */
+const config = {
+  issuer: process.env.OTP_ISSUER || 'MyApp',
+  algorithm: 'SHA1' as const,
+  digits: 6,
+  period: 30, // seconds
+};
+
+/**
+ * Generate a new TOTP secret for a user
+ * @param accountName - User identifier (email, username)
+ */
+export const generateSecret = (accountName: string) => {
+  const totp = new OTPAuth.TOTP({
+    issuer: config.issuer,
+    label: accountName,
+    algorithm: config.algorithm,
+    digits: config.digits,
+    period: config.period,
+    secret: new OTPAuth.Secret({ size: 20 }),
+  });
+
+  return {
+    secret: totp.secret.base32,
+    uri: totp.toString(),
+  };
+};
+
+/**
+ * Generate QR code as data URL
+ * @param uri - OTP Auth URI from generateSecret()
+ */
+export const generateQRCode = async (uri: string): Promise<string> => {
+  return QRCode.toDataURL(uri, {
+    errorCorrectionLevel: 'M',
+    type: 'image/png',
+    width: 256,
+    margin: 2,
+  });
+};
+
+/**
+ * Generate QR code as SVG string
+ * @param uri - OTP Auth URI from generateSecret()
+ */
+export const generateQRCodeSVG = async (uri: string): Promise<string> => {
+  return QRCode.toString(uri, {
+    type: 'svg',
+    margin: 2,
+  });
+};
+
+/**
+ * Verify a TOTP token
+ * @param secret - User's stored secret (base32)
+ * @param token - Token from authenticator app
+ * @param window - Time window to allow (default: 1 = ±30 seconds)
+ */
+export const verifyToken = (
+  secret: string,
+  token: string,
+  window = 1
+): boolean => {
+  const totp = new OTPAuth.TOTP({
+    issuer: config.issuer,
+    algorithm: config.algorithm,
+    digits: config.digits,
+    period: config.period,
+    secret: OTPAuth.Secret.fromBase32(secret),
+  });
+
+  // Returns delta (time steps difference) or null if invalid
+  const delta = totp.validate({ token, window });
+  return delta !== null;
+};
+
+/**
+ * Generate current TOTP token (for testing)
+ * @param secret - User's stored secret (base32)
+ */
+export const generateToken = (secret: string): string => {
+  const totp = new OTPAuth.TOTP({
+    issuer: config.issuer,
+    algorithm: config.algorithm,
+    digits: config.digits,
+    period: config.period,
+    secret: OTPAuth.Secret.fromBase32(secret),
+  });
+
+  return totp.generate();
+};
+
+/**
+ * Generate backup codes for account recovery
+ * @param count - Number of backup codes (default: 10)
+ */
+export const generateBackupCodes = (count = 10): string[] => {
+  const codes: string[] = [];
+  
+  for (let i = 0; i < count; i++) {
+    // Generate 8-character alphanumeric code
+    const code = Array.from({ length: 8 }, () =>
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.charAt(
+        Math.floor(Math.random() * 36)
+      )
+    ).join('');
+    
+    // Format as XXXX-XXXX for readability
+    codes.push(`${code.slice(0, 4)}-${code.slice(4)}`);
+  }
+  
+  return codes;
+};
+
+/**
+ * Example usage:
+ * 
+ * // Setup 2FA
+ * const { secret, uri } = generateSecret('user@example.com');
+ * const qrCode = await generateQRCode(uri);
+ * // Store secret in database, send qrCode to frontend
+ * 
+ * // Verify during login
+ * const isValid = verifyToken(user.otpSecret, submittedToken);
+ */

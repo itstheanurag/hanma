@@ -1,0 +1,107 @@
+---
+name: slug-generator
+description: URL-safe slug generator with collision handling
+dependencies:
+  - slugify
+files:
+  - name: utils/slug.ts
+---
+import slugify from 'slugify';
+
+/**
+ * Slugify options
+ */
+const defaultOptions: Parameters<typeof slugify>[1] = {
+  lower: true,
+  strict: true,    // Remove special characters
+  trim: true,
+  locale: 'en',
+};
+
+/**
+ * Generate a URL-safe slug from a string
+ * @param text - Text to convert to slug
+ * @param options - Optional slugify options
+ */
+export const generateSlug = (
+  text: string,
+  options?: Parameters<typeof slugify>[1]
+): string => {
+  return slugify(text, { ...defaultOptions, ...options });
+};
+
+/**
+ * Generate a unique slug with random suffix
+ * Useful when slug collision is possible
+ * @param text - Text to convert to slug
+ * @param length - Length of random suffix (default: 6)
+ */
+export const generateUniqueSlug = (text: string, length = 6): string => {
+  const baseSlug = generateSlug(text);
+  const randomSuffix = Math.random()
+    .toString(36)
+    .substring(2, 2 + length);
+  return `${baseSlug}-${randomSuffix}`;
+};
+
+/**
+ * Generate slug with timestamp suffix
+ * Ensures uniqueness based on creation time
+ * @param text - Text to convert to slug
+ */
+export const generateTimestampSlug = (text: string): string => {
+  const baseSlug = generateSlug(text);
+  const timestamp = Date.now().toString(36);
+  return `${baseSlug}-${timestamp}`;
+};
+
+/**
+ * Check if a string is a valid slug
+ */
+export const isValidSlug = (slug: string): boolean => {
+  return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug);
+};
+
+/**
+ * Sanitize an existing slug (fix invalid characters)
+ */
+export const sanitizeSlug = (slug: string): string => {
+  return slug
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+};
+
+/**
+ * Create a unique slug checker function
+ * Use with database to ensure uniqueness
+ * 
+ * @example
+ * const slugChecker = createSlugChecker(async (slug) => {
+ *   const exists = await prisma.post.findUnique({ where: { slug } });
+ *   return !!exists;
+ * });
+ * 
+ * const uniqueSlug = await slugChecker('my-post-title');
+ */
+export const createSlugChecker = (
+  checkExists: (slug: string) => Promise<boolean>
+) => {
+  return async (text: string, maxAttempts = 10): Promise<string> => {
+    let slug = generateSlug(text);
+    let attempt = 0;
+
+    while (await checkExists(slug)) {
+      attempt++;
+      if (attempt >= maxAttempts) {
+        // Fall back to UUID-based slug
+        slug = generateUniqueSlug(text, 8);
+        break;
+      }
+      slug = `${generateSlug(text)}-${attempt}`;
+    }
+
+    return slug;
+  };
+};

@@ -1,0 +1,145 @@
+---
+name: crypto-utils
+description: Encryption and decryption utilities using AES-256-GCM
+dependencies: []
+files:
+  - name: utils/crypto.ts
+---
+import {
+  randomBytes,
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+} from 'crypto';
+
+/**
+ * Encryption configuration
+ * Uses AES-256-GCM (authenticated encryption)
+ */
+const ALGORITHM = 'aes-256-gcm';
+const IV_LENGTH = 16;
+const AUTH_TAG_LENGTH = 16;
+const SALT_LENGTH = 32;
+
+/**
+ * Get or generate encryption key from environment
+ * Key must be 32 bytes (256 bits) for AES-256
+ */
+const getEncryptionKey = (): Buffer => {
+  const key = process.env.ENCRYPTION_KEY;
+  
+  if (!key) {
+    throw new Error('ENCRYPTION_KEY environment variable is required');
+  }
+  
+  // If key is 64 hex chars (32 bytes), use directly
+  if (/^[a-f0-9]{64}$/i.test(key)) {
+    return Buffer.from(key, 'hex');
+  }
+  
+  // Otherwise, derive a key using SHA-256
+  return createHash('sha256').update(key).digest();
+};
+
+/**
+ * Encrypt a string
+ * Returns: base64 encoded string containing IV + encrypted data + auth tag
+ */
+export const encrypt = (plaintext: string): string => {
+  const key = getEncryptionKey();
+  const iv = randomBytes(IV_LENGTH);
+  
+  const cipher = createCipheriv(ALGORITHM, key, iv, {
+    authTagLength: AUTH_TAG_LENGTH,
+  });
+  
+  let encrypted = cipher.update(plaintext, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  
+  const authTag = cipher.getAuthTag();
+  
+  // Format: IV (16 bytes) + encrypted data + auth tag (16 bytes)
+  const result = Buffer.concat([
+    iv,
+    Buffer.from(encrypted, 'hex'),
+    authTag,
+  ]);
+  
+  return result.toString('base64');
+};
+
+/**
+ * Decrypt a string
+ * Input: base64 encoded string from encrypt()
+ */
+export const decrypt = (encrypted: string): string => {
+  const key = getEncryptionKey();
+  const data = Buffer.from(encrypted, 'base64');
+  
+  // Extract components
+  const iv = data.subarray(0, IV_LENGTH);
+  const authTag = data.subarray(data.length - AUTH_TAG_LENGTH);
+  const ciphertext = data.subarray(IV_LENGTH, data.length - AUTH_TAG_LENGTH);
+  
+  const decipher = createDecipheriv(ALGORITHM, key, iv, {
+    authTagLength: AUTH_TAG_LENGTH,
+  });
+  
+  decipher.setAuthTag(authTag);
+  
+  let decrypted = decipher.update(ciphertext);
+  decrypted = Buffer.concat([decrypted, decipher.final()]);
+  
+  return decrypted.toString('utf8');
+};
+
+/**
+ * Generate a random hex string
+ * @param bytes - Number of random bytes (default: 32 = 64 hex chars)
+ */
+export const generateRandomHex = (bytes = 32): string => {
+  return randomBytes(bytes).toString('hex');
+};
+
+/**
+ * Generate a random base64url string (URL-safe)
+ * @param bytes - Number of random bytes
+ */
+export const generateRandomBase64 = (bytes = 32): string => {
+  return randomBytes(bytes).toString('base64url');
+};
+
+/**
+ * Hash a string with SHA-256
+ */
+export const hashSha256 = (input: string): string => {
+  return createHash('sha256').update(input).digest('hex');
+};
+
+/**
+ * Compare two strings in constant time (timing-safe)
+ * Use for comparing tokens, hashes, etc.
+ */
+export const secureCompare = (a: string, b: string): boolean => {
+  if (a.length !== b.length) return false;
+  
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  
+  return require('crypto').timingSafeEqual(bufA, bufB);
+};
+
+/**
+ * Encrypt an object (JSON)
+ */
+export const encryptObject = <T>(obj: T): string => {
+  return encrypt(JSON.stringify(obj));
+};
+
+/**
+ * Decrypt to object (JSON)
+ */
+export const decryptObject = <T>(encrypted: string): T => {
+  const decrypted = decrypt(encrypted);
+  return JSON.parse(decrypted) as T;
+};

@@ -1,0 +1,98 @@
+---
+name: compression
+description: Response compression middleware for gzip/brotli
+dependencies:
+  - compression
+devDependencies:
+  - "@types/compression"
+  - "@types/express"
+files:
+  - name: middleware/utils/compression.ts
+---
+import compression from 'compression';
+import { Request, Response, RequestHandler } from 'express';
+
+/**
+ * Default compression middleware
+ * Compresses responses larger than 1KB using gzip
+ */
+export const compress: RequestHandler = compression({
+  // Only compress responses larger than 1KB
+  threshold: 1024,
+  
+  // Compression level (1-9, higher = more compression but slower)
+  level: 6,
+  
+  // Filter function to decide what to compress
+  filter: (req: Request, res: Response) => {
+    // Don't compress if client doesn't accept it
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    
+    // Use compression's default filter (checks Accept-Encoding)
+    return compression.filter(req, res);
+  },
+});
+
+/**
+ * Aggressive compression for bandwidth-critical applications
+ * Higher compression level, lower threshold
+ */
+export const compressAggressive: RequestHandler = compression({
+  threshold: 512,
+  level: 9,
+  filter: (req: Request, res: Response) => {
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    return compression.filter(req, res);
+  },
+});
+
+/**
+ * Light compression for CPU-constrained servers
+ * Lower compression level, higher threshold
+ */
+export const compressLight: RequestHandler = compression({
+  threshold: 2048,
+  level: 1,
+  filter: (req: Request, res: Response) => {
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    return compression.filter(req, res);
+  },
+});
+
+/**
+ * Skip compression for specific content types
+ * Useful when serving already-compressed content (images, videos)
+ */
+export const compressSelectiveTypes: RequestHandler = compression({
+  threshold: 1024,
+  level: 6,
+  filter: (req: Request, res: Response) => {
+    const contentType = res.getHeader('Content-Type') as string;
+    
+    // Skip already-compressed formats
+    const skipTypes = [
+      'image/',
+      'video/',
+      'audio/',
+      'application/zip',
+      'application/gzip',
+      'application/x-rar',
+    ];
+    
+    if (contentType && skipTypes.some(type => contentType.includes(type))) {
+      return false;
+    }
+    
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    
+    return compression.filter(req, res);
+  },
+});

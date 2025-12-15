@@ -1,0 +1,76 @@
+---
+name: async-handler
+description: Async/await wrapper to eliminate try-catch boilerplate in route handlers
+dependencies: []
+devDependencies:
+  - "@types/express"
+files:
+  - name: middleware/utils/async-handler.ts
+---
+import { Request, Response, NextFunction, RequestHandler } from 'express';
+
+/**
+ * Type for async request handlers
+ */
+type AsyncRequestHandler = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => Promise<unknown>;
+
+/**
+ * Wraps an async route handler to automatically catch and forward errors
+ * Eliminates the need for try-catch blocks in every route
+ * 
+ * @example
+ * // Instead of:
+ * router.get('/users', async (req, res, next) => {
+ *   try {
+ *     const users = await User.findAll();
+ *     res.json(users);
+ *   } catch (err) {
+ *     next(err);
+ *   }
+ * });
+ * 
+ * // You can write:
+ * router.get('/users', asyncHandler(async (req, res) => {
+ *   const users = await User.findAll();
+ *   res.json(users);
+ * }));
+ */
+export const asyncHandler = (fn: AsyncRequestHandler): RequestHandler => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+};
+
+/**
+ * Alternative syntax using higher-order function
+ * Can be used as a decorator-like pattern
+ * 
+ * @example
+ * const getUsers = catchAsync(async (req, res) => {
+ *   const users = await User.findAll();
+ *   res.json(users);
+ * });
+ * 
+ * router.get('/users', getUsers);
+ */
+export const catchAsync = asyncHandler; // Alias for those who prefer this name
+
+/**
+ * Wrap multiple handlers at once
+ * 
+ * @example
+ * const [getUser, createUser, deleteUser] = wrapHandlers(
+ *   async (req, res) => { ... },
+ *   async (req, res) => { ... },
+ *   async (req, res) => { ... },
+ * );
+ */
+export const wrapHandlers = (
+  ...handlers: AsyncRequestHandler[]
+): RequestHandler[] => {
+  return handlers.map(asyncHandler);
+};

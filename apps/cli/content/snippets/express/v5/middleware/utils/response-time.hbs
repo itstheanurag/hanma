@@ -1,0 +1,128 @@
+---
+name: response-time
+description: Response time middleware with headers and optional logging
+dependencies: []
+devDependencies:
+  - "@types/express"
+files:
+  - name: middleware/response-time.ts
+---
+import { Request, Response, NextFunction, RequestHandler } from 'express';
+
+/**
+ * Response time options
+ */
+interface ResponseTimeOptions {
+  /** Header name (default: X-Response-Time) */
+  header?: string;
+  /** Include unit suffix (default: true, e.g., "12.34ms") */
+  suffix?: boolean;
+  /** Number of decimal places (default: 2) */
+  digits?: number;
+  /** Enable console logging (default: false in production) */
+  log?: boolean;
+  /** Log slow requests above this threshold in ms (default: 1000) */
+  slowThreshold?: number;
+}
+
+/**
+ * Response time middleware
+ * - Adds X-Response-Time header (high precision using hrtime)
+ * - Optional request/response logging
+ * - Slow request warnings
+ */
+export const responseTime = (options: ResponseTimeOptions = {}): RequestHandler => {
+  const {
+    header = 'X-Response-Time',
+    suffix = true,
+    digits = 2,
+    log = process.env.NODE_ENV !== 'production',
+    slowThreshold = 1000,
+  } = options;
+
+  return (req: Request, res: Response, next: NextFunction) => {
+    const start = process.hrtime.bigint();
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+
+    // Log incoming request (only in dev or if explicitly enabled)
+    if (log) {
+      console.log(
+        `[REQ] [${new Date().toISOString()}] ${req.method} ${req.originalUrl} - IP: ${ip}`
+      );
+    }
+
+    res.on('finish', () => {
+      const end = process.hrtime.bigint();
+      const durationNs = Number(end - start);
+      const durationMs = durationNs / 1_000_000;
+
+      const value = suffix
+        ? `${durationMs.toFixed(digits)}ms`
+        : durationMs.toFixed(digits);
+
+      // Set header if not already sent
+      if (!res.headersSent) {
+        res.setHeader(header, value);
+      }
+
+      // Log response (only in dev or if explicitly enabled)
+      if (log) {
+        console.log(
+          `[RES] [${new Date().toISOString()}] ${req.method} ${req.originalUrl} - ${res.statusCode} - ${value}`
+        );
+      }
+
+      // Always warn about slow requests (even in production)
+      if (durationMs > slowThreshold) {
+        console.warn(
+          `Slow request: ${req.method} ${req.originalUrl} took ${value}`
+        );
+      }
+    });
+
+    next();
+  };
+};
+
+/**
+ * Default middleware - headers only, no logging in production
+ */
+export const defaultResponseTime: RequestHandler = responseTime();
+
+/**
+ * Development middleware - with full logging
+ */
+export const devResponseTime: RequestHandler = responseTime({ log: true });
+
+/**
+ * Production middleware - headers only, no logging
+ */
+export const prodResponseTime: RequestHandler = responseTime({ log: false });
+
+/**
+ * Server Timing API support
+ * Adds Server-Timing header for detailed performance metrics
+ * Visible in browser DevTools Network tab
+ */
+export const serverTiming = (): RequestHandler => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const start = process.hrtime.bigint();
+    const timings: string[] = [];
+
+    // Attach method to add custom timings
+    (res as any).timing = (name: string, duration: number, desc?: string) => {
+      timings.push(desc ? `${name};dur=${duration};desc="${desc}"` : `${name};dur=${duration}`);
+    };
+
+    res.on('finish', () => {
+      const totalMs = Number(process.hrtime.bigint() - start) / 1_000_000;
+      timings.unshift(`total;dur=${totalMs.toFixed(2)};desc="Total"`);
+
+      if (!res.headersSent) {
+        res.setHeader('Server-Timing', timings.join(', '));
+      }
+    });
+
+    next();
+  };
+};

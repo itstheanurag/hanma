@@ -1,0 +1,91 @@
+---
+name: request-id
+description: Request ID middleware for distributed tracing and logging
+dependencies:
+  - uuid
+devDependencies:
+  - "@types/uuid"
+  - "@types/express"
+files:
+  - name: middleware/utils/request-id.ts
+---
+import { Request, Response, NextFunction } from 'express';
+import { v4 as uuidv4 } from 'uuid';
+
+/**
+ * Header names for request ID
+ */
+const REQUEST_ID_HEADER = 'X-Request-ID';
+const CORRELATION_ID_HEADER = 'X-Correlation-ID';
+
+/**
+ * Extended request with ID fields
+ */
+export interface RequestWithId extends Request {
+  id: string;
+  correlationId?: string;
+}
+
+/**
+ * Request ID Middleware
+ * 
+ * Generates a unique ID for each request and attaches it to:
+ * - req.id (for use in application code)
+ * - Response header X-Request-ID (for client correlation)
+ * 
+ * If the client sends X-Request-ID, it will be preserved.
+ * If X-Correlation-ID is sent, it's stored for distributed tracing.
+ */
+export const requestId = (
+  req: RequestWithId,
+  res: Response,
+  next: NextFunction
+) => {
+  // Use existing request ID from client or generate new one
+  const existingId = req.headers[REQUEST_ID_HEADER.toLowerCase()] as string;
+  const id = existingId || uuidv4();
+
+  // Store correlation ID if provided (for distributed tracing)
+  const correlationId = req.headers[CORRELATION_ID_HEADER.toLowerCase()] as string;
+
+  // Attach to request object
+  req.id = id;
+  if (correlationId) {
+    req.correlationId = correlationId;
+  }
+
+  // Set response header so client can correlate
+  res.setHeader(REQUEST_ID_HEADER, id);
+  if (correlationId) {
+    res.setHeader(CORRELATION_ID_HEADER, correlationId);
+  }
+
+  next();
+};
+
+/**
+ * Get request ID from request object (type-safe)
+ */
+export const getRequestId = (req: Request): string => {
+  return (req as RequestWithId).id || 'unknown';
+};
+
+/**
+ * Create a child logger context with request ID
+ * Useful for structured logging
+ * 
+ * @example
+ * const context = createLogContext(req);
+ * logger.info('User logged in', context);
+ * // Output: { requestId: '...', correlationId: '...', message: 'User logged in' }
+ */
+export const createLogContext = (req: Request) => {
+  const typedReq = req as RequestWithId;
+  return {
+    requestId: typedReq.id,
+    correlationId: typedReq.correlationId,
+    method: req.method,
+    path: req.path,
+    ip: req.ip,
+  };
+};

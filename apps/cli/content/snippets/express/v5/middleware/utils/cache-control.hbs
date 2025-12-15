@@ -1,0 +1,138 @@
+---
+name: cache-control
+description: Cache control middleware for setting HTTP caching headers
+dependencies: []
+devDependencies:
+  - "@types/express"
+files:
+  - name: middleware/utils/cache-control.ts
+---
+import { Request, Response, NextFunction, RequestHandler } from 'express';
+
+/**
+ * Cache control options
+ */
+interface CacheOptions {
+  /** Max age in seconds */
+  maxAge?: number;
+  /** Whether the response can be cached by shared caches (CDNs) */
+  public?: boolean;
+  /** Whether to add must-revalidate directive */
+  mustRevalidate?: boolean;
+  /** S-maxage for shared caches (CDNs) */
+  sMaxAge?: number;
+  /** Stale-while-revalidate in seconds */
+  staleWhileRevalidate?: number;
+  /** Stale-if-error in seconds */
+  staleIfError?: number;
+}
+
+/**
+ * Build Cache-Control header value from options
+ */
+const buildCacheControl = (options: CacheOptions): string => {
+  const directives: string[] = [];
+
+  if (options.public) {
+    directives.push('public');
+  } else {
+    directives.push('private');
+  }
+
+  if (options.maxAge !== undefined) {
+    directives.push(`max-age=${options.maxAge}`);
+  }
+
+  if (options.sMaxAge !== undefined) {
+    directives.push(`s-maxage=${options.sMaxAge}`);
+  }
+
+  if (options.mustRevalidate) {
+    directives.push('must-revalidate');
+  }
+
+  if (options.staleWhileRevalidate !== undefined) {
+    directives.push(`stale-while-revalidate=${options.staleWhileRevalidate}`);
+  }
+
+  if (options.staleIfError !== undefined) {
+    directives.push(`stale-if-error=${options.staleIfError}`);
+  }
+
+  return directives.join(', ');
+};
+
+/**
+ * Create cache control middleware with custom options
+ */
+export const cacheControl = (options: CacheOptions): RequestHandler => {
+  const headerValue = buildCacheControl(options);
+
+  return (_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('Cache-Control', headerValue);
+    next();
+  };
+};
+
+/**
+ * No cache - for sensitive or dynamic content
+ * Prevents all caching
+ */
+export const noCache: RequestHandler = (_req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+};
+
+/**
+ * Short cache - for frequently updated content
+ * 5 minutes browser, 1 minute CDN
+ */
+export const shortCache: RequestHandler = cacheControl({
+  public: true,
+  maxAge: 300, // 5 minutes
+  sMaxAge: 60, // 1 minute for CDN
+  staleWhileRevalidate: 60,
+});
+
+/**
+ * Medium cache - for semi-static content
+ * 1 hour browser, 30 minutes CDN
+ */
+export const mediumCache: RequestHandler = cacheControl({
+  public: true,
+  maxAge: 3600, // 1 hour
+  sMaxAge: 1800, // 30 minutes for CDN
+  staleWhileRevalidate: 300,
+  staleIfError: 86400, // 1 day fallback on errors
+});
+
+/**
+ * Long cache - for static assets
+ * 1 year (use with versioned/hashed filenames)
+ */
+export const longCache: RequestHandler = cacheControl({
+  public: true,
+  maxAge: 31536000, // 1 year
+  mustRevalidate: false,
+});
+
+/**
+ * Immutable cache - for content that never changes
+ * Use with content-addressable URLs (hash in filename)
+ */
+export const immutableCache: RequestHandler = (_req, res, next) => {
+  res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  next();
+};
+
+/**
+ * Private cache - for user-specific content
+ * Cached in browser only, not in CDNs
+ */
+export const privateCache: RequestHandler = cacheControl({
+  public: false,
+  maxAge: 3600, // 1 hour
+  mustRevalidate: true,
+});

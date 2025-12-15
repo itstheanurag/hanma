@@ -1,0 +1,158 @@
+---
+name: s3-upload
+description: AWS S3 file upload client with presigned URLs
+dependencies:
+  - "@aws-sdk/client-s3"
+  - "@aws-sdk/s3-request-presigner"
+files:
+  - name: libs/s3.ts
+---
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+  HeadObjectCommand,
+} from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { randomBytes } from 'crypto';
+
+/**
+ * S3 client configuration
+ */
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || 'us-east-1',
+  credentials: process.env.AWS_ACCESS_KEY_ID
+    ? {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+      }
+    : undefined, // Use IAM role if no credentials
+});
+
+const BUCKET = process.env.S3_BUCKET || '';
+
+/**
+ * Generate unique file key
+ */
+const generateKey = (filename: string, folder = 'uploads'): string => {
+  const ext = filename.split('.').pop() || '';
+  const uniqueId = randomBytes(8).toString('hex');
+  const date = new Date().toISOString().split('T')[0];
+  return `${folder}/${date}/${uniqueId}.${ext}`;
+};
+
+/**
+ * Upload a file to S3
+ */
+export const uploadFile = async (
+  buffer: Buffer,
+  filename: string,
+  contentType: string,
+  folder = 'uploads'
+): Promise<{ key: string; url: string }> => {
+  const key = generateKey(filename, folder);
+
+  await s3Client.send(
+    new PutObjectCommand({
+      Bucket: BUCKET,
+      Key: key,
+      Body: buffer,
+      ContentType: contentType,
+    })
+  );
+
+  const url = `https://${BUCKET}.s3.amazonaws.com/${key}`;
+  return { key, url };
+};
+
+/**
+ * Generate presigned upload URL (for direct browser upload)
+ * @param filename - Original filename
+ * @param contentType - MIME type
+ * @param expiresIn - URL expiration in seconds (default: 5 minutes)
+ */
+export const getUploadUrl = async (
+  filename: string,
+  contentType: string,
+  expiresIn = 300,
+  folder = 'uploads'
+): Promise<{ uploadUrl: string; key: string; publicUrl: string }> => {
+  const key = generateKey(filename, folder);
+
+  const command = new PutObjectCommand({
+    Bucket: BUCKET,
+    Key: key,
+    ContentType: contentType,
+  });
+
+  const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn });
+  const publicUrl = `https://${BUCKET}.s3.amazonaws.com/${key}`;
+
+  return { uploadUrl, key, publicUrl };
+};
+
+/**
+ * Generate presigned download URL (for private files)
+ * @param key - S3 object key
+ * @param expiresIn - URL expiration in seconds (default: 1 hour)
+ */
+export const getDownloadUrl = async (
+  key: string,
+  expiresIn = 3600
+): Promise<string> => {
+  const command = new GetObjectCommand({
+    Bucket: BUCKET,
+    Key: key,
+  });
+
+  return getSignedUrl(s3Client, command, { expiresIn });
+};
+
+/**
+ * Delete a file from S3
+ */
+export const deleteFile = async (key: string): Promise<void> => {
+  await s3Client.send(
+    new DeleteObjectCommand({
+      Bucket: BUCKET,
+      Key: key,
+    })
+  );
+};
+
+/**
+ * Check if a file exists
+ */
+export const fileExists = async (key: string): Promise<boolean> => {
+  try {
+    await s3Client.send(
+      new HeadObjectCommand({
+        Bucket: BUCKET,
+        Key: key,
+      })
+    );
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Get file metadata
+ */
+export const getFileMetadata = async (key: string) => {
+  const response = await s3Client.send(
+    new HeadObjectCommand({
+      Bucket: BUCKET,
+      Key: key,
+    })
+  );
+
+  return {
+    contentType: response.ContentType,
+    contentLength: response.ContentLength,
+    lastModified: response.LastModified,
+    etag: response.ETag,
+  };
+};

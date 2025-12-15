@@ -7,6 +7,8 @@ A comprehensive collection of production-ready code snippets for Express.js v5 a
 - [Libs](#libs)
   - [Servers](#servers)
   - [Database Clients](#database-clients)
+  - [Uploads](#uploads)
+  - [Mailers](#mailers)
   - [External Services](#external-services)
   - [Core Utilities](#core-utilities)
 - [Middleware](#middleware)
@@ -119,6 +121,81 @@ Redis client using ioredis with automatic retry strategy and exponential backoff
 
 ---
 
+### Uploads
+
+Cloud storage upload utilities with presigned URL support for direct browser uploads.
+
+#### uploads/aws-s3.hbs
+AWS S3 file upload with presigned PUT URLs and POST policies. Supports direct browser uploads via presigned URLs, form-based uploads with POST policies (size limits, content-type restrictions), download URL generation, and file operations (delete, exists, metadata).
+
+**Output:** `libs/uploads/aws-s3.ts`
+
+**Dependencies:** `@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`
+
+#### uploads/gcp-storage.hbs
+Google Cloud Storage upload with V4 signed URLs. Supports presigned upload URLs, resumable upload URLs for large files, download URL generation, and file operations. Uses service account or default credentials.
+
+**Output:** `libs/uploads/gcp-storage.ts`
+
+**Dependencies:** `@google-cloud/storage`
+
+#### uploads/azure-blob.hbs
+Azure Blob Storage upload with SAS (Shared Access Signature) URLs. Generates time-limited upload and download URLs, supports access tier management (Hot/Cool/Archive), and includes standard file operations.
+
+**Output:** `libs/uploads/azure-blob.ts`
+
+**Dependencies:** `@azure/storage-blob`
+
+#### uploads/cloudflare-r2.hbs
+Cloudflare R2 upload using S3-compatible API. Generates presigned PUT URLs and POST policies identical to S3, supports custom public URL domains, and includes all standard file operations.
+
+**Output:** `libs/uploads/cloudflare-r2.ts`
+
+**Dependencies:** `@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`
+
+#### uploads/cloudinary.hbs
+Cloudinary upload with signed parameters for direct browser uploads. Generates signed upload params, supports transformations and format restrictions, includes URL transformation helpers, and automatic format/quality optimization.
+
+**Output:** `libs/uploads/cloudinary.ts`
+
+**Dependencies:** `cloudinary`
+
+---
+
+### Mailers
+
+Email sending utilities with multiple provider support.
+
+#### mailers/aws-ses.hbs
+Email sending using AWS SES (Simple Email Service). Supports single and bulk email sending, SES templates, HTML/text content, and includes pre-built templates for password reset, welcome, and email verification.
+
+**Output:** `libs/mailers/aws-ses.ts`
+
+**Dependencies:** `@aws-sdk/client-ses`
+
+#### mailers/nodemailer.hbs
+Email sending using Nodemailer with SMTP configuration. Supports attachments, HTML/text content, transporter verification, and includes pre-built email templates. Works with any SMTP provider.
+
+**Output:** `libs/mailers/nodemailer.ts`
+
+**Dependencies:** `nodemailer`
+
+#### mailers/resend.hbs
+Email sending using Resend API. Modern email API with React email support, batch sending, and scheduling. Includes pre-built templates and supports attachments.
+
+**Output:** `libs/mailers/resend.ts`
+
+**Dependencies:** `resend`
+
+#### mailers/sendgrid.hbs
+Email sending using SendGrid API. Supports dynamic templates, batch sending, categories/tracking, and includes pre-built HTML templates. Full SendGrid API v3 integration.
+
+**Output:** `libs/mailers/sendgrid.ts`
+
+**Dependencies:** `@sendgrid/mail`
+
+---
+
 ### External Services
 
 #### sentry.hbs
@@ -127,13 +204,6 @@ Sentry error tracking and performance monitoring integration. Provides request h
 **Output:** `libs/sentry.ts`
 
 **Dependencies:** `@sentry/node`
-
-#### mailer.hbs
-Email sending utility using Nodemailer with SMTP configuration from environment variables. Includes transporter verification, attachment support, and pre-built email templates for password reset, welcome messages, and email verification.
-
-**Output:** `libs/mailer.ts`
-
-**Dependencies:** `nodemailer`
 
 #### s3-upload.hbs
 AWS S3 file upload client using AWS SDK v3. Supports direct uploads, presigned URL generation for browser uploads, presigned download URLs for private files, file deletion, existence checks, and metadata retrieval. Generates unique file keys with date-based organization.

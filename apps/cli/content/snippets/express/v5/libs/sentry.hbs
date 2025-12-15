@@ -1,0 +1,139 @@
+---
+name: sentry
+description: Sentry error tracking and performance monitoring setup
+dependencies:
+  - "@sentry/node"
+devDependencies:
+  - "@types/express"
+files:
+  - name: libs/sentry.ts
+---
+import * as Sentry from '@sentry/node';
+import { Express, Request, Response, NextFunction } from 'express';
+
+/**
+ * Initialize Sentry
+ * Call this before creating your Express app
+ */
+export const initSentry = () => {
+  if (!process.env.SENTRY_DSN) {
+    console.warn('[WARN] SENTRY_DSN not set, error tracking disabled');
+    return;
+  }
+
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'development',
+    release: process.env.npm_package_version,
+    
+    // Performance Monitoring
+    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+    
+    // Only send errors in production
+    enabled: process.env.NODE_ENV === 'production',
+    
+    // Filter sensitive data
+    beforeSend(event) {
+      // Remove sensitive headers
+      if (event.request?.headers) {
+        delete event.request.headers['authorization'];
+        delete event.request.headers['cookie'];
+        delete event.request.headers['x-api-key'];
+      }
+      return event;
+    },
+  });
+
+  console.log('[OK] Sentry initialized');
+};
+
+/**
+ * Setup Sentry request handler
+ * Add this BEFORE your routes
+ */
+export const sentryRequestHandler = () => {
+  return Sentry.Handlers.requestHandler({
+    // Include user info if available
+    user: ['id', 'email'],
+  });
+};
+
+/**
+ * Setup Sentry tracing handler
+ * Add this BEFORE your routes, after requestHandler
+ */
+export const sentryTracingHandler = () => {
+  return Sentry.Handlers.tracingHandler();
+};
+
+/**
+ * Setup Sentry error handler
+ * Add this AFTER your routes, before your error handler
+ */
+export const sentryErrorHandler = () => {
+  return Sentry.Handlers.errorHandler({
+    shouldHandleError(error) {
+      // Capture 4xx and 5xx errors
+      const status = (error as any).status || (error as any).statusCode || 500;
+      return status >= 400;
+    },
+  });
+};
+
+/**
+ * Capture exception manually
+ */
+export const captureException = (error: Error, context?: Record<string, unknown>) => {
+  Sentry.captureException(error, {
+    extra: context,
+  });
+};
+
+/**
+ * Set user context for error tracking
+ * Call this after user authentication
+ */
+export const setUser = (user: { id: string; email?: string; [key: string]: unknown }) => {
+  Sentry.setUser(user);
+};
+
+/**
+ * Clear user context (on logout)
+ */
+export const clearUser = () => {
+  Sentry.setUser(null);
+};
+
+/**
+ * Add breadcrumb for debugging
+ */
+export const addBreadcrumb = (message: string, category?: string, data?: Record<string, unknown>) => {
+  Sentry.addBreadcrumb({
+    message,
+    category: category || 'custom',
+    data,
+    level: 'info',
+  });
+};
+
+/**
+ * Example usage in app.ts:
+ * 
+ * import { initSentry, sentryRequestHandler, sentryTracingHandler, sentryErrorHandler } from './libs/sentry';
+ * 
+ * // Initialize before app
+ * initSentry();
+ * 
+ * const app = express();
+ * 
+ * // Add handlers in order
+ * app.use(sentryRequestHandler());
+ * app.use(sentryTracingHandler());
+ * 
+ * // Your routes here
+ * app.use('/api', routes);
+ * 
+ * // Error handler (must be after routes)
+ * app.use(sentryErrorHandler());
+ * app.use(errorHandler);
+ */

@@ -1,0 +1,139 @@
+---
+name: http-client
+description: HTTP client wrapper with retry, timeout, and error handling
+dependencies:
+  - axios
+files:
+  - name: libs/http-client.ts
+---
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
+
+/**
+ * HTTP client configuration
+ */
+interface HttpClientConfig {
+  baseURL?: string;
+  timeout?: number;
+  retries?: number;
+  retryDelay?: number;
+  headers?: Record<string, string>;
+}
+
+/**
+ * Create a configured HTTP client instance
+ */
+export const createHttpClient = (config: HttpClientConfig = {}): AxiosInstance => {
+  const {
+    baseURL,
+    timeout = 10000,
+    retries = 3,
+    retryDelay = 1000,
+    headers = {},
+  } = config;
+
+  const client = axios.create({
+    baseURL,
+    timeout,
+    headers: {
+      'Content-Type': 'application/json',
+      ...headers,
+    },
+  });
+
+  // Request interceptor
+  client.interceptors.request.use(
+    (config) => {
+      // Add timestamp for debugging
+      (config as any).metadata = { startTime: Date.now() };
+      return config;
+    },
+    (error) => Promise.reject(error)
+  );
+
+  // Response interceptor with retry logic
+  client.interceptors.response.use(
+    (response) => {
+      // Calculate request duration
+      const duration = Date.now() - (response.config as any).metadata?.startTime;
+      console.log(`[OK] ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status} (${duration}ms)`);
+      return response;
+    },
+    async (error: AxiosError) => {
+      const config = error.config as AxiosRequestConfig & { _retryCount?: number };
+      
+      if (!config) {
+        return Promise.reject(error);
+      }
+
+      config._retryCount = config._retryCount || 0;
+
+      // Retry on network errors or 5xx errors
+      const shouldRetry =
+        (error.code === 'ECONNABORTED' || // Timeout
+         error.code === 'ENOTFOUND' ||    // DNS
+         error.code === 'ECONNRESET' ||   // Connection reset
+         (error.response && error.response.status >= 500)) &&
+        config._retryCount < retries;
+
+      if (shouldRetry) {
+        config._retryCount++;
+        console.warn(`[WARN] Retrying request (${config._retryCount}/${retries}): ${config.url}`);
+        
+        // Exponential backoff
+        await new Promise((r) => setTimeout(r, retryDelay * config._retryCount!));
+        
+        return client(config);
+      }
+
+      // Log error
+      console.error(`[ERROR] ${config.method?.toUpperCase()} ${config.url} - ${error.response?.status || error.code}`);
+      
+      return Promise.reject(error);
+    }
+  );
+
+  return client;
+};
+
+/**
+ * Default HTTP client instance
+ */
+export const httpClient = createHttpClient();
+
+/**
+ * Type-safe request helpers
+ */
+export const http = {
+  get: <T>(url: string, config?: AxiosRequestConfig) =>
+    httpClient.get<T>(url, config).then((r) => r.data),
+
+  post: <T>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
+    httpClient.post<T>(url, data, config).then((r) => r.data),
+
+  put: <T>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
+    httpClient.put<T>(url, data, config).then((r) => r.data),
+
+  patch: <T>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
+    httpClient.patch<T>(url, data, config).then((r) => r.data),
+
+  delete: <T>(url: string, config?: AxiosRequestConfig) =>
+    httpClient.delete<T>(url, config).then((r) => r.data),
+};
+
+/**
+ * Error handling utility
+ */
+export const isHttpError = (error: unknown): error is AxiosError => {
+  return axios.isAxiosError(error);
+};
+
+export const getErrorMessage = (error: unknown): string => {
+  if (isHttpError(error)) {
+    return (
+      (error.response?.data as any)?.message ||
+      error.message ||
+      'An error occurred'
+    );
+  }
+  return error instanceof Error ? error.message : 'Unknown error';
+};

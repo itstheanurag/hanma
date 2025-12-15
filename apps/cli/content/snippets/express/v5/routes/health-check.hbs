@@ -1,0 +1,137 @@
+---
+name: health-check
+description: Health and readiness check endpoints for monitoring
+dependencies: []
+devDependencies:
+  - "@types/express"
+files:
+  - name: routes/health.ts
+---
+import { Router, Request, Response } from 'express';
+
+const router = Router();
+
+interface HealthCheckResult {
+  status: 'healthy' | 'unhealthy';
+  timestamp: string;
+  uptime: number;
+  checks?: Record<string, CheckResult>;
+}
+
+interface CheckResult {
+  status: 'pass' | 'fail';
+  latency?: number;
+  message?: string;
+}
+
+/**
+ * Register health check functions
+ * Add your database, cache, external service checks here
+ */
+const healthChecks: Record<string, () => Promise<CheckResult>> = {
+  // Example: Database check
+  // database: async () => {
+  //   const start = Date.now();
+  //   try {
+  //     await prisma.$queryRaw`SELECT 1`;
+  //     return { status: 'pass', latency: Date.now() - start };
+  //   } catch (e) {
+  //     return { status: 'fail', message: (e as Error).message };
+  //   }
+  // },
+  
+  // Example: Redis check
+  // redis: async () => {
+  //   const start = Date.now();
+  //   try {
+  //     await redis.ping();
+  //     return { status: 'pass', latency: Date.now() - start };
+  //   } catch (e) {
+  //     return { status: 'fail', message: (e as Error).message };
+  //   }
+  // },
+};
+
+/**
+ * Run all health checks
+ */
+const runHealthChecks = async (): Promise<HealthCheckResult> => {
+  const checks: Record<string, CheckResult> = {};
+  let allHealthy = true;
+
+  for (const [name, check] of Object.entries(healthChecks)) {
+    try {
+      checks[name] = await check();
+      if (checks[name].status === 'fail') {
+        allHealthy = false;
+      }
+    } catch (error) {
+      checks[name] = { status: 'fail', message: (error as Error).message };
+      allHealthy = false;
+    }
+  }
+
+  return {
+    status: allHealthy ? 'healthy' : 'unhealthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    checks: Object.keys(checks).length > 0 ? checks : undefined,
+  };
+};
+
+/**
+ * GET /health
+ * Basic health check - returns 200 if server is responding
+ * Use for load balancer health probes
+ */
+router.get('/health', (_req: Request, res: Response) => {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+/**
+ * GET /health/live
+ * Liveness probe - is the server running?
+ * Returns 200 if process is alive
+ */
+router.get('/health/live', (_req: Request, res: Response) => {
+  res.status(200).json({
+    status: 'alive',
+    uptime: process.uptime(),
+  });
+});
+
+/**
+ * GET /health/ready
+ * Readiness probe - is the server ready to accept traffic?
+ * Checks all dependencies (database, cache, etc.)
+ */
+router.get('/health/ready', async (_req: Request, res: Response) => {
+  const result = await runHealthChecks();
+  const statusCode = result.status === 'healthy' ? 200 : 503;
+  res.status(statusCode).json(result);
+});
+
+/**
+ * GET /health/detailed
+ * Detailed health check with all dependency statuses
+ * Protected in production (add auth middleware if needed)
+ */
+router.get('/health/detailed', async (_req: Request, res: Response) => {
+  const result = await runHealthChecks();
+  
+  res.status(result.status === 'healthy' ? 200 : 503).json({
+    ...result,
+    version: process.env.npm_package_version || 'unknown',
+    environment: process.env.NODE_ENV || 'development',
+    memory: {
+      used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+      total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
+      unit: 'MB',
+    },
+  });
+});
+
+export default router;

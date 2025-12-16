@@ -1,0 +1,110 @@
+{
+  "id": "database",
+  "title": "Database Templates",
+  "description": "ORM and database driver configurations",
+  "templates": [
+    {
+      "id": "drizzle-postgres",
+      "name": "Drizzle + PostgreSQL",
+      "description": "Drizzle ORM with PostgreSQL connection pool",
+      "purpose": "Lightweight, type-safe ORM for PostgreSQL. Great performance and developer experience.",
+      "features": [
+        "Drizzle ORM setup",
+        "PostgreSQL connection pool",
+        "Schema file template",
+        "Drizzle Kit for migrations",
+        "Studio for database UI"
+      ],
+      "command": "hanma create my-api --framework express-rest-api --database drizzle-postgres",
+      "dependencies": ["drizzle-orm", "pg", "dotenv"],
+      "devDependencies": ["drizzle-kit", "@types/pg"],
+      "scripts": {
+        "db:generate": "drizzle-kit generate",
+        "db:push": "drizzle-kit push",
+        "db:studio": "drizzle-kit studio"
+      },
+      "envVars": [
+        { "name": "DATABASE_URL", "required": true, "example": "postgresql://user:pass@localhost:5432/db" }
+      ]
+    },
+    {
+      "id": "drizzle-mysql",
+      "name": "Drizzle + MySQL",
+      "description": "Drizzle ORM with MySQL connection pool",
+      "purpose": "MySQL support with Drizzle ORM. Great for legacy MySQL databases or MySQL-first teams.",
+      "features": [
+        "Drizzle ORM setup",
+        "MySQL2 connection pool",
+        "Schema file template",
+        "Drizzle Kit migrations"
+      ],
+      "command": "hanma create my-api --framework express-rest-api --database drizzle-mysql",
+      "dependencies": ["drizzle-orm", "mysql2", "dotenv"],
+      "devDependencies": ["drizzle-kit"],
+      "envVars": [
+        { "name": "DATABASE_URL", "required": true, "example": "mysql://user:pass@localhost:3306/db" }
+      ]
+    },
+    {
+      "id": "drizzle-sqlite",
+      "name": "Drizzle + SQLite",
+      "description": "Drizzle ORM with SQLite for local development or embedded databases",
+      "purpose": "Zero-config database for development, testing, or embedded applications. No separate database server needed.",
+      "features": [
+        "Drizzle ORM setup",
+        "better-sqlite3 sync API",
+        "File-based or in-memory",
+        "Zero external dependencies"
+      ],
+      "command": "hanma create my-api --framework express-rest-api --database drizzle-sqlite",
+      "dependencies": ["drizzle-orm", "better-sqlite3", "dotenv"],
+      "devDependencies": ["drizzle-kit", "@types/better-sqlite3"],
+      "envVars": [
+        { "name": "DATABASE_PATH", "default": "./data/database.db" }
+      ]
+    },
+    {
+      "id": "prisma-postgres",
+      "name": "Prisma + PostgreSQL",
+      "description": "Prisma ORM with PostgreSQL",
+      "purpose": "Full-featured ORM with excellent DX, migrations, and Prisma Studio. Best for teams who prefer schema-first development.",
+      "features": [
+        "Prisma Client generation",
+        "Schema-first migrations",
+        "Prisma Studio database UI",
+        "Type-safe queries",
+        "Relation handling"
+      ],
+      "command": "hanma create my-api --framework express-rest-api --database prisma-postgres",
+      "dependencies": ["@prisma/client", "dotenv"],
+      "devDependencies": ["prisma"],
+      "scripts": {
+        "db:generate": "prisma generate",
+        "db:push": "prisma db push",
+        "db:studio": "prisma studio",
+        "db:migrate": "prisma migrate dev"
+      },
+      "envVars": [
+        { "name": "DATABASE_URL", "required": true }
+      ]
+    },
+    {
+      "id": "mongodb",
+      "name": "MongoDB",
+      "description": "MongoDB native driver setup",
+      "purpose": "Document database with native driver. Best for flexible schemas, rapid prototyping, and JSON-like data.",
+      "features": [
+        "Native MongoDB driver",
+        "Connection pooling",
+        "CRUD operations",
+        "Aggregation pipeline",
+        "Change streams support"
+      ],
+      "command": "hanma create my-api --framework express-rest-api --database mongodb",
+      "dependencies": ["mongodb", "dotenv"],
+      "envVars": [
+        { "name": "MONGODB_URI", "default": "mongodb://localhost:27017/database" }
+      ]
+    }
+  ]
+}

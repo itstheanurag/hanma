@@ -1,0 +1,49 @@
+{
+  "id": "presets",
+  "title": "Security Presets",
+  "description": "Pre-configured security middleware bundles",
+  "templates": [
+    {
+      "id": "security-basic",
+      "name": "Basic Security",
+      "description": "Essential security for most applications",
+      "purpose": "Good default security configuration for development and staging.",
+      "features": [
+        "Security headers with Helmet",
+        "CORS configuration",
+        "Basic rate limiting"
+      ],
+      "includes": [
+        "Helmet - Security headers",
+        "CORS - Cross-origin configuration",
+        "Rate Limiter - Request throttling"
+      ],
+      "command": "--preset security-basic",
+      "dependencies": ["helmet", "cors", "express-rate-limit"],
+      "envVars": ["CORS_ORIGIN", "RATE_LIMIT_WINDOW_MS", "RATE_LIMIT_MAX"]
+    },
+    {
+      "id": "security-strict",
+      "name": "Strict Security",
+      "description": "Production-grade security with sanitization",
+      "purpose": "Full security stack for production deployments.",
+      "features": [
+        "Complete security headers",
+        "XSS prevention",
+        "Request tracing",
+        "Response compression"
+      ],
+      "includes": [
+        "Helmet - Security headers",
+        "CORS - Cross-origin configuration",
+        "Rate Limiter - Request throttling",
+        "Sanitize - XSS prevention",
+        "Request ID - Tracing",
+        "Compression - Response compression"
+      ],
+      "command": "--preset security-strict",
+      "dependencies": ["helmet", "cors", "express-rate-limit", "sanitize-html", "compression", "uuid"],
+      "envVars": ["CORS_ORIGIN", "RATE_LIMIT_WINDOW_MS", "RATE_LIMIT_MAX"]
+    }
+  ]
+}

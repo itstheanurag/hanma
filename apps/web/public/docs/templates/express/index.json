@@ -1,0 +1,58 @@
+{
+  "title": "Templates",
+  "description": "Project scaffolding templates for quick project setup. Combine base templates with database, auth, features, and security presets.",
+  "categoryFiles": [
+    {
+      "id": "base",
+      "file": "base.json",
+      "title": "Base Templates",
+      "description": "Framework starters that define the core project structure"
+    },
+    {
+      "id": "database",
+      "file": "database.json",
+      "title": "Database Templates",
+      "description": "ORM and database driver configurations"
+    },
+    {
+      "id": "auth",
+      "file": "auth.json",
+      "title": "Authentication Templates",
+      "description": "Authentication provider configurations"
+    },
+    {
+      "id": "features",
+      "file": "features.json",
+      "title": "Feature Templates",
+      "description": "Optional add-on features (can select multiple)"
+    },
+    {
+      "id": "presets",
+      "file": "presets.json",
+      "title": "Security Presets",
+      "description": "Pre-configured security middleware bundles"
+    }
+  ],
+  "examples": [
+    {
+      "title": "Minimal API",
+      "description": "Start with just Express",
+      "command": "hanma create my-api --framework express-minimal --pm pnpm"
+    },
+    {
+      "title": "REST API with Drizzle",
+      "description": "Production REST API with PostgreSQL",
+      "command": "hanma create my-api --framework express-rest-api --database drizzle-postgres --pm pnpm"
+    },
+    {
+      "title": "Full Stack Production",
+      "description": "Everything you need for production",
+      "command": "hanma create my-api --framework express-rest-api --database drizzle-postgres --auth jwt-auth --mailer resend --upload s3 --preset security-strict --pm pnpm"
+    },
+    {
+      "title": "GraphQL API",
+      "description": "GraphQL with Prisma",
+      "command": "hanma create my-api --framework express-graphql --database prisma-postgres --pm pnpm"
+    }
+  ]
+}

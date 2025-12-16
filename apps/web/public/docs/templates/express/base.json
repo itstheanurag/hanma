@@ -1,0 +1,154 @@
+{
+  "id": "base",
+  "title": "Base Templates",
+  "description": "Framework starters that define the core project structure",
+  "templates": [
+    {
+      "id": "express-minimal",
+      "name": "Express Minimal",
+      "description": "Bare Express.js v5 setup with TypeScript",
+      "purpose": "Start with the absolute minimum. Perfect for learning, prototypes, or when you want full control over what gets added.",
+      "features": [
+        "Express.js v5",
+        "TypeScript configuration",
+        "Dotenv for environment variables",
+        "Graceful shutdown handling",
+        "Health check endpoint"
+      ],
+      "includes": [],
+      "command": "hanma create my-api --framework express-minimal",
+      "structure": [
+        "src/index.ts - Entry point",
+        "tsconfig.json - TypeScript config",
+        ".env.example - Environment template"
+      ],
+      "dependencies": ["express", "dotenv"],
+      "devDependencies": ["typescript", "@types/node", "@types/express", "tsx"],
+      "scripts": {
+        "dev": "tsx watch src/index.ts",
+        "build": "tsc",
+        "start": "node dist/index.js"
+      },
+      "envVars": [
+        { "name": "PORT", "default": "3000" },
+        { "name": "NODE_ENV", "default": "development" }
+      ],
+      "nextSteps": [
+        "Add a database: --database drizzle-postgres",
+        "Add authentication: --auth jwt-auth",
+        "Add security: --preset security-basic"
+      ]
+    },
+    {
+      "id": "express-rest-api",
+      "name": "Express REST API",
+      "description": "Production-ready REST API with validation, error handling, and structured routing",
+      "purpose": "Best starting point for building REST APIs. Includes everything you need for production-ready endpoints.",
+      "features": [
+        "Express.js v5 with full middleware stack",
+        "Zod request validation",
+        "Structured error handling",
+        "CORS configuration",
+        "Helmet security headers",
+        "Health check routes",
+        "Async handler wrapper"
+      ],
+      "includes": [
+        "express-server - Production server setup",
+        "cors - CORS configuration",
+        "error-middleware - Error handling",
+        "validation-zod - Request validation",
+        "async-handler - Async wrapper",
+        "health-check - Health routes"
+      ],
+      "command": "hanma create my-api --framework express-rest-api",
+      "structure": [
+        "src/index.ts - Entry point",
+        "src/libs/server.ts - Server setup",
+        "src/libs/cors.ts - CORS config",
+        "src/middleware/error.ts - Error handler",
+        "src/middleware/validate.ts - Validation",
+        "src/routes/health.ts - Health endpoints"
+      ],
+      "dependencies": ["express", "cors", "helmet", "zod", "dotenv"],
+      "devDependencies": ["typescript", "@types/node", "@types/express", "@types/cors", "tsx"],
+      "scripts": {
+        "dev": "tsx watch src/index.ts",
+        "build": "tsc",
+        "start": "node dist/index.js"
+      },
+      "envVars": [
+        { "name": "PORT", "default": "3000" },
+        { "name": "NODE_ENV", "default": "development" },
+        { "name": "CORS_ORIGIN", "default": "http://localhost:3000" }
+      ],
+      "recommended": true
+    },
+    {
+      "id": "express-graphql",
+      "name": "Express GraphQL",
+      "description": "Apollo GraphQL server with Express integration",
+      "purpose": "Build a GraphQL API with Apollo Server. Best for complex data requirements and when clients need flexible querying.",
+      "features": [
+        "Apollo Server 4",
+        "GraphQL schema and resolvers",
+        "Context for authentication",
+        "Graceful shutdown",
+        "Introspection control",
+        "Health check endpoint"
+      ],
+      "includes": ["graphql-server"],
+      "command": "hanma create my-api --framework express-graphql",
+      "dependencies": ["express", "@apollo/server", "graphql", "cors", "dotenv"],
+      "devDependencies": ["typescript", "@types/node", "@types/express", "@types/cors", "tsx"],
+      "envVars": [
+        { "name": "PORT", "default": "4000" },
+        { "name": "NODE_ENV", "default": "development" }
+      ]
+    },
+    {
+      "id": "express-trpc",
+      "name": "Express tRPC",
+      "description": "tRPC server with Express adapter for end-to-end type safety",
+      "purpose": "Full-stack TypeScript with automatic type inference from backend to frontend. Best for monorepo setups.",
+      "features": [
+        "tRPC with Express adapter",
+        "Zod validation",
+        "Public and protected procedures",
+        "Nested routers",
+        "Error formatting",
+        "Type export for clients"
+      ],
+      "includes": ["trpc-server"],
+      "command": "hanma create my-api --framework express-trpc",
+      "dependencies": ["express", "@trpc/server", "zod", "cors", "dotenv"],
+      "devDependencies": ["typescript", "@types/node", "@types/express", "@types/cors", "tsx"],
+      "envVars": [
+        { "name": "PORT", "default": "3000" },
+        { "name": "NODE_ENV", "default": "development" }
+      ]
+    },
+    {
+      "id": "express-socket",
+      "name": "Express Socket.io",
+      "description": "Real-time server with Socket.io integration",
+      "purpose": "Build real-time applications like chat, live updates, and collaborative features.",
+      "features": [
+        "Socket.io integration",
+        "Optional JWT authentication",
+        "CORS configuration",
+        "Room support",
+        "Connection logging"
+      ],
+      "includes": ["socket-server"],
+      "command": "hanma create my-api --framework express-socket",
+      "dependencies": ["express", "socket.io", "cors", "dotenv"],
+      "devDependencies": ["typescript", "@types/node", "@types/express", "@types/cors", "tsx"],
+      "envVars": [
+        { "name": "PORT", "default": "3000" },
+        { "name": "NODE_ENV", "default": "development" },
+        { "name": "CORS_ORIGIN", "default": "http://localhost:3000" }
+      ]
+    }
+  ]
+}

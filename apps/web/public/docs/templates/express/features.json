@@ -1,0 +1,208 @@
+{
+  "id": "features",
+  "title": "Feature Templates",
+  "description": "Optional add-on features (can select multiple)",
+  "subcategories": [
+    {
+      "id": "mailers",
+      "title": "Email Providers",
+      "description": "Transactional and marketing email integrations",
+      "templates": [
+        {
+          "id": "mailer-nodemailer",
+          "name": "Nodemailer",
+          "description": "SMTP email with any provider",
+          "purpose": "Universal SMTP transport that works with any email provider. Best for flexibility and self-hosted solutions.",
+          "features": [
+            "SMTP transport support",
+            "HTML and text emails",
+            "Attachments support",
+            "Connection pooling"
+          ],
+          "command": "--mailer nodemailer",
+          "dependencies": ["nodemailer"],
+          "envVars": ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS", "MAIL_FROM"]
+        },
+        {
+          "id": "mailer-resend",
+          "name": "Resend",
+          "description": "Modern email API",
+          "purpose": "Modern email API with excellent DX and React Email support. Best for developer-focused teams.",
+          "features": [
+            "Simple API",
+            "React Email templates",
+            "Delivery tracking",
+            "Generous free tier"
+          ],
+          "command": "--mailer resend",
+          "dependencies": ["resend"],
+          "envVars": ["RESEND_API_KEY", "MAIL_FROM"]
+        },
+        {
+          "id": "mailer-sendgrid",
+          "name": "SendGrid",
+          "description": "SendGrid email API",
+          "purpose": "Enterprise-grade email platform with marketing features. Best for high-volume sending.",
+          "features": [
+            "High deliverability",
+            "Template management",
+            "Analytics dashboard",
+            "Marketing campaigns"
+          ],
+          "command": "--mailer sendgrid",
+          "dependencies": ["@sendgrid/mail"],
+          "envVars": ["SENDGRID_API_KEY", "MAIL_FROM"]
+        },
+        {
+          "id": "mailer-ses",
+          "name": "AWS SES",
+          "description": "Amazon Simple Email Service",
+          "purpose": "Cost-effective email at scale within AWS ecosystem. Best for AWS-native applications.",
+          "features": [
+            "Pay-per-email pricing",
+            "AWS integration",
+            "Bounce handling",
+            "Dedicated IPs available"
+          ],
+          "command": "--mailer aws-ses",
+          "dependencies": ["@aws-sdk/client-ses"],
+          "envVars": ["AWS_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "MAIL_FROM"]
+        }
+      ]
+    },
+    {
+      "id": "uploads",
+      "title": "File Upload Providers",
+      "description": "Cloud storage and file upload solutions",
+      "templates": [
+        {
+          "id": "upload-s3",
+          "name": "AWS S3",
+          "description": "S3 with presigned URLs",
+          "purpose": "Industry-standard object storage. Best for large-scale file storage with AWS infrastructure.",
+          "features": [
+            "Presigned PUT URLs",
+            "POST policies",
+            "Multipart uploads",
+            "Lifecycle rules"
+          ],
+          "command": "--upload s3",
+          "dependencies": ["@aws-sdk/client-s3", "@aws-sdk/s3-request-presigner"],
+          "envVars": ["AWS_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "S3_BUCKET_NAME"]
+        },
+        {
+          "id": "upload-cloudinary",
+          "name": "Cloudinary",
+          "description": "Image/video with transformations",
+          "purpose": "Media-focused platform with on-the-fly transformations. Best for image/video-heavy applications.",
+          "features": [
+            "Image transformations",
+            "Video processing",
+            "AI-powered features",
+            "CDN delivery"
+          ],
+          "command": "--upload cloudinary",
+          "dependencies": ["cloudinary"],
+          "envVars": ["CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET"]
+        },
+        {
+          "id": "upload-local",
+          "name": "Local (Multer)",
+          "description": "Local file uploads",
+          "purpose": "Simple local filesystem storage. Best for development and single-server deployments.",
+          "features": [
+            "No external dependencies",
+            "Simple setup",
+            "File type validation",
+            "Size limits"
+          ],
+          "command": "--upload local",
+          "dependencies": ["multer"],
+          "envVars": ["UPLOAD_DIR"]
+        },
+        {
+          "id": "upload-gcp",
+          "name": "Google Cloud Storage",
+          "description": "GCS with signed URLs",
+          "purpose": "GCP-native object storage with global CDN. Best for GCP-based deployments.",
+          "features": [
+            "Signed URLs",
+            "Resumable uploads",
+            "Object versioning",
+            "GCP integration"
+          ],
+          "command": "--upload gcp",
+          "dependencies": ["@google-cloud/storage"],
+          "envVars": ["GCP_PROJECT_ID", "GCS_BUCKET_NAME"]
+        },
+        {
+          "id": "upload-r2",
+          "name": "Cloudflare R2",
+          "description": "S3-compatible storage",
+          "purpose": "Zero egress-fee object storage. Best for cost-conscious, global applications.",
+          "features": [
+            "S3-compatible API",
+            "Zero egress fees",
+            "Global edge network",
+            "Workers integration"
+          ],
+          "command": "--upload r2",
+          "dependencies": ["@aws-sdk/client-s3", "@aws-sdk/s3-request-presigner"],
+          "envVars": ["R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET_NAME"]
+        }
+      ]
+    },
+    {
+      "id": "other",
+      "title": "Other Features",
+      "description": "Additional infrastructure and observability features",
+      "templates": [
+        {
+          "id": "cache-redis",
+          "name": "Redis Cache",
+          "description": "In-memory caching with Redis",
+          "purpose": "High-performance caching for sessions, rate limiting, and data. Best for scaling applications.",
+          "features": [
+            "Key-value caching",
+            "Session storage",
+            "Rate limit backing",
+            "Pub/sub support"
+          ],
+          "command": "--cache redis",
+          "dependencies": ["ioredis"],
+          "envVars": ["REDIS_URL"]
+        },
+        {
+          "id": "logging-winston",
+          "name": "Winston Logging",
+          "description": "Structured logging with Winston",
+          "purpose": "Production-grade logging with multiple transports. Best for observability and debugging.",
+          "features": [
+            "Multiple log levels",
+            "JSON formatting",
+            "File and console transports",
+            "Request logging with Morgan"
+          ],
+          "command": "--logging winston",
+          "dependencies": ["winston", "morgan"],
+          "envVars": ["LOG_LEVEL"]
+        },
+        {
+          "id": "monitoring-sentry",
+          "name": "Sentry Monitoring",
+          "description": "Error tracking with Sentry",
+          "purpose": "Real-time error tracking and performance monitoring. Best for production observability.",
+          "features": [
+            "Error tracking",
+            "Performance monitoring",
+            "Release tracking",
+            "Issue management"
+          ],
+          "command": "--monitoring sentry",
+          "dependencies": ["@sentry/node"],
+          "envVars": ["SENTRY_DSN"]
+        }
+      ]
+    }
+  ]
+}

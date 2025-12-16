@@ -1,7 +1,7 @@
 import { Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import LandingPage from "./components/LandingPage";
-import Docs from "./components/Docs";
+import Docs from "./pages/Docs";
 import Footer from "./components/Footer";
 import { ThemeProvider } from "./components/ThemeContext";
 
@@ -26,7 +26,7 @@ function App() {
         >
           <Routes>
             <Route path="/" element={<LandingPage />} />
-            <Route path="/docs" element={<Docs />} />
+            <Route path="/docs/*" element={<Docs />} />
           </Routes>
         </main>
 

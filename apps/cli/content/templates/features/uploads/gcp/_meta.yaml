@@ -1,0 +1,21 @@
+name: upload-gcp
+category: feature
+featureType: upload
+description: Google Cloud Storage uploads with signed URLs
+framework: express
+
+includes:
+  - snippet: express/v5/libs/uploads/gcp-storage.hbs
+    path: src/libs/upload.ts
+
+dependencies:
+  - "@google-cloud/storage"
+
+envVars:
+  - GCP_PROJECT_ID=
+  - GCS_BUCKET_NAME=
+  - GOOGLE_APPLICATION_CREDENTIALS=
+
+merge:
+  - file: package.json
+    strategy: deep

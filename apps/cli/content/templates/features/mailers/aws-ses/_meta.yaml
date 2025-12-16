@@ -1,0 +1,22 @@
+name: mailer-ses
+category: feature
+featureType: mailer
+description: Email sending with AWS SES
+framework: express
+
+includes:
+  - snippet: express/v5/libs/mailers/aws-ses.hbs
+    path: src/libs/mailer.ts
+
+dependencies:
+  - "@aws-sdk/client-ses"
+
+envVars:
+  - AWS_REGION=us-east-1
+  - AWS_ACCESS_KEY_ID=
+  - AWS_SECRET_ACCESS_KEY=
+  - MAIL_FROM=noreply@example.com
+
+merge:
+  - file: package.json
+    strategy: deep

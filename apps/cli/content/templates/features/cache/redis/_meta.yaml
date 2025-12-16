@@ -1,0 +1,19 @@
+name: cache-redis
+category: feature
+featureType: cache
+description: Redis caching layer with ioredis
+framework: express
+
+includes:
+  - snippet: express/v5/libs/db/redis-client.hbs
+    path: src/libs/cache.ts
+
+dependencies:
+  - ioredis
+
+envVars:
+  - REDIS_URL=redis://localhost:6379
+
+merge:
+  - file: package.json
+    strategy: deep

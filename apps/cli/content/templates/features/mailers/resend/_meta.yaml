@@ -1,0 +1,20 @@
+name: mailer-resend
+category: feature
+featureType: mailer
+description: Modern email API with Resend
+framework: express
+
+includes:
+  - snippet: express/v5/libs/mailers/resend.hbs
+    path: src/libs/mailer.ts
+
+dependencies:
+  - resend
+
+envVars:
+  - RESEND_API_KEY=
+  - MAIL_FROM=noreply@example.com
+
+merge:
+  - file: package.json
+    strategy: deep

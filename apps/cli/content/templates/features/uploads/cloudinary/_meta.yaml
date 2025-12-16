@@ -1,0 +1,21 @@
+name: upload-cloudinary
+category: feature
+featureType: upload
+description: Cloudinary file uploads with transformations
+framework: express
+
+includes:
+  - snippet: express/v5/libs/uploads/cloudinary.hbs
+    path: src/libs/upload.ts
+
+dependencies:
+  - cloudinary
+
+envVars:
+  - CLOUDINARY_CLOUD_NAME=
+  - CLOUDINARY_API_KEY=
+  - CLOUDINARY_API_SECRET=
+
+merge:
+  - file: package.json
+    strategy: deep

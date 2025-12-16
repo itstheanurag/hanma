@@ -1,0 +1,20 @@
+name: mailer-sendgrid
+category: feature
+featureType: mailer
+description: Email sending with SendGrid API
+framework: express
+
+includes:
+  - snippet: express/v5/libs/mailers/sendgrid.hbs
+    path: src/libs/mailer.ts
+
+dependencies:
+  - "@sendgrid/mail"
+
+envVars:
+  - SENDGRID_API_KEY=
+  - MAIL_FROM=noreply@example.com
+
+merge:
+  - file: package.json
+    strategy: deep

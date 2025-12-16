@@ -1,0 +1,23 @@
+name: logging-winston
+category: feature
+featureType: logging
+description: Winston logging with Morgan HTTP request logging
+framework: express
+
+includes:
+  - snippet: express/v5/middleware/loggers/winston-logger.hbs
+    path: src/libs/logger.ts
+
+dependencies:
+  - winston
+  - morgan
+
+devDependencies:
+  - "@types/morgan"
+
+envVars:
+  - LOG_LEVEL=info
+
+merge:
+  - file: package.json
+    strategy: deep

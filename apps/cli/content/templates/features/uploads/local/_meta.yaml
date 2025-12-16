@@ -1,0 +1,22 @@
+name: upload-local
+category: feature
+featureType: upload
+description: Local file uploads with Multer
+framework: express
+
+includes:
+  - snippet: express/v5/libs/upload-multer.hbs
+    path: src/libs/upload.ts
+
+dependencies:
+  - multer
+
+devDependencies:
+  - "@types/multer"
+
+envVars:
+  - UPLOAD_DIR=uploads
+
+merge:
+  - file: package.json
+    strategy: deep

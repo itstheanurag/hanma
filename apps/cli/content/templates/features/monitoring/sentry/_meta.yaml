@@ -1,0 +1,20 @@
+name: monitoring-sentry
+category: feature
+featureType: monitoring
+description: Sentry error tracking and performance monitoring
+framework: express
+
+includes:
+  - snippet: express/v5/libs/sentry.hbs
+    path: src/libs/sentry.ts
+
+dependencies:
+  - "@sentry/node"
+
+envVars:
+  - SENTRY_DSN=
+  - NODE_ENV=development
+
+merge:
+  - file: package.json
+    strategy: deep

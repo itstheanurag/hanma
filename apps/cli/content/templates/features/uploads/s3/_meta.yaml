@@ -1,0 +1,23 @@
+name: upload-s3
+category: feature
+featureType: upload
+description: AWS S3 file uploads with presigned URLs
+framework: express
+
+includes:
+  - snippet: express/v5/libs/uploads/aws-s3.hbs
+    path: src/libs/upload.ts
+
+dependencies:
+  - "@aws-sdk/client-s3"
+  - "@aws-sdk/s3-request-presigner"
+
+envVars:
+  - AWS_REGION=us-east-1
+  - AWS_ACCESS_KEY_ID=
+  - AWS_SECRET_ACCESS_KEY=
+  - S3_BUCKET_NAME=
+
+merge:
+  - file: package.json
+    strategy: deep

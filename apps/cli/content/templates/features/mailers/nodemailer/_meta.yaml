@@ -1,0 +1,26 @@
+name: mailer-nodemailer
+category: feature
+featureType: mailer
+description: Email sending with Nodemailer (SMTP)
+framework: express
+
+includes:
+  - snippet: express/v5/libs/mailers/nodemailer.hbs
+    path: src/libs/mailer.ts
+
+dependencies:
+  - nodemailer
+
+devDependencies:
+  - "@types/nodemailer"
+
+envVars:
+  - SMTP_HOST=smtp.example.com
+  - SMTP_PORT=587
+  - SMTP_USER=
+  - SMTP_PASS=
+  - MAIL_FROM=noreply@example.com
+
+merge:
+  - file: package.json
+    strategy: deep

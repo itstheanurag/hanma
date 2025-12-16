@@ -1,0 +1,27 @@
+import { MongoClient, Db } from "mongodb";
+
+const uri = process.env.MONGODB_URI || "mongodb://localhost:27017/database";
+const client = new MongoClient(uri);
+
+let db: Db;
+
+export async function connectDB(): Promise<Db> {
+  if (db) return db;
+  
+  await client.connect();
+  db = client.db();
+  console.log("MongoDB connected");
+  return db;
+}
+
+export async function disconnectDB(): Promise<void> {
+  await client.close();
+  console.log("MongoDB disconnected");
+}
+
+export function getDB(): Db {
+  if (!db) {
+    throw new Error("Database not connected. Call connectDB() first.");
+  }
+  return db;
+}

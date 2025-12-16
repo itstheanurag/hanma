@@ -1,0 +1,25 @@
+name: drizzle-sqlite
+category: database
+description: Drizzle ORM with SQLite (better-sqlite3) setup
+framework: express
+
+dependencies:
+  - drizzle-orm
+  - better-sqlite3
+  - dotenv
+
+devDependencies:
+  - drizzle-kit
+  - "@types/better-sqlite3"
+
+scripts:
+  db:generate: "drizzle-kit generate"
+  db:push: "drizzle-kit push"
+  db:studio: "drizzle-kit studio"
+
+envVars:
+  - DATABASE_PATH=./data/database.db
+
+merge:
+  - file: package.json
+    strategy: deep

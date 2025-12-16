@@ -1,0 +1,25 @@
+name: drizzle-mysql
+category: database
+description: Drizzle ORM with MySQL setup
+framework: express
+
+dependencies:
+  - drizzle-orm
+  - mysql2
+  - dotenv
+
+devDependencies:
+  - drizzle-kit
+  - "@types/node"
+
+scripts:
+  db:generate: "drizzle-kit generate"
+  db:push: "drizzle-kit push"
+  db:studio: "drizzle-kit studio"
+
+envVars:
+  - DATABASE_URL=mysql://user:password@localhost:3306/database
+
+merge:
+  - file: package.json
+    strategy: deep

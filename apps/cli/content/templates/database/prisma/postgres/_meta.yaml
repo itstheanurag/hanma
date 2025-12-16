@@ -1,0 +1,29 @@
+name: prisma-postgres
+category: database
+description: Prisma ORM with PostgreSQL setup
+framework: express
+
+includes:
+  - snippet: express/v5/libs/db/prisma-client.hbs
+    path: src/libs/db/prisma.ts
+
+dependencies:
+  - "@prisma/client"
+  - dotenv
+
+devDependencies:
+  - prisma
+  - "@types/node"
+
+scripts:
+  db:generate: "prisma generate"
+  db:push: "prisma db push"
+  db:studio: "prisma studio"
+  db:migrate: "prisma migrate dev"
+
+envVars:
+  - DATABASE_URL=postgresql://user:password@localhost:5432/database
+
+merge:
+  - file: package.json
+    strategy: deep

@@ -1,0 +1,19 @@
+name: mongodb
+category: database
+description: MongoDB native driver setup
+framework: express
+
+includes:
+  - snippet: express/v5/libs/queries/mongodb-storage.hbs
+    path: src/libs/db/storage.ts
+
+dependencies:
+  - mongodb
+  - dotenv
+
+envVars:
+  - MONGODB_URI=mongodb://localhost:27017/database
+
+merge:
+  - file: package.json
+    strategy: deep

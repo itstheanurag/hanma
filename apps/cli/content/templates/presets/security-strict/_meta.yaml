@@ -1,0 +1,41 @@
+name: security-strict
+category: preset
+description: Production security middleware bundle with sanitization and request IDs
+framework: express
+
+includes:
+  - snippet: express/v5/middleware/security/helmet.hbs
+    path: src/middleware/security/helmet.ts
+  - snippet: express/v5/middleware/security/rate-limiter.hbs
+    path: src/middleware/security/rate-limiter.ts
+  - snippet: express/v5/middleware/security/sanitize.hbs
+    path: src/middleware/security/sanitize.ts
+  - snippet: express/v5/libs/cors.hbs
+    path: src/libs/cors.ts
+  - snippet: express/v5/middleware/utils/request-id.hbs
+    path: src/middleware/request-id.ts
+  - snippet: express/v5/middleware/utils/compression.hbs
+    path: src/middleware/compression.ts
+
+dependencies:
+  - helmet
+  - cors
+  - express-rate-limit
+  - sanitize-html
+  - compression
+  - uuid
+
+devDependencies:
+  - "@types/cors"
+  - "@types/sanitize-html"
+  - "@types/compression"
+  - "@types/uuid"
+
+envVars:
+  - CORS_ORIGIN=http://localhost:3000
+  - RATE_LIMIT_WINDOW_MS=900000
+  - RATE_LIMIT_MAX=100
+
+merge:
+  - file: package.json
+    strategy: deep

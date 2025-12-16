@@ -1,0 +1,29 @@
+name: security-basic
+category: preset
+description: Basic security middleware bundle (Helmet, CORS, Rate Limiting)
+framework: express
+
+includes:
+  - snippet: express/v5/middleware/security/helmet.hbs
+    path: src/middleware/security/helmet.ts
+  - snippet: express/v5/middleware/security/rate-limiter.hbs
+    path: src/middleware/security/rate-limiter.ts
+  - snippet: express/v5/libs/cors.hbs
+    path: src/libs/cors.ts
+
+dependencies:
+  - helmet
+  - cors
+  - express-rate-limit
+
+devDependencies:
+  - "@types/cors"
+
+envVars:
+  - CORS_ORIGIN=http://localhost:3000
+  - RATE_LIMIT_WINDOW_MS=900000
+  - RATE_LIMIT_MAX=100
+
+merge:
+  - file: package.json
+    strategy: deep

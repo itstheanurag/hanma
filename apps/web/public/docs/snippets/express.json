@@ -3,7 +3,7 @@
   "version": "v5",
   "title": "Express v5 Snippets",
   "description": "A comprehensive collection of 53 production-ready code snippets for Express.js v5 applications.",
-  "installNote": "Install any snippet with: npx hanma add <snippet-name>",
+  "installNote": "Install snippets with: npx hanma add <snippet-name> [snippet-name...] (supports multiple)",
   "categories": [
     {
       "id": "libs",

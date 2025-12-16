@@ -46,7 +46,7 @@
         }
       ],
       "usage": {
-        "add": "hanma add-module i18n",
+        "add": "hanma module i18n",
         "example": "// Using with i18next\nimport i18n from 'i18next';\nimport en from './locales/en.json';\n\ni18n.init({\n  resources: { en: { translation: en } },\n  lng: 'en',\n  fallbackLng: 'en'\n});\n\n// Usage\nt('common.welcome'); // 'Welcome'\nt('auth.login'); // 'Login'"
       },
       "translationKeys": {

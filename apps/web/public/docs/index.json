@@ -36,8 +36,8 @@
       "command": "hanma create my-api"
     },
     {
-      "title": "Add Snippet",
-      "command": "hanma add express/v5/libs/server"
+      "title": "Add Snippets",
+      "command": "hanma add cors jwt rate-limiter"
     }
   ]
 }

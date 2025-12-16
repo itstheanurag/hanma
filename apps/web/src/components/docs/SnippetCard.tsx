@@ -67,7 +67,7 @@ export const SnippetCard = ({ snippet }: SnippetCardProps) => {
           {/* Output */}
           <div>
             <h4 className="text-sm font-semibold text-foreground mb-2">Output File</h4>
-            <code className="text-sm text-primary bg-primary/10 px-2 py-1 rounded">
+            <code className="text-sm bg-primary/10 px-2 py-1 rounded">
               {snippet.output}
             </code>
           </div>

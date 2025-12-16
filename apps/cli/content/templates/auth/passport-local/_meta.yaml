@@ -1,0 +1,21 @@
+name: passport-local
+category: auth
+description: Passport.js with local username/password strategy
+framework: express
+
+dependencies:
+  - passport
+  - passport-local
+  - express-session
+
+devDependencies:
+  - "@types/passport"
+  - "@types/passport-local"
+  - "@types/express-session"
+
+envVars:
+  - SESSION_SECRET=your-session-secret-change-in-production
+
+merge:
+  - file: package.json
+    strategy: deep

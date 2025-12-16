@@ -22,6 +22,7 @@ interface TemplateBlock {
   scripts?: Record<string, string>;
   envVars?: string[];
   files: Array<{ path: string; content: string }>;
+  featureType?: string;
 }
 
 interface SnippetMeta {
@@ -78,16 +79,27 @@ async function main() {
     base: TemplateBlock[];
     database: TemplateBlock[];
     auth: TemplateBlock[];
+    features: TemplateBlock[];
+    presets: TemplateBlock[];
     extra: TemplateBlock[];
   } = {
     base: [],
     database: [],
     auth: [],
+    features: [],
+    presets: [],
     extra: [],
   };
 
   // Process each category
-  const categories = ["base", "database", "auth", "extra"] as const;
+  const categories = [
+    "base",
+    "database",
+    "auth",
+    "features",
+    "presets",
+    "extra",
+  ] as const;
 
   for (const category of categories) {
     const categoryPath = path.join(TEMPLATES_DIR, category);
@@ -139,6 +151,7 @@ async function main() {
         scripts: meta.scripts,
         envVars: [...(meta.envVars || [])],
         files: [],
+        featureType: meta.featureType,
       };
 
       // Process includes (snippets to import)
@@ -330,6 +343,8 @@ async function main() {
   console.log(`  Base: ${registry.base.length} blocks`);
   console.log(`  Database: ${registry.database.length} blocks`);
   console.log(`  Auth: ${registry.auth.length} blocks`);
+  console.log(`  Features: ${registry.features.length} blocks`);
+  console.log(`  Presets: ${registry.presets.length} blocks`);
 }
 
 main().catch(console.error);

@@ -18,12 +18,21 @@ interface TemplateBlock {
   scripts?: Record<string, string>;
   envVars?: string[];
   files: Array<{ path: string; content: string }>;
+  featureType?:
+    | "mailer"
+    | "upload"
+    | "cache"
+    | "queue"
+    | "logging"
+    | "monitoring";
 }
 
 interface TemplateRegistry {
   base: TemplateBlock[];
   database: TemplateBlock[];
   auth: TemplateBlock[];
+  features?: TemplateBlock[];
+  presets?: TemplateBlock[];
 }
 
 interface CollectedBlockData {
@@ -181,6 +190,95 @@ async function promptPackageManager(
   });
 
   return pm || null;
+}
+
+/**
+ * Prompt for features selection (multi-select)
+ */
+async function promptFeatures(
+  features: TemplateBlock[],
+  cliOptions?: {
+    mailer?: string;
+    upload?: string;
+    cache?: string;
+    logging?: string;
+    monitoring?: string;
+  },
+): Promise<TemplateBlock[]> {
+  const selectedFeatures: TemplateBlock[] = [];
+
+  // If CLI options provided, find matching features
+  if (cliOptions) {
+    for (const [type, value] of Object.entries(cliOptions)) {
+      if (value) {
+        const feature = features.find(
+          (f) => f.featureType === type && f.name.includes(value),
+        );
+        if (feature) selectedFeatures.push(feature);
+      }
+    }
+    if (selectedFeatures.length > 0) return selectedFeatures;
+  }
+
+  // Group features by type for organized display
+  const featuresByType = features.reduce(
+    (acc, f) => {
+      const type = f.featureType || "other";
+      if (!acc[type]) acc[type] = [];
+      acc[type].push(f);
+      return acc;
+    },
+    {} as Record<string, TemplateBlock[]>,
+  );
+
+  const { selected } = await prompts({
+    type: "multiselect",
+    name: "selected",
+    message: "Select additional features (space to select, enter to confirm):",
+    choices: Object.entries(featuresByType)
+      .flatMap(([type, items]) => [
+        { title: `── ${type.toUpperCase()} ──`, value: null, disabled: true },
+        ...items.map((f) => ({
+          title: `  ${f.name}`,
+          value: f,
+          description: f.description,
+        })),
+      ])
+      .filter((c) => c.value !== null),
+    hint: "- Space to select. Enter to submit",
+  });
+
+  return selected || [];
+}
+
+/**
+ * Prompt for security preset selection
+ */
+async function promptPreset(
+  presets: TemplateBlock[],
+  cliOption?: string,
+): Promise<TemplateBlock | undefined> {
+  if (cliOption) {
+    return presets.find(
+      (p) => p.name === cliOption || p.name.includes(cliOption),
+    );
+  }
+
+  const { preset } = await prompts({
+    type: "select",
+    name: "preset",
+    message: "Select security preset:",
+    choices: [
+      { title: "None", value: null },
+      ...presets.map((p) => ({
+        title: p.name,
+        value: p,
+        description: p.description,
+      })),
+    ],
+  });
+
+  return preset;
 }
 
 // ============================================================================
@@ -379,12 +477,33 @@ export const create = new Command()
   .name("create")
   .description("Create a new project from composable templates")
   .argument("[name]", "Project name")
-  .option("--framework <framework>", "Base framework (express, hono)")
+  .option(
+    "--framework <framework>",
+    "Base framework (express-minimal, express-rest-api, express-graphql, express-trpc, express-socket)",
+  )
   .option(
     "--database <database>",
-    "Database setup (drizzle-postgres, prisma-postgres)",
+    "Database setup (drizzle-postgres, drizzle-mysql, drizzle-sqlite, prisma-postgres, mongodb)",
   )
-  .option("--auth <auth>", "Authentication (better-auth, clerk)")
+  .option(
+    "--auth <auth>",
+    "Authentication (better-auth, clerk, jwt-auth, passport-local)",
+  )
+  .option(
+    "--mailer <mailer>",
+    "Email provider (nodemailer, resend, sendgrid, aws-ses)",
+  )
+  .option(
+    "--upload <upload>",
+    "File upload provider (s3, cloudinary, local, gcp, r2)",
+  )
+  .option("--cache <cache>", "Cache provider (redis)")
+  .option("--logging <logging>", "Logging provider (winston)")
+  .option("--monitoring <monitoring>", "Monitoring provider (sentry)")
+  .option(
+    "--preset <preset>",
+    "Security preset (security-basic, security-strict)",
+  )
   .option("--pm <pm>", "Package manager (npm, pnpm, yarn, bun)")
   .option("--skip-install", "Skip package installation")
   .action(async (projectNameArg, options) => {
@@ -431,7 +550,25 @@ export const create = new Command()
     // 6. Select auth
     const selectedAuth = await promptAuth(registry.auth, options.auth);
 
-    // 7. Select package manager
+    // 7. Select features (optional)
+    let selectedFeatures: TemplateBlock[] = [];
+    if (registry.features && registry.features.length > 0) {
+      selectedFeatures = await promptFeatures(registry.features, {
+        mailer: options.mailer,
+        upload: options.upload,
+        cache: options.cache,
+        logging: options.logging,
+        monitoring: options.monitoring,
+      });
+    }
+
+    // 8. Select security preset (optional)
+    let selectedPreset: TemplateBlock | undefined;
+    if (registry.presets && registry.presets.length > 0) {
+      selectedPreset = await promptPreset(registry.presets, options.preset);
+    }
+
+    // 9. Select package manager
     const packageManager = await promptPackageManager(options.pm);
     if (!packageManager) {
       console.log("Operation cancelled.");
@@ -440,13 +577,17 @@ export const create = new Command()
 
     console.log(chalk.blue("\nCreating project...\n"));
 
-    // 8. Create project directory
+    // 10. Create project directory
     await fs.ensureDir(projectPath);
 
-    // 9. Collect and process template data
-    const blocks = [selectedBase, selectedDatabase, selectedAuth].filter(
-      Boolean,
-    ) as TemplateBlock[];
+    // 11. Collect and process template data
+    const blocks = [
+      selectedBase,
+      selectedDatabase,
+      selectedAuth,
+      ...selectedFeatures,
+      selectedPreset,
+    ].filter(Boolean) as TemplateBlock[];
     const blockData = collectBlockData(blocks);
     const packageJson = buildPackageJson(projectName, blockData);
 

@@ -1,0 +1,50 @@
+import passport from "passport";
+import { Strategy as LocalStrategy } from "passport-local";
+
+// Configure the local strategy
+// Replace with your actual user lookup logic
+passport.use(
+  new LocalStrategy(
+    {
+      usernameField: "email",
+      passwordField: "password",
+    },
+    async (email, password, done) => {
+      try {
+        // TODO: Replace with your user lookup
+        // const user = await findUserByEmail(email);
+        // if (!user) {
+        //   return done(null, false, { message: "Incorrect email." });
+        // }
+        // const isValid = await verifyPassword(password, user.password);
+        // if (!isValid) {
+        //   return done(null, false, { message: "Incorrect password." });
+        // }
+        // return done(null, user);
+        
+        return done(null, false, { message: "Not implemented" });
+      } catch (error) {
+        return done(error);
+      }
+    }
+  )
+);
+
+// Serialize user for session
+passport.serializeUser((user: any, done) => {
+  done(null, user.id);
+});
+
+// Deserialize user from session
+passport.deserializeUser(async (id: string, done) => {
+  try {
+    // TODO: Replace with your user lookup
+    // const user = await findUserById(id);
+    // done(null, user);
+    done(null, null);
+  } catch (error) {
+    done(error, null);
+  }
+});
+
+export default passport;

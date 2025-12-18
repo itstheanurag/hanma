@@ -2,6 +2,7 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import Database from "better-sqlite3";
 import path from "path";
 import fs from "fs";
+import * as schema from "./schema/schema";
 
 const dbPath = process.env.DATABASE_PATH || "./data/database.db";
 
@@ -11,12 +12,62 @@ if (!fs.existsSync(dir)) {
   fs.mkdirSync(dir, { recursive: true });
 }
 
+/**
+ * SQLite database instance
+ */
 const sqlite = new Database(dbPath);
 sqlite.pragma("journal_mode = WAL");
+sqlite.pragma("busy_timeout = 5000");
+sqlite.pragma("synchronous = NORMAL");
+sqlite.pragma("cache_size = -20000"); // 20MB cache
+sqlite.pragma("foreign_keys = ON");
 
-export const db = drizzle(sqlite);
+/**
+ * Drizzle ORM instance
+ */
+export const db = drizzle(sqlite, { schema });
 
-export function closeDB() {
+/**
+ * Connect to database with health check
+ */
+export const connectDatabase = () => {
+  try {
+    sqlite.exec("SELECT 1");
+    console.log("[OK] Database connected");
+  } catch (error) {
+    console.error("[ERROR] Database connection failed:", error);
+    throw error;
+  }
+};
+
+/**
+ * Disconnect from database (for graceful shutdown)
+ */
+export const disconnectDatabase = () => {
   sqlite.close();
-  console.log("Database closed");
-}
+  console.log("[INFO] Database disconnected");
+};
+
+/**
+ * Health check for database connection
+ */
+export const isDatabaseHealthy = (): boolean => {
+  try {
+    sqlite.exec("SELECT 1");
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Transaction helper
+ * @example
+ * transaction((tx) => {
+ *   tx.insert(users).values({ name: 'John' }).run();
+ *   tx.insert(posts).values({ title: 'Hello' }).run();
+ * });
+ */
+export const transaction = <T>(fn: (tx: typeof db) => T): T => {
+  return db.transaction(fn);
+};

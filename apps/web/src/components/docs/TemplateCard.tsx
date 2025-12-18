@@ -76,12 +76,16 @@ export const TemplateCard = ({ template }: TemplateCardProps) => {
             <div>
               <h4 className="text-sm font-semibold text-foreground mb-2">Environment Variables</h4>
               <div className="flex flex-wrap gap-2">
-                {template.envVars.map((env) => (
-                  <span key={env.name} className="text-xs bg-surface px-2 py-1 rounded font-mono">
-                    {env.name}
-                    {env.required && <span className="text-red-400 ml-1">*</span>}
-                  </span>
-                ))}
+                {template.envVars.map((env, idx) => {
+                  const envName = typeof env === 'string' ? env : env.name;
+                  const isRequired = typeof env === 'string' ? false : env.required;
+                  return (
+                    <span key={envName ?? idx} className="text-xs bg-surface px-2 py-1 rounded font-mono">
+                      {envName}
+                      {isRequired && <span className="text-red-400 ml-1">*</span>}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           )}

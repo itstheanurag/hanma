@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { getConfig, HanmaConfig } from "../utils/config";
+import { initHanmaConfig } from "../utils/init-config";
 import { fetchFrameworks, fetchRegistry } from "../utils/registry";
 import { batchInstallDependencies } from "../utils/install";
 import path from "path";
@@ -261,13 +262,14 @@ export const add = new Command()
     "Destination path (defaults to config.componentsPath)",
   )
   .action(async (snippetNames: string[], options) => {
-    // 1. Get config
-    const config = await getConfig();
+
+    let config = await getConfig();
     if (!config) {
-      console.log(
-        chalk.red("Configuration not found. Please run 'hanma init' first."),
-      );
-      process.exit(1);
+      config = await initHanmaConfig();
+      if (!config) {
+        console.log(chalk.red("Initialization required to add snippets."));
+        process.exit(1);
+      }
     }
 
     // 2. Fetch and select framework

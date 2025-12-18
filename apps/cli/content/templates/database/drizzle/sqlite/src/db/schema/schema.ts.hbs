@@ -1,0 +1,14 @@
+import { sqliteTable, integer, text } from "drizzle-orm/sqlite-core";
+
+// Example users table - modify as needed
+export const users = sqliteTable("users", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  email: text("email").notNull().unique(),
+  name: text("name"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  isDeleted: integer("is_deleted", { mode: "boolean" }).default(false), // soft deletes
+});
+
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;

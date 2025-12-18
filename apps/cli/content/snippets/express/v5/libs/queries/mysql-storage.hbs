@@ -6,19 +6,19 @@ dependencies:
 files:
   - name: libs/queries/mysql-storage.ts
 ---
-import mysql, { Pool, PoolConnection, RowDataPacket, ResultSetHeader } from 'mysql2/promise';
+import { Pool, PoolConnection, RowDataPacket, ResultSetHeader } from 'mysql2/promise';
 
 /**
  * Generic Storage class for raw MySQL queries
  * Uses prepared statements to prevent SQL injection
+ * 
+ * @example
+ * import { pool } from '@/libs/db/mysql';
+ * 
+ * const userStorage = new MySqlStorage(pool, 'users', 'id');
+ * const user = await userStorage.create({ name: 'John', email: 'john@example.com' });
+ * const paginatedUsers = await userStorage.paginate({ page: 1, limit: 10 });
  */
-
-export const pool = mysql.createPool({
-  uri: process.env.DATABASE_URL,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-});
 
 export interface PaginationOptions {
   page?: number;

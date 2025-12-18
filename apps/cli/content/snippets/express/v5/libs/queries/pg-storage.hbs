@@ -8,25 +8,19 @@ devDependencies:
 files:
   - name: libs/queries/pg-storage.ts
 ---
-import { Pool, PoolClient, QueryResult } from 'pg';
+import { Pool, PoolClient } from 'pg';
 
 /**
  * Generic Storage class for raw PostgreSQL queries
  * Uses parameterized queries to prevent SQL injection
  * 
  * @example
+ * import { pool } from '@/libs/db/postgres';
+ * 
  * const userStorage = new PgStorage(pool, 'users', 'id');
  * const user = await userStorage.create({ name: 'John', email: 'john@example.com' });
  * const paginatedUsers = await userStorage.paginate({ page: 1, limit: 10 });
  */
-
-// Connection pool
-export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
-});
 
 export interface PaginationOptions {
   page?: number;

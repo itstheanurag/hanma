@@ -6,20 +6,19 @@ dependencies:
 files:
   - name: libs/queries/mongodb-storage.ts
 ---
-import { MongoClient, Db, Collection, ObjectId, Filter, UpdateFilter, Document, WithId } from 'mongodb';
+import { Db, Collection, ObjectId, Filter, UpdateFilter, Document, WithId } from 'mongodb';
 
 /**
  * Generic Storage class for MongoDB (native driver)
  * Handles ObjectId conversion and provides cursor-based pagination
+ * 
+ * @example
+ * import { db } from '@/libs/db/mongodb';
+ * 
+ * const userStorage = new MongoStorage(db, 'users');
+ * const user = await userStorage.create({ name: 'John', email: 'john@example.com' });
+ * const allUsers = await userStorage.findAll();
  */
-
-const client = new MongoClient(process.env.MONGODB_URI || 'mongodb://localhost:27017');
-export const db: Db = client.db(process.env.MONGODB_DB || 'app');
-
-export async function connectMongo(): Promise<void> {
-  await client.connect();
-  console.log('[MONGO] Connected');
-}
 
 export interface PaginationOptions<T> {
   page?: number;

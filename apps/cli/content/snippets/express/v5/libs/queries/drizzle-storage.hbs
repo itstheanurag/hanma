@@ -3,29 +3,25 @@ name: drizzle-storage
 description: Generic Storage class for Drizzle ORM with CRUD, bulk operations, and pagination
 dependencies:
   - drizzle-orm
-  - pg
 files:
   - name: libs/queries/drizzle-storage.ts
 ---
-import { eq, and, or, desc, asc, sql, SQL } from 'drizzle-orm';
-import { PgTable, PgColumn } from 'drizzle-orm/pg-core';
-import { drizzle, PostgresJsDatabase } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
+import { eq, and, desc, asc, sql, type SQL } from 'drizzle-orm';
+import type { PgTable, PgColumn } from 'drizzle-orm/pg-core';
 
 /**
- * Generic Storage class for Drizzle ORM
+ * Generic Storage class for Drizzle ORM (PostgreSQL)
  * Provides standardized CRUD operations with type safety
  * 
  * @example
+ * import { db } from '@/libs/db/drizzle';
+ * import { users } from '@/db/schema';
+ * 
  * const userStorage = new DrizzleStorage(db, users, 'id');
  * const user = await userStorage.create({ name: 'John', email: 'john@example.com' });
  * const allUsers = await userStorage.findAll();
  * const paginatedUsers = await userStorage.paginate({ page: 1, limit: 10 });
  */
-
-// Database connection
-const queryClient = postgres(process.env.DATABASE_URL || '');
-export const db = drizzle(queryClient);
 
 export type FilterOperator = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'like' | 'ilike';
 
@@ -57,13 +53,21 @@ export interface PaginatedResult<T> {
   };
 }
 
+// Generic Drizzle database type - works with any driver
+type DrizzleDb = {
+  select: () => any;
+  insert: (table: any) => any;
+  update: (table: any) => any;
+  delete: (table: any) => any;
+};
+
 export class DrizzleStorage<
   TTable extends PgTable,
   TInsert extends Record<string, unknown>,
   TSelect extends Record<string, unknown>
 > {
   constructor(
-    private db: PostgresJsDatabase,
+    private db: DrizzleDb,
     private table: TTable,
     private primaryKey: keyof TSelect = 'id' as keyof TSelect
   ) {}
@@ -101,7 +105,7 @@ export class DrizzleStorage<
     const result = await this.db
       .select()
       .from(this.table)
-      .where(eq(pkColumn, id))
+      .where(eq(pkColumn, id as any))
       .limit(1);
     return (result[0] as TSelect) || null;
   }
@@ -127,7 +131,7 @@ export class DrizzleStorage<
     const result = await this.db
       .update(this.table)
       .set(data as any)
-      .where(eq(pkColumn, id))
+      .where(eq(pkColumn, id as any))
       .returning();
     return (result[0] as TSelect) || null;
   }
@@ -139,7 +143,7 @@ export class DrizzleStorage<
     const pkColumn = (this.table as any)[this.primaryKey] as PgColumn;
     const result = await this.db
       .delete(this.table)
-      .where(eq(pkColumn, id))
+      .where(eq(pkColumn, id as any))
       .returning();
     return result.length > 0;
   }
@@ -152,7 +156,7 @@ export class DrizzleStorage<
     const result = await this.db
       .update(this.table)
       .set({ deletedAt: new Date() } as any)
-      .where(eq(pkColumn, id))
+      .where(eq(pkColumn, id as any))
       .returning();
     return (result[0] as TSelect) || null;
   }
@@ -247,7 +251,7 @@ export class DrizzleStorage<
       const column = (this.table as any)[filter.field] as PgColumn;
       switch (filter.operator) {
         case 'eq':
-          return eq(column, filter.value);
+          return eq(column, filter.value as any);
         case 'neq':
           return sql`${column} != ${filter.value}`;
         case 'gt':
@@ -263,7 +267,7 @@ export class DrizzleStorage<
         case 'ilike':
           return sql`${column} ILIKE ${filter.value}`;
         default:
-          return eq(column, filter.value);
+          return eq(column, filter.value as any);
       }
     });
   }

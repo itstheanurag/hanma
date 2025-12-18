@@ -3,8 +3,6 @@ name: sequelize-storage
 description: Generic Storage class for Sequelize ORM with CRUD, bulk operations, and pagination
 dependencies:
   - sequelize
-  - pg
-  - pg-hstore
 files:
   - name: libs/queries/sequelize-storage.ts
 ---
@@ -25,22 +23,13 @@ import {
  * Provides standardized CRUD operations
  * 
  * @example
- * const userStorage = new SequelizeStorage(User);
+ * import { sequelize } from '@/libs/db/sequelize';
+ * import { User } from '@/models/User';
+ * 
+ * const userStorage = new SequelizeStorage(User, sequelize);
  * const user = await userStorage.create({ name: 'John', email: 'john@example.com' });
  * const paginatedUsers = await userStorage.paginate({ page: 1, limit: 10 });
  */
-
-// Database connection
-export const sequelize = new Sequelize(process.env.DATABASE_URL || '', {
-  dialect: 'postgres',
-  logging: process.env.NODE_ENV === 'development' ? console.log : false,
-  pool: {
-    max: 10,
-    min: 0,
-    acquire: 30000,
-    idle: 10000,
-  },
-});
 
 export interface PaginationOptions<T> {
   page?: number;
@@ -73,6 +62,7 @@ export class SequelizeStorage<
 > {
   constructor(
     private model: ModelStatic<TModel>,
+    private sequelize: Sequelize,
     private primaryKey: keyof TAttributes = 'id' as keyof TAttributes
   ) {}
 
@@ -289,6 +279,6 @@ export class SequelizeStorage<
    * Execute operations in a transaction
    */
   async transaction<T>(fn: (t: any) => Promise<T>): Promise<T> {
-    return sequelize.transaction(fn);
+    return this.sequelize.transaction(fn);
   }
 }

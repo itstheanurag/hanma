@@ -6,7 +6,7 @@ version: "5"
 
 # Include snippets from packages/snippets
 includes:
-  - snippet: express/v5/libs/server.hbs
+  - snippet: express/v5/libs/servers/express-server.hbs
     path: src/libs/server.ts
   - snippet: express/v5/libs/cors.hbs
     path: src/libs/cors.ts

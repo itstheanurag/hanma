@@ -8,15 +8,19 @@ devDependencies:
 files:
   - name: libs/queries/sqlite-storage.ts
 ---
-import Database, { Database as DatabaseType, Statement } from 'better-sqlite3';
+import { Database as DatabaseType } from 'better-sqlite3';
 
 /**
  * Generic Storage class for SQLite (better-sqlite3)
  * Synchronous API for maximum performance
+ * 
+ * @example
+ * import { db } from '@/libs/db/sqlite';
+ * 
+ * const userStorage = new SqliteStorage(db, 'users', 'id');
+ * const user = userStorage.create({ name: 'John', email: 'john@example.com' });
+ * const paginatedUsers = userStorage.paginate({ page: 1, limit: 10 });
  */
-
-export const db = new Database(process.env.SQLITE_DB_PATH || './data.db');
-db.pragma('journal_mode = WAL');
 
 export interface PaginationOptions {
   page?: number;

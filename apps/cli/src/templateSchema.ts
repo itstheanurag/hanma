@@ -13,7 +13,15 @@ export const templateBlockSchema = z.object({
   envVars: z.array(z.string()).optional(),
   // Feature-specific fields
   featureType: z
-    .enum(["mailer", "upload", "cache", "queue", "logging", "monitoring"])
+    .enum([
+      "mailer",
+      "upload",
+      "cache",
+      "queue",
+      "logging",
+      "monitoring",
+      "tooling",
+    ])
     .optional(),
   merge: z
     .array(
@@ -34,8 +42,6 @@ export const templateBlockSchema = z.object({
     .optional(),
 });
 
-export type TemplateBlock = z.infer<typeof templateBlockSchema>;
-
 // Template Registry (available blocks by category)
 export const templateRegistrySchema = z.object({
   base: z.array(templateBlockSchema),
@@ -45,5 +51,3 @@ export const templateRegistrySchema = z.object({
   presets: z.array(templateBlockSchema).optional(),
   extra: z.array(templateBlockSchema).optional(),
 });
-
-export type TemplateRegistry = z.infer<typeof templateRegistrySchema>;

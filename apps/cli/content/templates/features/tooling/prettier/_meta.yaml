@@ -1,0 +1,15 @@
+name: tooling-prettier
+category: feature
+featureType: tooling
+description: Prettier for formatting
+framework: express
+
+includes:
+  - snippet: shared/prettier/config.hbs
+    path: .prettierrc
+
+devDependencies:
+  - prettier
+
+scripts:
+  format: "prettier --write ."

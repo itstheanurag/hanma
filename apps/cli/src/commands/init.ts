@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { initHanmaConfig } from "../utils/init-config";
+import { initHanmaConfig } from "../utils";
 import chalk from "chalk";
 
 export const init = new Command()

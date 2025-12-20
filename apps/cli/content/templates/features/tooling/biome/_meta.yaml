@@ -1,0 +1,16 @@
+name: tooling-biome
+category: feature
+featureType: tooling
+description: Biome for linting and formatting
+framework: express
+
+includes:
+  - snippet: shared/biome/config.hbs
+    path: biome.json
+
+devDependencies:
+  - "@biomejs/biome"
+
+scripts:
+  lint: "biome check ."
+  format: "biome format . --write"

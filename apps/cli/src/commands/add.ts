@@ -1,76 +1,19 @@
 import { Command } from "commander";
-import { getConfig, HanmaConfig } from "../utils/config";
-import { initHanmaConfig } from "../utils/init-config";
-import { fetchFrameworks, fetchRegistry } from "../utils/registry";
-import { batchInstallDependencies } from "../utils/install";
-import path from "path";
-import fs from "fs-extra";
 import chalk from "chalk";
 import ora from "ora";
 import prompts from "prompts";
-import { RegistryItem } from "../schema";
-
-// ============================================================================
-// User Prompts
-// ============================================================================
-
-/**
- * Prompt for framework selection
- */
-async function promptFramework(
-  frameworks: string[],
-  preselected?: string,
-): Promise<string | null> {
-  if (preselected && frameworks.includes(preselected)) {
-    return preselected;
-  }
-
-  const { framework } = await prompts({
-    type: "autocomplete",
-    name: "framework",
-    message: "Select a framework",
-    choices: frameworks.map((f) => ({ title: f, value: f })),
-  });
-
-  return framework || null;
-}
-
-/**
- * Prompt for version selection or default to latest
- */
-async function promptVersion(
-  registry: RegistryItem[],
-  preselected?: string,
-): Promise<string> {
-  const versions = Array.from(
-    new Set(
-      registry.map((item) => item.version).filter((v): v is string => !!v),
-    ),
-  );
-
-  if (preselected && versions.includes(preselected)) {
-    return preselected;
-  }
-
-  if (versions.length > 1) {
-    const { version } = await prompts({
-      type: "select",
-      name: "version",
-      message: "Select a version",
-      choices: versions.map((v) => ({ title: v, value: v })),
-    });
-    if (!version) {
-      return "";
-    }
-    return version;
-  }
-
-  if (versions.length === 1) {
-    return versions[0]!;
-  }
-
-  return "latest";
-}
+import { RegistryItem } from "../types";
+import {
+  getConfig,
+  initHanmaConfig,
+  fetchFrameworks,
+  promptFramework,
+  fetchRegistry,
+  promptVersion,
+  findItemsByName,
+  promptCategory,
+  installRegistryItems,
+} from "../utils";
 
 /**
  * Filter registry items by version (snippets only)
@@ -85,60 +28,6 @@ function filterSnippets(
     const isSnippet = item.type === "snippet";
     return versionMatch && isSnippet;
   });
-}
-
-/**
- * Filter snippets by category
- */
-function filterByCategory(
-  items: RegistryItem[],
-  category: string,
-): RegistryItem[] {
-  return items.filter(
-    (item) => (item.category || "uncategorized") === category,
-  );
-}
-
-/**
- * Get unique categories from items
- */
-function getCategories(items: RegistryItem[]): string[] {
-  return Array.from(
-    new Set(items.map((item) => item.category || "uncategorized")),
-  ).sort();
-}
-
-/**
- * Prompt for category selection and filter items
- */
-async function promptCategory(
-  items: RegistryItem[],
-): Promise<RegistryItem[] | null> {
-  const categories = getCategories(items);
-
-  if (categories.length <= 1) {
-    return items;
-  }
-
-  const { category } = await prompts({
-    type: "select",
-    name: "category",
-    message: "Select a category",
-    choices: [
-      { title: "All categories", value: "all" },
-      ...categories.map((c) => ({ title: c, value: c })),
-    ],
-  });
-
-  if (!category) {
-    return null;
-  }
-
-  if (category === "all") {
-    return items;
-  }
-
-  return filterByCategory(items, category);
 }
 
 /**
@@ -158,88 +47,6 @@ async function promptSnippets(items: RegistryItem[]): Promise<RegistryItem[]> {
   });
 
   return snippets || [];
-}
-
-/**
- * Find snippets by name from the registry
- */
-function findSnippetsByName(
-  names: string[],
-  snippets: RegistryItem[],
-): { found: RegistryItem[]; notFound: string[] } {
-  const found: RegistryItem[] = [];
-  const notFound: string[] = [];
-
-  for (const name of names) {
-    const snippet = snippets.find(
-      (s) => s.name.toLowerCase() === name.toLowerCase(),
-    );
-    if (snippet) {
-      found.push(snippet);
-    } else {
-      notFound.push(name);
-    }
-  }
-
-  return { found, notFound };
-}
-
-// ============================================================================
-// Installation
-// ============================================================================
-
-/**
- * Install multiple snippets with batched dependencies
- */
-async function installSnippets(
-  items: RegistryItem[],
-  destinationPath: string | undefined,
-  config: HanmaConfig,
-): Promise<void> {
-  console.log(chalk.blue(`\nInstalling ${items.length} snippet(s)...`));
-
-  // Collect all dependencies
-  const allDeps: string[] = [];
-  const allDevDeps: string[] = [];
-
-  for (const item of items) {
-    if (item.dependencies?.length) {
-      allDeps.push(...item.dependencies);
-    }
-    if (item.devDependencies?.length) {
-      allDevDeps.push(...item.devDependencies);
-    }
-  }
-
-  // Batch install dependencies
-  if (allDeps.length > 0 || allDevDeps.length > 0) {
-    const installSpinner = ora(
-      `Installing dependencies: ${[...new Set([...allDeps, ...allDevDeps])].join(", ")}...`,
-    ).start();
-    await batchInstallDependencies(allDeps, allDevDeps);
-    installSpinner.succeed("Dependencies installed");
-  }
-
-  // Write files
-  const targetDir = destinationPath || config.componentsPath;
-  const writeSpinner = ora("Writing files...").start();
-
-  for (const item of items) {
-    for (const file of item.files) {
-      const targetPath = path.join(process.cwd(), targetDir, file.name);
-      await fs.ensureDir(path.dirname(targetPath));
-      await fs.writeFile(targetPath, file.content);
-    }
-  }
-
-  writeSpinner.succeed(`Files written to ${targetDir}`);
-
-  const snippetNames = items.map((i) => i.name).join(", ");
-  console.log(
-    chalk.green(
-      `\n✓ Successfully added ${items.length} snippet(s): ${snippetNames}`,
-    ),
-  );
 }
 
 // ============================================================================
@@ -262,7 +69,6 @@ export const add = new Command()
     "Destination path (defaults to config.componentsPath)",
   )
   .action(async (snippetNames: string[], options) => {
-
     let config = await getConfig();
     if (!config) {
       config = await initHanmaConfig();
@@ -330,56 +136,35 @@ export const add = new Command()
 
     // 6. Handle different modes
     if (options.all) {
-      // --all mode: add all snippets, optionally filtered by category
       if (options.category) {
-        selectedSnippets = filterByCategory(snippets, options.category);
+        selectedSnippets = snippets.filter(
+          (s) => (s.category || "uncategorized") === options.category,
+        );
         if (selectedSnippets.length === 0) {
           console.log(
             chalk.yellow(`No snippets found in category: ${options.category}`),
           );
-          console.log(
-            chalk.dim(
-              `Available categories: ${getCategories(snippets).join(", ")}`,
-            ),
-          );
           process.exit(0);
         }
-        console.log(
-          chalk.blue(
-            `Found ${selectedSnippets.length} snippet(s) in category: ${options.category}`,
-          ),
-        );
       } else {
         selectedSnippets = snippets;
-        console.log(chalk.blue(`Adding all ${snippets.length} snippets...`));
       }
     } else if (snippetNames.length > 0) {
-      // Variadic mode: add specific snippets by name
-      const { found, notFound } = findSnippetsByName(snippetNames, snippets);
-
+      const { found, notFound } = findItemsByName(snippetNames, snippets);
       if (notFound.length > 0) {
         console.log(chalk.yellow(`Snippets not found: ${notFound.join(", ")}`));
       }
-
       if (found.length === 0) {
         console.log(chalk.red("No valid snippets to install."));
         process.exit(1);
       }
-
-      console.log(
-        chalk.blue(
-          `Found ${found.length} snippet(s): ${found.map((s) => s.name).join(", ")}`,
-        ),
-      );
       selectedSnippets = found;
     } else {
-      // Interactive mode: multi-select
       const categoryFiltered = await promptCategory(snippets);
       if (!categoryFiltered) {
         console.log("Operation cancelled.");
         process.exit(0);
       }
-
       selectedSnippets = await promptSnippets(categoryFiltered);
       if (selectedSnippets.length === 0) {
         console.log("No snippets selected.");
@@ -388,5 +173,9 @@ export const add = new Command()
     }
 
     // 7. Install snippets
-    await installSnippets(selectedSnippets, options.path, config);
+    await installRegistryItems(
+      selectedSnippets,
+      options.path || config.componentsPath,
+      "snippet",
+    );
   });

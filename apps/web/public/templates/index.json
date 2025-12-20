@@ -38,6 +38,10 @@
           "content": "import cors, { CorsOptions } from \"cors\";\n\n/**\n * Parses environment variables to get allowed origins, methods, and headers.\n */\nconst getEnvConfig = () => {\n  const allowedOrigins: string[] = (process.env.CORS_ORIGINS ?? \"\")\n    .split(\",\")\n    .map((o: string) => o.trim())\n    .filter((o: string) => o.length > 0);\n\n  const allowedMethods: string[] = (process.env.CORS_METHODS ?? \"\")\n    .split(\",\")\n    .map((m: string) => m.trim())\n    .filter((m: string) => m.length > 0);\n\n  const allowedHeaders: string[] = (process.env.CORS_HEADERS ?? \"\")\n    .split(\",\")\n    .map((h: string) => h.trim())\n    .filter((h: string) => h.length > 0);\n\n  return { allowedOrigins, allowedMethods, allowedHeaders };\n};\n\nexport const { allowedOrigins, allowedMethods, allowedHeaders } =\n  getEnvConfig();\n\n/**\n * Creates valid CorsOptions based on provided or environment configuration.\n */\nexport const createCorsOptions = (\n  overrides?: Partial<CorsOptions> & {\n    origins?: string[];\n    methods?: string[];\n    headers?: string[];\n  }\n): CorsOptions => {\n  const origins = overrides?.origins ?? allowedOrigins;\n  const methods = overrides?.methods ?? allowedMethods;\n  const headers = overrides?.headers ?? allowedHeaders;\n\n  return {\n    origin: (\n      origin: string | undefined,\n      callback: (error: Error | null, allow?: boolean) => void\n    ) => {\n      // Allow requests with no origin (mobile apps, curl, same-origin)\n      if (!origin) return callback(null, true);\n\n      if (origins.length === 0 || origins.includes(origin)) {\n        callback(null, true);\n      } else {\n        callback(new Error(\"Not allowed by CORS\"));\n      }\n    },\n    methods,\n    allowedHeaders: headers,\n    credentials: true,\n    ...overrides,\n  };\n};\n\n/**\n * Check if critical CORS configuration is missing.\n * Useful for validating environment setup on startup.\n */\nexport const validateCorsConfig = () => {\n  if (\n    !allowedOrigins.length ||\n    !allowedMethods.length ||\n    !allowedHeaders.length\n  ) {\n    console.warn(\n      \" CORS configuration might be incomplete. Check CORS_ORIGINS, CORS_METHODS, and CORS_HEADERS .env variables.\"\n    );\n    return false;\n  }\n  return true;\n};\n\n// Default export uses strict environment variables but doesn't hard exit only warns if missing,\n// unless strict validation is called.\nconst defaultOptions = createCorsOptions();\nexport const corsMiddleware = cors(defaultOptions);\n"
         },
         {
+          "path": "tsconfig.json",
+          "content": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"module\": \"NodeNext\",\n    \"moduleResolution\": \"Bundler\",\n    \"esModuleInterop\": true,\n    \"strict\": true,\n    \"skipLibCheck\": true,\n    \"outDir\": \"dist\",\n    \"rootDir\": \"src\",\n    \"baseUrl\": \".\",\n    \"paths\": {\n      \"@/*\": [\"src/*\"]\n    }\n  },\n  \"include\": [\"src/**/*\"],\n  \"exclude\": [\"node_modules\", \"dist\"]\n}\n"
+        },
+        {
           "path": ".env.example",
           "content": "# Environment\nNODE_ENV=development\nPORT=3000\n\n# Add your environment variables below\n"
         },
@@ -48,10 +52,6 @@
         {
           "path": "src/index.ts.hbs",
           "content": "import { shutdown, startServer } from \"@/libs/server\";\n\nstartServer();\n\nprocess.on(\"SIGTERM\", () => shutdown(\"SIGTERM\"));\nprocess.on(\"SIGINT\", () => shutdown(\"SIGINT\"));\n\nprocess.on(\"unhandledRejection\", (reason, p) => {\n  console.error(\"Unhandled Rejection at:\", p, \"reason:\", reason);\n});\n\nprocess.on(\"uncaughtException\", (err) => {\n  console.error(\"Uncaught Exception:\", err);\n  process.exit(1);\n});"
-        },
-        {
-          "path": "tsconfig.json",
-          "content": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"module\": \"CommonJS\",\n    \"rootDir\": \"./src\",\n    \"outDir\": \"./dist\",\n    \"strict\": true,\n    \"esModuleInterop\": true,\n    \"skipLibCheck\": true,\n    \"forceConsistentCasingInFileNames\": true,\n    \"baseUrl\": \".\",\n    \"paths\": {\n      \"@/*\": [\"src/*\"]\n    },\n    \"resolveJsonModule\": true,\n    \"allowSyntheticDefaultImports\": true,\n    \"types\": [\"node\"]\n  },\n  \"include\": [\"src/**/*\"],\n  \"exclude\": [\"node_modules\", \"dist\"]\n}"
         }
       ]
     },
@@ -90,12 +90,12 @@
           "content": "import { ApolloServer } from '@apollo/server';\nimport { expressMiddleware } from '@apollo/server/express4';\nimport { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';\nimport express from 'express';\nimport http from 'http';\nimport cors from 'cors';\n\n/**\n * GraphQL type definitions\n * Replace with your actual schema\n */\nconst typeDefs = `#graphql\n  type Query {\n    hello: String\n    health: HealthStatus\n  }\n\n  type HealthStatus {\n    status: String!\n    timestamp: String!\n  }\n`;\n\n/**\n * GraphQL resolvers\n * Replace with your actual resolvers\n */\nconst resolvers = {\n  Query: {\n    hello: () => 'Hello from GraphQL!',\n    health: () => ({\n      status: 'ok',\n      timestamp: new Date().toISOString(),\n    }),\n  },\n};\n\n/**\n * Context interface for type-safe resolvers\n */\nexport interface GraphQLContext {\n  // Add your context properties here\n  // user?: { id: string; email: string };\n}\n\n/**\n * Create and configure Apollo Server with Express\n */\nexport const createGraphQLServer = async (port = 4000) => {\n  const app = express();\n  const httpServer = http.createServer(app);\n\n  const server = new ApolloServer<GraphQLContext>({\n    typeDefs,\n    resolvers,\n    plugins: [\n      // Graceful shutdown plugin\n      ApolloServerPluginDrainHttpServer({ httpServer }),\n    ],\n    // Disable introspection in production\n    introspection: process.env.NODE_ENV !== 'production',\n  });\n\n  await server.start();\n\n  app.use(\n    '/graphql',\n    cors<cors.CorsRequest>(),\n    express.json(),\n    expressMiddleware(server, {\n      context: async ({ req }) => {\n        // Build your context here\n        // const token = req.headers.authorization || '';\n        // const user = await getUser(token);\n        return {\n          // user,\n        };\n      },\n    })\n  );\n\n  // Health check endpoint\n  app.get('/health', (_req, res) => {\n    res.json({ status: 'ok', timestamp: new Date().toISOString() });\n  });\n\n  await new Promise<void>((resolve) =>\n    httpServer.listen({ port }, resolve)\n  );\n\n  console.log(`GraphQL server running at http://localhost:${port}/graphql`);\n\n  return { app, httpServer, server };\n};\n\n/**\n * Start the server\n */\nif (require.main === module) {\n  createGraphQLServer().catch(console.error);\n}\n"
         },
         {
-          "path": "src/index.ts.hbs",
-          "content": "import { startGraphQLServer, shutdownGraphQLServer } from \"@/libs/graphql-server\";\n\nstartGraphQLServer();\n\nprocess.on(\"SIGTERM\", () => shutdownGraphQLServer(\"SIGTERM\"));\nprocess.on(\"SIGINT\", () => shutdownGraphQLServer(\"SIGINT\"));\n\nprocess.on(\"unhandledRejection\", (reason, p) => {\n  console.error(\"Unhandled Rejection at:\", p, \"reason:\", reason);\n});\n\nprocess.on(\"uncaughtException\", (err) => {\n  console.error(\"Uncaught Exception:\", err);\n  process.exit(1);\n});\n"
+          "path": "tsconfig.json",
+          "content": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"module\": \"NodeNext\",\n    \"moduleResolution\": \"Bundler\",\n    \"esModuleInterop\": true,\n    \"strict\": true,\n    \"skipLibCheck\": true,\n    \"outDir\": \"dist\",\n    \"rootDir\": \"src\",\n    \"baseUrl\": \".\",\n    \"paths\": {\n      \"@/*\": [\"src/*\"]\n    }\n  },\n  \"include\": [\"src/**/*\"],\n  \"exclude\": [\"node_modules\", \"dist\"]\n}\n"
         },
         {
-          "path": "tsconfig.json",
-          "content": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"module\": \"NodeNext\",\n    \"moduleResolution\": \"NodeNext\",\n    \"esModuleInterop\": true,\n    \"strict\": true,\n    \"skipLibCheck\": true,\n    \"outDir\": \"dist\",\n    \"rootDir\": \"src\",\n    \"baseUrl\": \".\",\n    \"paths\": {\n      \"@/*\": [\"src/*\"]\n    }\n  },\n  \"include\": [\"src/**/*\"],\n  \"exclude\": [\"node_modules\", \"dist\"]\n}\n"
+          "path": "src/index.ts.hbs",
+          "content": "import { startGraphQLServer, shutdownGraphQLServer } from \"@/libs/graphql-server\";\n\nstartGraphQLServer();\n\nprocess.on(\"SIGTERM\", () => shutdownGraphQLServer(\"SIGTERM\"));\nprocess.on(\"SIGINT\", () => shutdownGraphQLServer(\"SIGINT\"));\n\nprocess.on(\"unhandledRejection\", (reason, p) => {\n  console.error(\"Unhandled Rejection at:\", p, \"reason:\", reason);\n});\n\nprocess.on(\"uncaughtException\", (err) => {\n  console.error(\"Uncaught Exception:\", err);\n  process.exit(1);\n});\n"
         }
       ]
     },
@@ -107,13 +107,16 @@
       "version": "5",
       "dependencies": [
         "express",
-        "dotenv"
+        "dotenv",
+        "cors",
+        "helmet"
       ],
       "devDependencies": [
         "typescript",
         "@types/node",
         "@types/express",
-        "tsx"
+        "tsx",
+        "@types/cors"
       ],
       "scripts": {
         "dev": "tsx watch src/index.ts",
@@ -126,12 +129,16 @@
       ],
       "files": [
         {
-          "path": "src/index.ts.hbs",
-          "content": "import express from \"express\";\nimport dotenv from \"dotenv\";\n\ndotenv.config();\n\nconst app = express();\nconst PORT = process.env.PORT || 3000;\n\n// Middleware\napp.use(express.json());\n\n// Health check\napp.get(\"/health\", (_req, res) => {\n  res.json({ status: \"ok\", timestamp: new Date().toISOString() });\n});\n\n// Start server\nconst server = app.listen(PORT, () => {\n  console.log(`Server running on http://localhost:${PORT}`);\n});\n\n// Graceful shutdown\nconst shutdown = (signal: string) => {\n  console.log(`\\n${signal} received. Shutting down gracefully...`);\n  server.close(() => {\n    console.log(\"Server closed\");\n    process.exit(0);\n  });\n};\n\nprocess.on(\"SIGTERM\", () => shutdown(\"SIGTERM\"));\nprocess.on(\"SIGINT\", () => shutdown(\"SIGINT\"));\n"
+          "path": "src/index.ts",
+          "content": "import http from \"http\";\nimport express from \"express\";\nimport cors from \"cors\";\nimport helmet from \"helmet\";\n\nconst app = express();\nconst server = http.createServer(app);\n\n// Track active connections for graceful shutdown\nconst sockets = new Set<import(\"net\").Socket>();\n\nserver.on(\"connection\", (socket) => {\n  sockets.add(socket);\n  socket.on(\"close\", () => sockets.delete(socket));\n});\n\n// Middleware\napp.use(express.json());\napp.use(express.urlencoded({ extended: true }));\napp.use(cors());\napp.use(helmet());\n\n// Health check endpoint\napp.get(\"/health\", (_req, res) => {\n  res.status(200).json({ status: \"ok\", timestamp: new Date().toISOString() });\n});\n\n// TODO: Add your routes here\n// app.use(\"/api\", yourRouter);\n\n// 404 handler\napp.use((_req, res) => {\n  res.status(404).json({ success: false, message: \"Resource not found\" });\n});\n\n// Error handler\napp.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {\n  console.error(\"[ERROR]\", err.stack || err.message);\n  res.status(500).json({\n    success: false,\n    message: process.env.NODE_ENV === \"development\" ? err.message : \"Internal Server Error\",\n  });\n});\n\nconst PORT = process.env.PORT || 3000;\n\nexport const startServer = async () => {\n  if (server.listening) {\n    console.log(\"Server already running\");\n    return;\n  }\n\n  try {\n    server.listen(PORT, () => {\n      console.log(`Server running on http://localhost:${PORT}`);\n      console.log(`Health check: http://localhost:${PORT}/health`);\n    });\n  } catch (err) {\n    console.error(\"Failed to start server:\", err);\n    process.exit(1);\n  }\n};\n\nexport const shutdown = async (signal: string) => {\n  console.log(`\\n${signal} received. Shutting down gracefully...`);\n\n  server.close(() => {\n    console.log(\"HTTP server closed\");\n    process.exit(0);\n  });\n\n  // Force shutdown after 10s\n  setTimeout(() => {\n    console.warn(\n      `Grace period expired. Forcing close of ${sockets.size} remaining connection(s).`\n    );\n    sockets.forEach((socket) => socket.destroy());\n    process.exit(1);\n  }, 10000).unref();\n};\n\n// Start the server\nstartServer();\n\n// Graceful shutdown handlers\nprocess.on(\"SIGTERM\", () => shutdown(\"SIGTERM\"));\nprocess.on(\"SIGINT\", () => shutdown(\"SIGINT\"));\n\nprocess.on(\"unhandledRejection\", (reason, p) => {\n  console.error(\"Unhandled Rejection at:\", p, \"reason:\", reason);\n});\n\nprocess.on(\"uncaughtException\", (err) => {\n  console.error(\"Uncaught Exception:\", err);\n  process.exit(1);\n});"
         },
         {
           "path": "tsconfig.json",
-          "content": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"module\": \"NodeNext\",\n    \"moduleResolution\": \"NodeNext\",\n    \"esModuleInterop\": true,\n    \"strict\": true,\n    \"skipLibCheck\": true,\n    \"outDir\": \"dist\",\n    \"rootDir\": \"src\",\n    \"baseUrl\": \".\",\n    \"paths\": {\n      \"@/*\": [\"src/*\"]\n    }\n  },\n  \"include\": [\"src/**/*\"],\n  \"exclude\": [\"node_modules\", \"dist\"]\n}\n"
+          "content": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"module\": \"NodeNext\",\n    \"moduleResolution\": \"Bundler\",\n    \"esModuleInterop\": true,\n    \"strict\": true,\n    \"skipLibCheck\": true,\n    \"outDir\": \"dist\",\n    \"rootDir\": \"src\",\n    \"baseUrl\": \".\",\n    \"paths\": {\n      \"@/*\": [\"src/*\"]\n    }\n  },\n  \"include\": [\"src/**/*\"],\n  \"exclude\": [\"node_modules\", \"dist\"]\n}\n"
+        },
+        {
+          "path": "src/index.ts.hbs",
+          "content": "import express from \"express\";\nimport dotenv from \"dotenv\";\n\ndotenv.config();\n\nconst app = express();\nconst PORT = process.env.PORT || 3000;\n\n// Middleware\napp.use(express.json());\n\n// Health check\napp.get(\"/health\", (_req, res) => {\n  res.json({ status: \"ok\", timestamp: new Date().toISOString() });\n});\n\n// Start server\nconst server = app.listen(PORT, () => {\n  console.log(`Server running on http://localhost:${PORT}`);\n});\n\n// Graceful shutdown\nconst shutdown = (signal: string) => {\n  console.log(`\\n${signal} received. Shutting down gracefully...`);\n  server.close(() => {\n    console.log(\"Server closed\");\n    process.exit(0);\n  });\n};\n\nprocess.on(\"SIGTERM\", () => shutdown(\"SIGTERM\"));\nprocess.on(\"SIGINT\", () => shutdown(\"SIGINT\"));\n"
         }
       ]
     },
@@ -179,12 +186,12 @@
           "content": "import { Request, Response, NextFunction, RequestHandler } from 'express';\n\n/**\n * Type for async request handlers\n */\ntype AsyncRequestHandler = (\n  req: Request,\n  res: Response,\n  next: NextFunction\n) => Promise<unknown>;\n\n/**\n * Wraps an async route handler to automatically catch and forward errors\n * Eliminates the need for try-catch blocks in every route\n * \n * @example\n * // Instead of:\n * router.get('/users', async (req, res, next) => {\n *   try {\n *     const users = await User.findAll();\n *     res.json(users);\n *   } catch (err) {\n *     next(err);\n *   }\n * });\n * \n * // You can write:\n * router.get('/users', asyncHandler(async (req, res) => {\n *   const users = await User.findAll();\n *   res.json(users);\n * }));\n */\nexport const asyncHandler = (fn: AsyncRequestHandler): RequestHandler => {\n  return (req: Request, res: Response, next: NextFunction) => {\n    Promise.resolve(fn(req, res, next)).catch(next);\n  };\n};\n\n/**\n * Alternative syntax using higher-order function\n * Can be used as a decorator-like pattern\n * \n * @example\n * const getUsers = catchAsync(async (req, res) => {\n *   const users = await User.findAll();\n *   res.json(users);\n * });\n * \n * router.get('/users', getUsers);\n */\nexport const catchAsync = asyncHandler; // Alias for those who prefer this name\n\n/**\n * Wrap multiple handlers at once\n * \n * @example\n * const [getUser, createUser, deleteUser] = wrapHandlers(\n *   async (req, res) => { ... },\n *   async (req, res) => { ... },\n *   async (req, res) => { ... },\n * );\n */\nexport const wrapHandlers = (\n  ...handlers: AsyncRequestHandler[]\n): RequestHandler[] => {\n  return handlers.map(asyncHandler);\n};\n"
         },
         {
-          "path": "src/index.ts.hbs",
-          "content": "import { shutdown, startServer } from \"@/libs/server\";\n\nstartServer();\n\nprocess.on(\"SIGTERM\", () => shutdown(\"SIGTERM\"));\nprocess.on(\"SIGINT\", () => shutdown(\"SIGINT\"));\n\nprocess.on(\"unhandledRejection\", (reason, p) => {\n  console.error(\"Unhandled Rejection at:\", p, \"reason:\", reason);\n});\n\nprocess.on(\"uncaughtException\", (err) => {\n  console.error(\"Uncaught Exception:\", err);\n  process.exit(1);\n});\n"
+          "path": "tsconfig.json",
+          "content": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"module\": \"NodeNext\",\n    \"moduleResolution\": \"Bundler\",\n    \"esModuleInterop\": true,\n    \"strict\": true,\n    \"skipLibCheck\": true,\n    \"outDir\": \"dist\",\n    \"rootDir\": \"src\",\n    \"baseUrl\": \".\",\n    \"paths\": {\n      \"@/*\": [\"src/*\"]\n    }\n  },\n  \"include\": [\"src/**/*\"],\n  \"exclude\": [\"node_modules\", \"dist\"]\n}\n"
         },
         {
-          "path": "tsconfig.json",
-          "content": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"module\": \"NodeNext\",\n    \"moduleResolution\": \"NodeNext\",\n    \"esModuleInterop\": true,\n    \"strict\": true,\n    \"skipLibCheck\": true,\n    \"outDir\": \"dist\",\n    \"rootDir\": \"src\",\n    \"baseUrl\": \".\",\n    \"paths\": {\n      \"@/*\": [\"src/*\"]\n    }\n  },\n  \"include\": [\"src/**/*\"],\n  \"exclude\": [\"node_modules\", \"dist\"]\n}\n"
+          "path": "src/index.ts.hbs",
+          "content": "import { shutdown, startServer } from \"@/libs/server\";\n\nstartServer();\n\nprocess.on(\"SIGTERM\", () => shutdown(\"SIGTERM\"));\nprocess.on(\"SIGINT\", () => shutdown(\"SIGINT\"));\n\nprocess.on(\"unhandledRejection\", (reason, p) => {\n  console.error(\"Unhandled Rejection at:\", p, \"reason:\", reason);\n});\n\nprocess.on(\"uncaughtException\", (err) => {\n  console.error(\"Uncaught Exception:\", err);\n  process.exit(1);\n});\n"
         }
       ]
     },
@@ -225,12 +232,12 @@
           "content": "import { Server, Socket } from \"socket.io\";\nimport jwt from \"jsonwebtoken\";\nimport type { Server as HTTPServer } from \"http\";\n\ninterface JwtPayloadOptions {\n  id: string;\n  email: string;\n  name: string;\n}\n\nexport interface AuthenticatedSocket extends Socket {\n  user?: JwtPayloadOptions;\n}\n\ninterface InitSocketOptions {\n  /** The HTTP server instance to attach socket.io to */\n  server: HTTPServer;\n  /**\n   * Allowed CORS origins\n   * @default \"*\"\n   */\n  allowedOrigins?: string | string[];\n  /**\n   * Allowed HTTP methods for CORS\n   * @default [\"GET\", \"POST\"]\n   */\n  allowedMethods?: string[];\n  /** Allowed headers for CORS */\n  allowedHeaders?: string[];\n  /**\n   * Whether to validate JWT token on connection handshake\n   * @default true\n   */\n  validateToken?: boolean;\n}\n\nexport function initializeSocket({\n  server,\n  allowedOrigins = \"*\",\n  allowedMethods = [\"GET\", \"POST\"],\n  allowedHeaders,\n  validateToken = true,\n}: InitSocketOptions): Server {\n  const io = new Server(server, {\n    cors: {\n      origin: allowedOrigins,\n      methods: allowedMethods,\n      allowedHeaders,\n      credentials: true,\n    },\n  });\n\n  io.use((socket: AuthenticatedSocket, next) => {\n    console.log(\n      `[${new Date().toISOString()}] Socket connected: ${socket.id}, ` +\n        `IP: ${socket.handshake.address}, ` +\n        `Transport: ${socket.conn.transport}`\n    );\n\n    // If validation is disabled, skip auth check\n    if (!validateToken) return next();\n\n    const token = socket.handshake.query.token as string;\n    if (!token) return next(new Error(\"Authentication error\"));\n\n    try {\n      const secret: jwt.Secret = process.env.JWT_ACCESS_SECRET!;\n      const decoded = jwt.verify(token, secret) as JwtPayloadOptions;\n      socket.user = decoded;\n      next();\n    } catch (err) {\n      console.error(\"JWT verification failed:\", err);\n      next(new Error(\"Authentication error\"));\n    }\n  });\n\n  return io;\n}\n"
         },
         {
-          "path": "src/index.ts.hbs",
-          "content": "import { startSocketServer, shutdownSocketServer } from \"@/libs/socket-server\";\n\nstartSocketServer();\n\nprocess.on(\"SIGTERM\", () => shutdownSocketServer(\"SIGTERM\"));\nprocess.on(\"SIGINT\", () => shutdownSocketServer(\"SIGINT\"));\n\nprocess.on(\"unhandledRejection\", (reason, p) => {\n  console.error(\"Unhandled Rejection at:\", p, \"reason:\", reason);\n});\n\nprocess.on(\"uncaughtException\", (err) => {\n  console.error(\"Uncaught Exception:\", err);\n  process.exit(1);\n});\n"
+          "path": "tsconfig.json",
+          "content": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"module\": \"NodeNext\",\n    \"moduleResolution\": \"Bundler\",\n    \"esModuleInterop\": true,\n    \"strict\": true,\n    \"skipLibCheck\": true,\n    \"outDir\": \"dist\",\n    \"rootDir\": \"src\",\n    \"baseUrl\": \".\",\n    \"paths\": {\n      \"@/*\": [\"src/*\"]\n    }\n  },\n  \"include\": [\"src/**/*\"],\n  \"exclude\": [\"node_modules\", \"dist\"]\n}\n"
         },
         {
-          "path": "tsconfig.json",
-          "content": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"module\": \"NodeNext\",\n    \"moduleResolution\": \"NodeNext\",\n    \"esModuleInterop\": true,\n    \"strict\": true,\n    \"skipLibCheck\": true,\n    \"outDir\": \"dist\",\n    \"rootDir\": \"src\",\n    \"baseUrl\": \".\",\n    \"paths\": {\n      \"@/*\": [\"src/*\"]\n    }\n  },\n  \"include\": [\"src/**/*\"],\n  \"exclude\": [\"node_modules\", \"dist\"]\n}\n"
+          "path": "src/index.ts.hbs",
+          "content": "import { startSocketServer, shutdownSocketServer } from \"@/libs/socket-server\";\n\nstartSocketServer();\n\nprocess.on(\"SIGTERM\", () => shutdownSocketServer(\"SIGTERM\"));\nprocess.on(\"SIGINT\", () => shutdownSocketServer(\"SIGINT\"));\n\nprocess.on(\"unhandledRejection\", (reason, p) => {\n  console.error(\"Unhandled Rejection at:\", p, \"reason:\", reason);\n});\n\nprocess.on(\"uncaughtException\", (err) => {\n  console.error(\"Uncaught Exception:\", err);\n  process.exit(1);\n});\n"
         }
       ]
     },
@@ -269,12 +276,12 @@
           "content": "import { initTRPC, TRPCError } from '@trpc/server';\nimport { createExpressMiddleware } from '@trpc/server/adapters/express';\nimport express from 'express';\nimport { z } from 'zod';\n\n/**\n * Context creation function\n * Called for each request, provides context to all procedures\n */\nconst createContext = ({ req, res }: { req: express.Request; res: express.Response }) => {\n  // Extract user from auth header if present\n  // const token = req.headers.authorization?.split(' ')[1];\n  // const user = token ? verifyToken(token) : null;\n  \n  return {\n    req,\n    res,\n    // user,\n  };\n};\n\ntype Context = Awaited<ReturnType<typeof createContext>>;\n\n/**\n * Initialize tRPC with context\n */\nconst t = initTRPC.context<Context>().create({\n  errorFormatter({ shape, error }) {\n    return {\n      ...shape,\n      data: {\n        ...shape.data,\n        // Add custom error data here\n      },\n    };\n  },\n});\n\n/**\n * Reusable middleware\n */\nconst isAuthenticated = t.middleware(({ ctx, next }) => {\n  // if (!ctx.user) {\n  //   throw new TRPCError({ code: 'UNAUTHORIZED' });\n  // }\n  return next({\n    ctx: {\n      ...ctx,\n      // user: ctx.user,\n    },\n  });\n});\n\n/**\n * Procedure builders\n */\nexport const router = t.router;\nexport const publicProcedure = t.procedure;\nexport const protectedProcedure = t.procedure.use(isAuthenticated);\n\n/**\n * Example router with procedures\n */\nconst appRouter = router({\n  // Health check\n  health: publicProcedure.query(() => ({\n    status: 'ok',\n    timestamp: new Date().toISOString(),\n  })),\n\n  // Example public procedure\n  hello: publicProcedure\n    .input(z.object({ name: z.string().optional() }))\n    .query(({ input }) => {\n      return { greeting: `Hello ${input.name || 'World'}!` };\n    }),\n\n  // Example mutation\n  createItem: publicProcedure\n    .input(z.object({\n      title: z.string().min(1).max(100),\n      description: z.string().optional(),\n    }))\n    .mutation(async ({ input }) => {\n      // Save to database\n      const item = {\n        id: Math.random().toString(36).slice(2),\n        ...input,\n        createdAt: new Date(),\n      };\n      return item;\n    }),\n\n  // Nested routers\n  user: router({\n    list: publicProcedure.query(() => {\n      return [{ id: '1', name: 'John' }];\n    }),\n    byId: publicProcedure\n      .input(z.object({ id: z.string() }))\n      .query(({ input }) => {\n        return { id: input.id, name: 'John' };\n      }),\n  }),\n});\n\n/**\n * Export type for client usage\n */\nexport type AppRouter = typeof appRouter;\n\n/**\n * Create and start tRPC server with Express\n */\nexport const createTRPCServer = (port = 4000) => {\n  const app = express();\n\n  // Health check endpoint\n  app.get('/health', (_req, res) => {\n    res.json({ status: 'ok', timestamp: new Date().toISOString() });\n  });\n\n  // tRPC middleware\n  app.use(\n    '/trpc',\n    createExpressMiddleware({\n      router: appRouter,\n      createContext,\n      onError({ error, path }) {\n        console.error(`[ERROR] tRPC error on ${path}:`, error.message);\n      },\n    })\n  );\n\n  const server = app.listen(port, () => {\n    console.log(`tRPC server running at http://localhost:${port}/trpc`);\n  });\n\n  return { app, server, router: appRouter };\n};\n\n/**\n * Start the server\n */\nif (require.main === module) {\n  createTRPCServer();\n}\n"
         },
         {
-          "path": "src/index.ts.hbs",
-          "content": "import { startTRPCServer, shutdownTRPCServer } from \"@/libs/trpc-server\";\n\nstartTRPCServer();\n\nprocess.on(\"SIGTERM\", () => shutdownTRPCServer(\"SIGTERM\"));\nprocess.on(\"SIGINT\", () => shutdownTRPCServer(\"SIGINT\"));\n\nprocess.on(\"unhandledRejection\", (reason, p) => {\n  console.error(\"Unhandled Rejection at:\", p, \"reason:\", reason);\n});\n\nprocess.on(\"uncaughtException\", (err) => {\n  console.error(\"Uncaught Exception:\", err);\n  process.exit(1);\n});\n"
+          "path": "tsconfig.json",
+          "content": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"module\": \"NodeNext\",\n    \"moduleResolution\": \"Bundler\",\n    \"esModuleInterop\": true,\n    \"strict\": true,\n    \"skipLibCheck\": true,\n    \"outDir\": \"dist\",\n    \"rootDir\": \"src\",\n    \"baseUrl\": \".\",\n    \"paths\": {\n      \"@/*\": [\"src/*\"]\n    }\n  },\n  \"include\": [\"src/**/*\"],\n  \"exclude\": [\"node_modules\", \"dist\"]\n}\n"
         },
         {
-          "path": "tsconfig.json",
-          "content": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"module\": \"NodeNext\",\n    \"moduleResolution\": \"NodeNext\",\n    \"esModuleInterop\": true,\n    \"strict\": true,\n    \"skipLibCheck\": true,\n    \"outDir\": \"dist\",\n    \"rootDir\": \"src\",\n    \"baseUrl\": \".\",\n    \"paths\": {\n      \"@/*\": [\"src/*\"]\n    }\n  },\n  \"include\": [\"src/**/*\"],\n  \"exclude\": [\"node_modules\", \"dist\"]\n}\n"
+          "path": "src/index.ts.hbs",
+          "content": "import { startTRPCServer, shutdownTRPCServer } from \"@/libs/trpc-server\";\n\nstartTRPCServer();\n\nprocess.on(\"SIGTERM\", () => shutdownTRPCServer(\"SIGTERM\"));\nprocess.on(\"SIGINT\", () => shutdownTRPCServer(\"SIGINT\"));\n\nprocess.on(\"unhandledRejection\", (reason, p) => {\n  console.error(\"Unhandled Rejection at:\", p, \"reason:\", reason);\n});\n\nprocess.on(\"uncaughtException\", (err) => {\n  console.error(\"Uncaught Exception:\", err);\n  process.exit(1);\n});\n"
         }
       ]
     }
@@ -346,7 +353,7 @@
         },
         {
           "path": "src/db/index.ts.hbs",
-          "content": "import { drizzle } from 'drizzle-orm/node-postgres';\nimport { schema } from './schema/schema';\nimport { Pool } from 'pg';\n\n/**\n * PostgreSQL connection pool\n */\nconst pool = new Pool({\n  connectionString: process.env.DATABASE_URL,\n  max: 20,                    // Maximum connections in pool\n  idleTimeoutMillis: 30000,   // Close idle connections after 30s\n  connectionTimeoutMillis: 5000,\n});\n\n// Log pool errors\npool.on('error', (err) => {\n  console.error('[ERROR] Unexpected database pool error:', err);\n});\n\n/**\n * Drizzle ORM instance\n * Import your schema and pass it here for type-safe queries\n */\nexport const db = drizzle(pool, { schema });\n\n/**\n * Connect to database with health check\n */\nexport const connectDatabase = async () => {\n  try {\n    const client = await pool.connect();\n    await client.query('SELECT NOW()');\n    client.release();\n    console.log('[OK] Database connected');\n  } catch (error) {\n    console.error('[ERROR] Database connection failed:', error);\n    throw error;\n  }\n};\n\n/**\n * Disconnect from database (for graceful shutdown)\n */\nexport const disconnectDatabase = async () => {\n  await pool.end();\n  console.log('[INFO] Database disconnected');\n};\n\n/**\n * Health check for database connection\n */\nexport const isDatabaseHealthy = async (): Promise<boolean> => {\n  try {\n    const client = await pool.connect();\n    await client.query('SELECT 1');\n    client.release();\n    return true;\n  } catch {\n    return false;\n  }\n};\n\n/**\n * Transaction helper\n * @example\n * await transaction(async (tx) => {\n *   await tx.insert(users).values({ name: 'John' });\n *   await tx.insert(posts).values({ title: 'Hello' });\n * });\n */\nexport const transaction = async <T>(\n  fn: (tx: typeof db) => Promise<T>\n): Promise<T> => {\n  return db.transaction(fn);\n};\n\n"
+          "content": "import { drizzle } from 'drizzle-orm/node-postgres';\nimport * as schema from './schema/schema';\nimport { Pool } from 'pg';\n\n/**\n * PostgreSQL connection pool\n */\nconst pool = new Pool({\n  connectionString: process.env.DATABASE_URL,\n  max: 20,                    // Maximum connections in pool\n  idleTimeoutMillis: 30000,   // Close idle connections after 30s\n  connectionTimeoutMillis: 5000,\n});\n\n// Log pool errors\npool.on('error', (err) => {\n  console.error('[ERROR] Unexpected database pool error:', err);\n});\n\n/**\n * Drizzle ORM instance\n * Import your schema and pass it here for type-safe queries\n */\nexport const db = drizzle(pool, { schema });\n\n/**\n * Connect to database with health check\n */\nexport const connectDatabase = async () => {\n  try {\n    const client = await pool.connect();\n    await client.query('SELECT NOW()');\n    client.release();\n    console.log('[OK] Database connected');\n  } catch (error) {\n    console.error('[ERROR] Database connection failed:', error);\n    throw error;\n  }\n};\n\n/**\n * Disconnect from database (for graceful shutdown)\n */\nexport const disconnectDatabase = async () => {\n  await pool.end();\n  console.log('[INFO] Database disconnected');\n};\n\n/**\n * Health check for database connection\n */\nexport const isDatabaseHealthy = async (): Promise<boolean> => {\n  try {\n    const client = await pool.connect();\n    await client.query('SELECT 1');\n    client.release();\n    return true;\n  } catch {\n    return false;\n  }\n};\n\n/**\n * Transaction helper\n * @example\n * await transaction(async (tx) => {\n *   await tx.insert(users).values({ name: 'John' });\n *   await tx.insert(posts).values({ title: 'Hello' });\n * });\n */\nexport const transaction = async <T>(\n  fn: (tx: Parameters<typeof db.transaction>[0] extends (arg: infer A) => any\n    ? A\n    : never) => Promise<T>\n): Promise<T> => {\n  return db.transaction(fn);\n};\n"
         },
         {
           "path": "src/db/schema/schema.ts.hbs",
@@ -680,10 +687,77 @@
       "files": [
         {
           "path": "src/libs/sentry.ts",
-          "content": "import * as Sentry from '@sentry/node';\nimport { Express, Request, Response, NextFunction } from 'express';\n\n/**\n * Initialize Sentry\n * Call this before creating your Express app\n */\nexport const initSentry = () => {\n  if (!process.env.SENTRY_DSN) {\n    console.warn('[WARN] SENTRY_DSN not set, error tracking disabled');\n    return;\n  }\n\n  Sentry.init({\n    dsn: process.env.SENTRY_DSN,\n    environment: process.env.NODE_ENV || 'development',\n    release: process.env.npm_package_version,\n    \n    // Performance Monitoring\n    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,\n    \n    // Only send errors in production\n    enabled: process.env.NODE_ENV === 'production',\n    \n    // Filter sensitive data\n    beforeSend(event) {\n      // Remove sensitive headers\n      if (event.request?.headers) {\n        delete event.request.headers['authorization'];\n        delete event.request.headers['cookie'];\n        delete event.request.headers['x-api-key'];\n      }\n      return event;\n    },\n  });\n\n  console.log('[OK] Sentry initialized');\n};\n\n/**\n * Setup Sentry request handler\n * Add this BEFORE your routes\n */\nexport const sentryRequestHandler = () => {\n  return Sentry.Handlers.requestHandler({\n    // Include user info if available\n    user: ['id', 'email'],\n  });\n};\n\n/**\n * Setup Sentry tracing handler\n * Add this BEFORE your routes, after requestHandler\n */\nexport const sentryTracingHandler = () => {\n  return Sentry.Handlers.tracingHandler();\n};\n\n/**\n * Setup Sentry error handler\n * Add this AFTER your routes, before your error handler\n */\nexport const sentryErrorHandler = () => {\n  return Sentry.Handlers.errorHandler({\n    shouldHandleError(error) {\n      // Capture 4xx and 5xx errors\n      const status = (error as any).status || (error as any).statusCode || 500;\n      return status >= 400;\n    },\n  });\n};\n\n/**\n * Capture exception manually\n */\nexport const captureException = (error: Error, context?: Record<string, unknown>) => {\n  Sentry.captureException(error, {\n    extra: context,\n  });\n};\n\n/**\n * Set user context for error tracking\n * Call this after user authentication\n */\nexport const setUser = (user: { id: string; email?: string; [key: string]: unknown }) => {\n  Sentry.setUser(user);\n};\n\n/**\n * Clear user context (on logout)\n */\nexport const clearUser = () => {\n  Sentry.setUser(null);\n};\n\n/**\n * Add breadcrumb for debugging\n */\nexport const addBreadcrumb = (message: string, category?: string, data?: Record<string, unknown>) => {\n  Sentry.addBreadcrumb({\n    message,\n    category: category || 'custom',\n    data,\n    level: 'info',\n  });\n};\n\n/**\n * Example usage in app.ts:\n * \n * import { initSentry, sentryRequestHandler, sentryTracingHandler, sentryErrorHandler } from './libs/sentry';\n * \n * // Initialize before app\n * initSentry();\n * \n * const app = express();\n * \n * // Add handlers in order\n * app.use(sentryRequestHandler());\n * app.use(sentryTracingHandler());\n * \n * // Your routes here\n * app.use('/api', routes);\n * \n * // Error handler (must be after routes)\n * app.use(sentryErrorHandler());\n * app.use(errorHandler);\n */\n"
+          "content": "import * as Sentry from '@sentry/node';\nimport { Express } from 'express';\n\n/**\n * Initialize Sentry\n * Call this at the very beginning of your program, before any other imports!\n */\nexport const initSentry = () => {\n  if (!process.env.SENTRY_DSN) {\n    console.warn('[WARN] SENTRY_DSN not set, error tracking disabled');\n    return;\n  }\n\n  Sentry.init({\n    dsn: process.env.SENTRY_DSN,\n    environment: process.env.NODE_ENV || 'development',\n    release: process.env.npm_package_version,\n    \n    // Performance Monitoring\n    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,\n    \n    // Only send errors in production\n    enabled: process.env.NODE_ENV === 'production',\n\n    // Add useful integrations for Express\n    integrations: [\n      // Sentry v8+ automatically adds many integrations\n    ],\n    \n    // Filter sensitive data\n    beforeSend(event) {\n      if (event.request?.headers) {\n        delete event.request.headers['authorization'];\n        delete event.request.headers['cookie'];\n        delete event.request.headers['x-api-key'];\n      }\n      return event;\n    },\n  });\n\n  console.log('[OK] Sentry initialized');\n};\n\n/**\n * Setup Sentry error handler\n * Add this AFTER your routes, but BEFORE any other error handlers\n */\nexport const setupSentryErrorHandler = (app: Express) => {\n  if (!process.env.SENTRY_DSN || process.env.NODE_ENV !== 'production') {\n    return;\n  }\n\n  Sentry.setupExpressErrorHandler(app);\n};\n\n/**\n * Capture exception manually\n */\nexport const captureException = (error: Error, context?: Record<string, unknown>) => {\n  Sentry.captureException(error, {\n    extra: context,\n  });\n};\n\n/**\n * Set user context for error tracking\n * Call this after user authentication\n */\nexport const setUser = (user: { id: string; email?: string; [key: string]: unknown }) => {\n  Sentry.setUser(user);\n};\n\n/**\n * Clear user context (on logout)\n */\nexport const clearUser = () => {\n  Sentry.setUser(null);\n};\n\n/**\n * Add breadcrumb for debugging\n */\nexport const addBreadcrumb = (message: string, category?: string, data?: Record<string, unknown>) => {\n  Sentry.addBreadcrumb({\n    message,\n    category: category || 'custom',\n    data,\n    level: 'info',\n  });\n};\n\n/**\n * Example usage in index.ts:\n * \n * 1. Initialize first:\n * import { initSentry } from './libs/sentry';\n * initSentry();\n * \n * 2. Setup app:\n * import express from 'express';\n * import { setupSentryErrorHandler } from './libs/sentry';\n * \n * const app = express();\n * \n * // Note: Request and Tracing handlers are now automatic in Sentry v8+ \n * // if initSentry is called before app initialization.\n * \n * // Your routes here\n * app.use('/api', routes);\n * \n * // 3. Error handler (must be after routes)\n * setupSentryErrorHandler(app);\n * \n * // Your custom error handler\n * app.use(errorHandler);\n */\n\n"
         }
       ],
       "featureType": "monitoring"
+    },
+    {
+      "name": "tooling-biome",
+      "category": "features",
+      "description": "Biome for linting and formatting",
+      "framework": "express",
+      "dependencies": [],
+      "devDependencies": [
+        "@biomejs/biome"
+      ],
+      "scripts": {
+        "lint": "biome check .",
+        "format": "biome format . --write"
+      },
+      "envVars": [],
+      "files": [
+        {
+          "path": "biome.json",
+          "content": "{\n  \"$schema\": \"https://biomejs.dev/schemas/1.9.4/schema.json\",\n  \"organizeImports\": {\n    \"enabled\": true\n  },\n  \"linter\": {\n    \"enabled\": true,\n    \"rules\": {\n      \"recommended\": true\n    }\n  },\n  \"formatter\": {\n    \"enabled\": true,\n    \"indentStyle\": \"space\",\n    \"indentWidth\": 2,\n    \"lineWidth\": 80\n  }\n}\n"
+        }
+      ],
+      "featureType": "tooling"
+    },
+    {
+      "name": "tooling-eslint",
+      "category": "features",
+      "description": "ESLint for linting",
+      "framework": "express",
+      "dependencies": [],
+      "devDependencies": [
+        "eslint",
+        "globals",
+        "@eslint/js",
+        "typescript-eslint"
+      ],
+      "scripts": {
+        "lint": "eslint ."
+      },
+      "envVars": [],
+      "files": [
+        {
+          "path": "eslint.config.mjs",
+          "content": "import js from \"@eslint/js\";\nimport globals from \"globals\";\nimport tseslint from \"typescript-eslint\";\n\nexport default tseslint.config(\n  { ignores: [\"dist\"] },\n  js.configs.recommended,\n  ...tseslint.configs.recommended,\n  {\n    languageOptions: {\n      ecmaVersion: 2022,\n      globals: globals.node,\n    },\n    rules: {\n      \"@typescript-eslint/no-unused-vars\": [\"error\", { argsIgnorePattern: \"^_\" }],\n      \"@typescript-eslint/no-explicit-any\": \"warn\",\n    },\n  },\n);\n"
+        }
+      ],
+      "featureType": "tooling"
+    },
+    {
+      "name": "tooling-prettier",
+      "category": "features",
+      "description": "Prettier for formatting",
+      "framework": "express",
+      "dependencies": [],
+      "devDependencies": [
+        "prettier"
+      ],
+      "scripts": {
+        "format": "prettier --write ."
+      },
+      "envVars": [],
+      "files": [
+        {
+          "path": ".prettierrc",
+          "content": "{\n  \"semi\": true,\n  \"singleQuote\": false,\n  \"tabWidth\": 2,\n  \"trailingComma\": \"all\",\n  \"printWidth\": 80\n}\n"
+        }
+      ],
+      "featureType": "tooling"
     },
     {
       "name": "upload-cloudinary",

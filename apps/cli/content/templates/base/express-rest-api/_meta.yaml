@@ -18,6 +18,8 @@ includes:
     path: src/middleware/async-handler.ts
   - snippet: express/v5/routes/health.hbs
     path: src/routes/health.ts
+  - snippet: shared/tsconfig/express.hbs
+    path: tsconfig.json
 
 dependencies:
   - express

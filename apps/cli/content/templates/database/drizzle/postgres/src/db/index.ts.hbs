@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { schema } from './schema/schema';
+import * as schema from './schema/schema';
 import { Pool } from 'pg';
 
 /**
@@ -69,8 +69,9 @@ export const isDatabaseHealthy = async (): Promise<boolean> => {
  * });
  */
 export const transaction = async <T>(
-  fn: (tx: typeof db) => Promise<T>
+  fn: (tx: Parameters<typeof db.transaction>[0] extends (arg: infer A) => any
+    ? A
+    : never) => Promise<T>
 ): Promise<T> => {
   return db.transaction(fn);
 };
-

@@ -1,0 +1,18 @@
+name: tooling-eslint
+category: feature
+featureType: tooling
+description: ESLint for linting
+framework: express
+
+includes:
+  - snippet: shared/eslint/express.hbs
+    path: eslint.config.mjs
+
+devDependencies:
+  - eslint
+  - globals
+  - "@eslint/js"
+  - typescript-eslint
+
+scripts:
+  lint: "eslint ."

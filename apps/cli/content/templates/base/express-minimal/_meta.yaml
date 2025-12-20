@@ -4,6 +4,12 @@ description: Minimal Express.js v5 setup with TypeScript
 framework: express
 version: "5"
 
+includes:
+  - snippet: express/v5/libs/servers/express-server.hbs
+    path: src/index.ts
+  - snippet: shared/tsconfig/express.hbs
+    path: tsconfig.json
+
 dependencies:
   - express
   - dotenv

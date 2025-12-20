@@ -7,6 +7,8 @@ version: "5"
 includes:
   - snippet: express/v5/libs/servers/trpc-server.hbs
     path: src/libs/trpc-server.ts
+  - snippet: shared/tsconfig/express.hbs
+    path: tsconfig.json
 
 dependencies:
   - express

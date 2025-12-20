@@ -2,5 +2,6 @@
   "elysia",
   "express",
   "hono",
-  "nest"
+  "nest",
+  "shared"
 ]

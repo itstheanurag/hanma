@@ -1,47 +1,18 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import prompts from "prompts";
-import path from "path";
 import fs from "fs-extra";
+import { TemplateBlock, TemplateRegistry, CollectedBlockData } from "../types";
+import {
+  promptProjectName,
+  promptBlockSelection,
+  promptMultiSelect,
+  promptPackageManager,
+} from "../utils/prompts";
+import { collectBlockData, writeProjectFiles } from "../utils/command-helpers";
+import path from "path";
 
 const TEMPLATES_BASE_URL = "http://localhost:5173/templates";
-
-//types
-
-interface TemplateBlock {
-  name: string;
-  category: string;
-  description: string;
-  dependencies?: string[];
-  devDependencies?: string[];
-  scripts?: Record<string, string>;
-  envVars?: string[];
-  files: Array<{ path: string; content: string }>;
-  featureType?:
-    | "mailer"
-    | "upload"
-    | "cache"
-    | "queue"
-    | "logging"
-    | "monitoring";
-}
-
-interface TemplateRegistry {
-  base: TemplateBlock[];
-  database: TemplateBlock[];
-  auth: TemplateBlock[];
-  features?: TemplateBlock[];
-  presets?: TemplateBlock[];
-}
-
-interface CollectedBlockData {
-  files: Array<{ path: string; content: string }>;
-  dependencies: Record<string, string>;
-  devDependencies: Record<string, string>;
-  scripts: Record<string, string>;
-  envVars: string[];
-}
 
 // ============================================================================
 // Template Registry
@@ -56,24 +27,8 @@ async function fetchTemplateRegistry(): Promise<TemplateRegistry> {
 }
 
 // ============================================================================
-// User Prompts
+// Validators
 // ============================================================================
-
-/**
- * Prompt for project name if not provided via CLI argument
- */
-async function promptProjectName(initial?: string): Promise<string | null> {
-  if (initial) return initial;
-
-  const { name } = await prompts({
-    type: "text",
-    name: "name",
-    message: "Project name:",
-    initial: "my-api",
-  });
-
-  return name || null;
-}
 
 /**
  * Validate project path doesn't already exist
@@ -87,282 +42,9 @@ async function validateProjectPath(projectName: string): Promise<string> {
   return projectPath;
 }
 
-/**
- * Prompt for framework selection
- */
-async function promptFramework(
-  bases: TemplateBlock[],
-  cliOption?: string,
-): Promise<TemplateBlock | undefined> {
-  if (cliOption) {
-    return bases.find((b) => b.name === cliOption);
-  }
-
-  const { base } = await prompts({
-    type: "select",
-    name: "base",
-    message: "Select framework:",
-    choices: bases.map((b) => ({
-      title: b.name,
-      value: b,
-      description: b.description,
-    })),
-  });
-
-  return base;
-}
-
-/**
- * Prompt for database selection
- */
-async function promptDatabase(
-  databases: TemplateBlock[],
-  cliOption?: string,
-): Promise<TemplateBlock | undefined> {
-  if (cliOption) {
-    return databases.find((d) => d.name === cliOption);
-  }
-
-  const { database } = await prompts({
-    type: "select",
-    name: "database",
-    message: "Select database:",
-    choices: [
-      { title: "None", value: null },
-      ...databases.map((d) => ({
-        title: d.name,
-        value: d,
-        description: d.description,
-      })),
-    ],
-  });
-
-  return database;
-}
-
-/**
- * Prompt for auth selection
- */
-async function promptAuth(
-  auths: TemplateBlock[],
-  cliOption?: string,
-): Promise<TemplateBlock | undefined> {
-  if (cliOption) {
-    return auths.find((a) => a.name === cliOption);
-  }
-
-  const { auth } = await prompts({
-    type: "select",
-    name: "auth",
-    message: "Select authentication:",
-    choices: [
-      { title: "None", value: null },
-      ...auths.map((a) => ({
-        title: a.name,
-        value: a,
-        description: a.description,
-      })),
-    ],
-  });
-
-  return auth;
-}
-
-/**
- * Prompt for package manager selection
- */
-async function promptPackageManager(
-  cliOption?: string,
-): Promise<string | null> {
-  if (cliOption) return cliOption;
-
-  const { pm } = await prompts({
-    type: "select",
-    name: "pm",
-    message: "Select package manager:",
-    choices: [
-      { title: "npm", value: "npm" },
-      { title: "pnpm", value: "pnpm" },
-      { title: "yarn", value: "yarn" },
-      { title: "bun", value: "bun" },
-    ],
-    initial: 0,
-  });
-
-  return pm || null;
-}
-
-/**
- * Prompt for features selection (multi-select)
- */
-async function promptFeatures(
-  features: TemplateBlock[],
-  cliOptions?: {
-    mailer?: string;
-    upload?: string;
-    cache?: string;
-    logging?: string;
-    monitoring?: string;
-  },
-): Promise<TemplateBlock[]> {
-  const selectedFeatures: TemplateBlock[] = [];
-
-  // If CLI options provided, find matching features
-  if (cliOptions) {
-    for (const [type, value] of Object.entries(cliOptions)) {
-      if (value) {
-        const feature = features.find(
-          (f) => f.featureType === type && f.name.includes(value),
-        );
-        if (feature) selectedFeatures.push(feature);
-      }
-    }
-    if (selectedFeatures.length > 0) return selectedFeatures;
-  }
-
-  // Group features by type for organized display
-  const featuresByType = features.reduce(
-    (acc, f) => {
-      const type = f.featureType || "other";
-      if (!acc[type]) acc[type] = [];
-      acc[type].push(f);
-      return acc;
-    },
-    {} as Record<string, TemplateBlock[]>,
-  );
-
-  const { selected } = await prompts({
-    type: "multiselect",
-    name: "selected",
-    message: "Select additional features (space to select, enter to confirm):",
-    choices: Object.entries(featuresByType)
-      .flatMap(([type, items]) => [
-        { title: `── ${type.toUpperCase()} ──`, value: null, disabled: true },
-        ...items.map((f) => ({
-          title: `  ${f.name}`,
-          value: f,
-          description: f.description,
-        })),
-      ])
-      .filter((c) => c.value !== null),
-    hint: "- Space to select. Enter to submit",
-  });
-
-  return selected || [];
-}
-
-/**
- * Prompt for security preset selection
- */
-async function promptPreset(
-  presets: TemplateBlock[],
-  cliOption?: string,
-): Promise<TemplateBlock | undefined> {
-  if (cliOption) {
-    return presets.find(
-      (p) => p.name === cliOption || p.name.includes(cliOption),
-    );
-  }
-
-  const { preset } = await prompts({
-    type: "select",
-    name: "preset",
-    message: "Select security preset:",
-    choices: [
-      { title: "None", value: null },
-      ...presets.map((p) => ({
-        title: p.name,
-        value: p,
-        description: p.description,
-      })),
-    ],
-  });
-
-  return preset;
-}
-
 // ============================================================================
-// Dependency Parsing
+// Dependency Parsing & Installation Helpers
 // ============================================================================
-
-/**
- * Parse a dependency string like "express@4.18.0" or "@types/node@20.0.0"
- * Handles scoped packages correctly
- */
-function parseDependencyString(dep: string): { name: string; version: string } {
-  if (dep.startsWith("@")) {
-    // Scoped package: @scope/name or @scope/name@version
-    const lastAtIndex = dep.lastIndexOf("@");
-    if (lastAtIndex > 0) {
-      return {
-        name: dep.substring(0, lastAtIndex),
-        version: dep.substring(lastAtIndex + 1),
-      };
-    }
-    return { name: dep, version: "*" };
-  }
-
-  if (dep.includes("@")) {
-    // Regular package with version: name@version
-    const [name, version] = dep.split("@");
-    return { name: name!, version: version || "*" };
-  }
-
-  // Package without version
-  return { name: dep, version: "*" };
-}
-
-/**
- * Parse an array of dependency strings into a dependencies object
- */
-function parseDependencies(deps: string[]): Record<string, string> {
-  const result: Record<string, string> = {};
-  for (const dep of deps) {
-    const { name, version } = parseDependencyString(dep);
-    result[name] = version;
-  }
-  return result;
-}
-
-// ============================================================================
-// Template Block Processing
-// ============================================================================
-
-/**
- * Collect all data from selected template blocks
- */
-function collectBlockData(blocks: TemplateBlock[]): CollectedBlockData {
-  const result: CollectedBlockData = {
-    files: [],
-    dependencies: {},
-    devDependencies: {},
-    scripts: {},
-    envVars: [],
-  };
-
-  for (const block of blocks) {
-    if (block.dependencies) {
-      Object.assign(result.dependencies, parseDependencies(block.dependencies));
-    }
-    if (block.devDependencies) {
-      Object.assign(
-        result.devDependencies,
-        parseDependencies(block.devDependencies),
-      );
-    }
-    if (block.scripts) {
-      Object.assign(result.scripts, block.scripts);
-    }
-    if (block.envVars) {
-      result.envVars.push(...block.envVars);
-    }
-    if (block.files) {
-      result.files.push(...block.files);
-    }
-  }
-
-  return result;
-}
 
 /**
  * Build the final package.json object
@@ -379,52 +61,6 @@ function buildPackageJson(
     dependencies: data.dependencies,
     devDependencies: data.devDependencies,
   };
-}
-
-// ============================================================================
-// File Operations
-// ============================================================================
-
-/**
- * Write all project files to disk
- */
-async function writeProjectFiles(
-  projectPath: string,
-  projectName: string,
-  files: Array<{ path: string; content: string }>,
-  packageJson: Record<string, unknown>,
-  envVars: string[],
-): Promise<void> {
-  // Write package.json
-  await fs.writeJSON(path.join(projectPath, "package.json"), packageJson, {
-    spaces: 2,
-  });
-
-  // Write template files (skip package.json - we generate it ourselves)
-  for (const file of files) {
-    if (file.path === "package.json.hbs" || file.path === "package.json") {
-      continue;
-    }
-
-    const filePath = path.join(projectPath, file.path.replace(/\.hbs$/, ""));
-    await fs.ensureDir(path.dirname(filePath));
-
-    // Replace template variables
-    const content = file.content.replace(/\{\{projectName\}\}/g, projectName);
-    await fs.writeFile(filePath, content);
-  }
-
-  // Write .env.example
-  if (envVars.length > 0) {
-    const envContent = envVars.map((v) => `${v}=`).join("\n");
-    await fs.writeFile(path.join(projectPath, ".env.example"), envContent);
-  }
-
-  // Write .gitignore
-  await fs.writeFile(
-    path.join(projectPath, ".gitignore"),
-    `node_modules\ndist\n.env\n.env.local\n*.log\n`,
-  );
 }
 
 /**
@@ -504,6 +140,10 @@ export const create = new Command()
     "--preset <preset>",
     "Security preset (security-basic, security-strict)",
   )
+  .option(
+    "--tooling <tooling>",
+    "Linting & formatting (biome, eslint, prettier)",
+  )
   .option("--pm <pm>", "Package manager (npm, pnpm, yarn, bun)")
   .option("--skip-install", "Skip package installation")
   .action(async (projectNameArg, options) => {
@@ -532,8 +172,9 @@ export const create = new Command()
     }
 
     // 4. Select framework
-    const selectedBase = await promptFramework(
+    const selectedBase = await promptBlockSelection(
       registry.base,
+      "Select framework:",
       options.framework,
     );
     if (!selectedBase) {
@@ -542,33 +183,89 @@ export const create = new Command()
     }
 
     // 5. Select database
-    const selectedDatabase = await promptDatabase(
+    const selectedDatabase = await promptBlockSelection(
       registry.database,
+      "Select database:",
       options.database,
+      true,
     );
 
     // 6. Select auth
-    const selectedAuth = await promptAuth(registry.auth, options.auth);
+    const selectedAuth = await promptBlockSelection(
+      registry.auth,
+      "Select authentication:",
+      options.auth,
+      true,
+    );
 
     // 7. Select features (optional)
     let selectedFeatures: TemplateBlock[] = [];
     if (registry.features && registry.features.length > 0) {
-      selectedFeatures = await promptFeatures(registry.features, {
-        mailer: options.mailer,
-        upload: options.upload,
-        cache: options.cache,
-        logging: options.logging,
-        monitoring: options.monitoring,
-      });
+      const exclusiveCategories = [
+        { type: "mailer", message: "Select mailer provider:" },
+        { type: "upload", message: "Select upload provider:" },
+        { type: "cache", message: "Select cache provider:" },
+        { type: "logging", message: "Select logging provider:" },
+        { type: "monitoring", message: "Select monitoring provider:" },
+      ];
+
+      for (const { type, message } of exclusiveCategories) {
+        const categoryFeatures = registry.features.filter(
+          (f) => f.featureType === type,
+        );
+        if (categoryFeatures.length > 0) {
+          const selected = await promptBlockSelection(
+            categoryFeatures,
+            message,
+            (options as any)[type],
+            true,
+          );
+          if (selected) selectedFeatures.push(selected);
+        }
+      }
+
+      // Any other non-exclusive features
+      const otherFeatures = registry.features.filter(
+        (f) =>
+          !exclusiveCategories.some((ex) => ex.type === f.featureType) &&
+          f.featureType !== "tooling",
+      );
+
+      if (otherFeatures.length > 0) {
+        const selectedOther = await promptMultiSelect(
+          otherFeatures,
+          "Select additional features (space to select, enter to confirm):",
+        );
+        selectedFeatures.push(...selectedOther);
+      }
     }
 
     // 8. Select security preset (optional)
     let selectedPreset: TemplateBlock | undefined;
     if (registry.presets && registry.presets.length > 0) {
-      selectedPreset = await promptPreset(registry.presets, options.preset);
+      selectedPreset = await promptBlockSelection(
+        registry.presets,
+        "Select security preset:",
+        options.preset,
+        true,
+      );
     }
 
-    // 9. Select package manager
+    // 9. Select tooling (optional)
+    let selectedTooling: TemplateBlock | undefined;
+    if (registry.features && registry.features.length > 0) {
+      const toolingFeatures = registry.features.filter(
+        (f) => f.featureType === "tooling",
+      );
+      selectedTooling = await promptBlockSelection(
+        toolingFeatures,
+        "Select linting & formatting:",
+        options.tooling,
+        true,
+      );
+    }
+
+    // 10. Select package manager
     const packageManager = await promptPackageManager(options.pm);
     if (!packageManager) {
       console.log("Operation cancelled.");
@@ -587,7 +284,9 @@ export const create = new Command()
       selectedAuth,
       ...selectedFeatures,
       selectedPreset,
+      selectedTooling,
     ].filter(Boolean) as TemplateBlock[];
+
     const blockData = collectBlockData(blocks);
     const packageJson = buildPackageJson(projectName, blockData);
 

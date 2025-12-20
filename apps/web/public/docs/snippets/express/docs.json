@@ -1,0 +1,65 @@
+{
+  "id": "docs",
+  "title": "Documentation",
+  "description": "API documentation and specification tools",
+  "subcategories": [
+    {
+      "id": "api-docs",
+      "title": "API Documentation",
+      "description": "Tools for generating and serving API specifications",
+      "snippets": [
+        {
+          "id": "zod-swagger",
+          "name": "zod-swagger",
+          "displayName": "Zod-Swagger Helper",
+          "description": "Programmatic OpenAPI documentation with Zod",
+          "purpose": "The ultimate 'low-pain' documentation helper. Define your routes and Zod schemas programmatically, and documentation is generated automatically.",
+          "features": [
+            "No manual YAML or JSDoc comments",
+            "DocumentedRouter helper for easy route registration",
+            "Type-safe schema-to-OpenAPI conversion",
+            "Interactive Swagger UI included"
+          ],
+          "usage": "import { createDocumentedRouter, setupSwagger } from './libs/docs/zod-swagger';\n\nconst { router, post } = createDocumentedRouter();\n\n// Add to your app\nsetupSwagger(app);",
+          "output": "libs/docs/zod-swagger.ts",
+          "dependencies": ["zod", "@asteasolutions/zod-to-openapi", "swagger-ui-express"],
+          "command": "npx hanma add docs/zod-swagger"
+        },
+        {
+          "id": "swagger",
+          "name": "swagger",
+          "displayName": "Swagger JSDoc",
+          "description": "API documentation using JSDoc and Swagger UI",
+          "purpose": "Generate OpenAPI 3.0 documentation automatically from JSDoc comments in your routes and models. Best for those who prefer code-adjacent documentation.",
+          "features": [
+            "OpenAPI 3.0.0 specification",
+            "Interactive Swagger UI at /docs",
+            "JSON specification at /docs.json",
+            "Bearer Auth security scheme pre-configured"
+          ],
+          "usage": "import { setupSwagger } from './libs/docs/swagger';\n\nconst app = express();\nsetupSwagger(app);",
+          "output": "libs/docs/swagger.ts",
+          "dependencies": ["swagger-jsdoc", "swagger-ui-express"],
+          "command": "npx hanma add docs/swagger"
+        },
+        {
+          "id": "openapi",
+          "name": "openapi",
+          "displayName": "OpenAPI Validator",
+          "description": "Contract-first validation and documentation",
+          "purpose": "Enforce your API contract using an openapi.yaml file. Provides both documentation and runtime request/response validation.",
+          "features": [
+            "Contract-first development setup",
+            "Runtime request and response validation",
+            "Static openapi.yaml serving via Swagger UI",
+            "Clear validation error handling"
+          ],
+          "usage": "import { setupOpenApi } from './libs/docs/openapi';\n\nconst app = express();\nsetupOpenApi(app);",
+          "output": "libs/docs/openapi.ts",
+          "dependencies": ["express-openapi-validator", "swagger-ui-express", "js-yaml"],
+          "command": "npx hanma add docs/openapi"
+        }
+      ]
+    }
+  ]
+}

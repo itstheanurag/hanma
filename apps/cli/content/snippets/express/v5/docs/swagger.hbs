@@ -1,0 +1,115 @@
+---
+name: swagger
+description: Setup Swagger UI and JSDoc for API documentation
+dependencies:
+  - swagger-jsdoc
+  - swagger-ui-express
+devDependencies:
+  - "@types/swagger-jsdoc"
+  - "@types/swagger-ui-express"
+  - "@types/express"
+files:
+  - name: libs/docs/swagger.ts
+---
+import swaggerJsdoc from 'swagger-jsdoc';
+import swaggerUi from 'swagger-ui-express';
+import { Express } from 'express';
+
+const options: swaggerJsdoc.Options = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'Express API with Swagger',
+      version: '1.0.0',
+      description: 'A simple Express API documented with Swagger',
+      license: {
+        name: 'MIT',
+        url: 'https://spdx.org/licenses/MIT.html',
+      },
+      contact: {
+        name: 'Hanma',
+        url: 'https://hanma.dev',
+        email: 'support@hanma.dev',
+      },
+    },
+    servers: [
+      {
+        url: 'http://localhost:3000',
+        description: 'Development server',
+      },
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    },
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+  },
+  apis: ['./src/routes/*.ts', './src/models/*.ts'], // Path to the API docs
+};
+
+const specs = swaggerJsdoc(options);
+
+/**
+ * Setup Swagger documentation
+ * @param app Express application
+ */
+export const setupSwagger = (app: Express) => {
+  // Swagger Page
+  app.use(
+    '/docs',
+    swaggerUi.serve,
+    swaggerUi.setup(specs, {
+      explorer: true,
+      customCss: '.swagger-ui .topbar { display: none }',
+      customSiteTitle: "API Documentation",
+    })
+  );
+
+  // Docs in JSON format
+  app.get('/docs.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(specs);
+  });
+
+  console.log('[OK] Swagger documentation available at /docs');
+};
+
+/**
+ * Example JSDoc for a route:
+ * 
+ * /**
+ *  * @openapi
+ *  * /users:
+ *  *   get:
+ *  *     tags:
+ *  *       - Users
+ *  *     description: Responds if the app is up and running
+ *  *     responses:
+ *  *       200:
+ *  *         description: App is up and running
+ *  * /
+ */
+
+/**
+ * Example usage in index.ts:
+ * 
+ * import express from 'express';
+ * import { setupSwagger } from './libs/docs/swagger';
+ * 
+ * const app = express();
+ * 
+ * // Setup Swagger
+ * setupSwagger(app);
+ * 
+ * // Your routes here
+ * app.listen(3000);
+ */

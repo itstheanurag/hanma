@@ -41,6 +41,7 @@
   ],
   "categoryFiles": [
     { "id": "libs", "file": "libs.json", "title": "Libraries", "description": "Core libraries and service integrations" },
+    { "id": "docs", "file": "docs.json", "title": "Documentation", "description": "API documentation and specification tools" },
     { "id": "middleware", "file": "middleware.json", "title": "Middleware", "description": "Reusable Express middleware" },
     { "id": "utils", "file": "utils.json", "title": "Utilities", "description": "Standalone utility functions" },
     { "id": "routes", "file": "routes.json", "title": "Routes", "description": "Pre-built route handlers" }

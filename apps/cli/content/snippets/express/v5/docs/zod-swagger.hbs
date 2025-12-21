@@ -1,0 +1,133 @@
+---
+name: zod-swagger
+description: Programmatic OpenAPI documentation with Zod integration
+dependencies:
+  - zod
+  - "@asteasolutions/zod-to-openapi"
+  - swagger-ui-express
+devDependencies:
+  - "@types/swagger-ui-express"
+  - "@types/express"
+files:
+  - name: libs/docs/zod-swagger.ts
+---
+import { OpenAPIRegistry, OpenApiGeneratorV3, extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
+import { z } from 'zod';
+import { Express, Router, Request, Response, NextFunction } from 'express';
+import swaggerUi from 'swagger-ui-express';
+
+// Extend Zod with OpenAPI capabilities
+extendZodWithOpenApi(z);
+
+/**
+ * Documentation Registry
+ * Collects all routes and schemas for OpenAPI generation
+ */
+export const registry = new OpenAPIRegistry();
+
+/**
+ * Documented Router Helper
+ * Wraps Express Router to automatically register routes in the OpenAPI spec
+ */
+export const createDocumentedRouter = () => {
+  const router = Router();
+
+  return {
+    router,
+    /**
+     * Register a documented GET route
+     */
+    get: (path: string, schema: any, ...handlers: any[]) => {
+      registry.registerPath({
+        method: 'get',
+        path,
+        ...schema,
+      });
+      router.get(path, ...handlers);
+    },
+    /**
+     * Register a documented POST route
+     */
+    post: (path: string, schema: any, ...handlers: any[]) => {
+      registry.registerPath({
+        method: 'post',
+        path,
+        ...schema,
+      });
+      router.post(path, ...handlers);
+    },
+    // Add other methods (put, patch, delete) as needed...
+  };
+};
+
+/**
+ * Generate OpenAPI Specification
+ */
+export const generateOpenApiSpec = () => {
+  const generator = new OpenApiGeneratorV3(registry.definitions);
+
+  return generator.generateDocument({
+    openapi: '3.0.0',
+    info: {
+      title: 'Express API',
+      version: '1.0.0',
+      description: 'API documentation generated automatically from Zod schemas',
+    },
+    servers: [{ url: '/api' }],
+  });
+};
+
+/**
+ * Setup Swagger UI
+ */
+export const setupSwagger = (app: Express) => {
+  const spec = generateOpenApiSpec();
+
+  app.use('/docs', swaggerUi.serve, swaggerUi.setup(spec, {
+    customSiteTitle: "API Documentation",
+    customCss: '.swagger-ui .topbar { display: none }',
+  }));
+
+  app.get('/docs.json', (req: Request, res: Response) => {
+    res.json(spec);
+  });
+
+  console.log('[OK] Swagger UI available at /docs');
+};
+
+/**
+ * @example
+ * // 1. Define schemas
+ * const UserSchema = registry.register('User', z.object({
+ *   id: z.string().openapi({ example: '123' }),
+ *   name: z.string().openapi({ example: 'John Doe' }),
+ * }));
+ * 
+ * // 2. Create documented router
+ * const { router, post } = createDocumentedRouter();
+ * 
+ * post('/users', {
+ *   summary: 'Create a user',
+ *   request: {
+ *     body: {
+ *       content: {
+ *         'application/json': {
+ *           schema: UserSchema,
+ *         },
+ *       },
+ *     },
+ *   },
+ *   responses: {
+ *     201: {
+ *       description: 'User created successfully',
+ *       content: {
+ *         'application/json': {
+ *           schema: UserSchema,
+ *         },
+ *       },
+ *     },
+ *   },
+ * }, (req, res) => {
+ *   res.status(201).json(req.body);
+ * });
+ */

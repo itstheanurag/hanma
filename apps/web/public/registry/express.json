@@ -1,5 +1,83 @@
 [
   {
+    "name": "openapi",
+    "description": "Contract-first OpenAPI validation and documentation",
+    "dependencies": [
+      "express-openapi-validator",
+      "swagger-ui-express",
+      "js-yaml"
+    ],
+    "devDependencies": [
+      "@types/swagger-ui-express",
+      "@types/js-yaml",
+      "@types/express"
+    ],
+    "files": [
+      {
+        "name": "libs/docs/openapi.ts",
+        "path": "libs/docs/openapi.ts",
+        "content": "import path from 'path';\nimport express, { Express } from 'express';\nimport * as OpenApiValidator from 'express-openapi-validator';\nimport swaggerUi from 'swagger-ui-express';\nimport yaml from 'js-yaml';\nimport fs from 'fs';\n\n/**\n * Setup OpenAPI validation and documentation\n * This follows a contract-first approach where you define your API in openapi.yaml\n * \n * @param app Express application\n */\nexport const setupOpenApi = (app: Express) => {\n  const specPath = path.join(process.cwd(), 'docs/openapi.yaml');\n  \n  if (!fs.existsSync(specPath)) {\n    console.warn(`[WARN] OpenAPI spec not found at ${specPath}. Documentation and validation disabled.`);\n    return;\n  }\n\n  const spec = yaml.load(fs.readFileSync(specPath, 'utf8')) as Record<string, any>;\n\n  // 1. Serve Swagger UI\n  app.use('/docs', swaggerUi.serve, swaggerUi.setup(spec));\n\n  // 2. Install OpenAPI Validator\n  app.use(\n    OpenApiValidator.middleware({\n      apiSpec: specPath,\n      validateRequests: true,\n      validateResponses: true,\n    })\n  );\n\n  // 3. Error handler for validation errors\n  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {\n    if (err.status) {\n      res.status(err.status).json({\n        message: err.message,\n        errors: err.errors,\n      });\n    } else {\n      next(err);\n    }\n  });\n\n  console.log('[OK] OpenAPI documentation and validation enabled');\n};\n\n/**\n * Example usage in index.ts:\n * \n * import express from 'express';\n * import { setupOpenApi } from './libs/docs/openapi';\n * \n * const app = express();\n * app.use(express.json());\n * \n * // Setup OpenAPI (Contract-first)\n * setupOpenApi(app);\n * \n * // Your routes here\n * // They will be automatically validated against openapi.yaml\n * \n * app.listen(3000);\n */\n\n---\n# docs/openapi.yaml\nopenapi: 3.0.0\ninfo:\n  title: Express API\n  version: 1.0.0\n  description: API documentation and contract\npaths:\n  /health:\n    get:\n      summary: Health check\n      responses:\n        '200':\n          description: OK\n          content:\n            application/json:\n              schema:\n                type: object\n                properties:\n                  status:\n                    type: string\n                    example: ok\n"
+      },
+      {
+        "name": "docs/openapi.yaml",
+        "path": "docs/openapi.yaml",
+        "content": "import path from 'path';\nimport express, { Express } from 'express';\nimport * as OpenApiValidator from 'express-openapi-validator';\nimport swaggerUi from 'swagger-ui-express';\nimport yaml from 'js-yaml';\nimport fs from 'fs';\n\n/**\n * Setup OpenAPI validation and documentation\n * This follows a contract-first approach where you define your API in openapi.yaml\n * \n * @param app Express application\n */\nexport const setupOpenApi = (app: Express) => {\n  const specPath = path.join(process.cwd(), 'docs/openapi.yaml');\n  \n  if (!fs.existsSync(specPath)) {\n    console.warn(`[WARN] OpenAPI spec not found at ${specPath}. Documentation and validation disabled.`);\n    return;\n  }\n\n  const spec = yaml.load(fs.readFileSync(specPath, 'utf8')) as Record<string, any>;\n\n  // 1. Serve Swagger UI\n  app.use('/docs', swaggerUi.serve, swaggerUi.setup(spec));\n\n  // 2. Install OpenAPI Validator\n  app.use(\n    OpenApiValidator.middleware({\n      apiSpec: specPath,\n      validateRequests: true,\n      validateResponses: true,\n    })\n  );\n\n  // 3. Error handler for validation errors\n  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {\n    if (err.status) {\n      res.status(err.status).json({\n        message: err.message,\n        errors: err.errors,\n      });\n    } else {\n      next(err);\n    }\n  });\n\n  console.log('[OK] OpenAPI documentation and validation enabled');\n};\n\n/**\n * Example usage in index.ts:\n * \n * import express from 'express';\n * import { setupOpenApi } from './libs/docs/openapi';\n * \n * const app = express();\n * app.use(express.json());\n * \n * // Setup OpenAPI (Contract-first)\n * setupOpenApi(app);\n * \n * // Your routes here\n * // They will be automatically validated against openapi.yaml\n * \n * app.listen(3000);\n */\n\n---\n# docs/openapi.yaml\nopenapi: 3.0.0\ninfo:\n  title: Express API\n  version: 1.0.0\n  description: API documentation and contract\npaths:\n  /health:\n    get:\n      summary: Health check\n      responses:\n        '200':\n          description: OK\n          content:\n            application/json:\n              schema:\n                type: object\n                properties:\n                  status:\n                    type: string\n                    example: ok\n"
+      }
+    ],
+    "version": "v5",
+    "framework": "express",
+    "category": "docs",
+    "type": "module"
+  },
+  {
+    "name": "swagger",
+    "description": "Setup Swagger UI and JSDoc for API documentation",
+    "dependencies": [
+      "swagger-jsdoc",
+      "swagger-ui-express"
+    ],
+    "devDependencies": [
+      "@types/swagger-jsdoc",
+      "@types/swagger-ui-express",
+      "@types/express"
+    ],
+    "files": [
+      {
+        "name": "libs/docs/swagger.ts",
+        "path": "libs/docs/swagger.ts",
+        "content": "import swaggerJsdoc from 'swagger-jsdoc';\nimport swaggerUi from 'swagger-ui-express';\nimport { Express } from 'express';\n\nconst options: swaggerJsdoc.Options = {\n  definition: {\n    openapi: '3.0.0',\n    info: {\n      title: 'Express API with Swagger',\n      version: '1.0.0',\n      description: 'A simple Express API documented with Swagger',\n      license: {\n        name: 'MIT',\n        url: 'https://spdx.org/licenses/MIT.html',\n      },\n      contact: {\n        name: 'Hanma',\n        url: 'https://hanma.dev',\n        email: 'support@hanma.dev',\n      },\n    },\n    servers: [\n      {\n        url: 'http://localhost:3000',\n        description: 'Development server',\n      },\n    ],\n    components: {\n      securitySchemes: {\n        bearerAuth: {\n          type: 'http',\n          scheme: 'bearer',\n          bearerFormat: 'JWT',\n        },\n      },\n    },\n    security: [\n      {\n        bearerAuth: [],\n      },\n    ],\n  },\n  apis: ['./src/routes/*.ts', './src/models/*.ts'], // Path to the API docs\n};\n\nconst specs = swaggerJsdoc(options);\n\n/**\n * Setup Swagger documentation\n * @param app Express application\n */\nexport const setupSwagger = (app: Express) => {\n  // Swagger Page\n  app.use(\n    '/docs',\n    swaggerUi.serve,\n    swaggerUi.setup(specs, {\n      explorer: true,\n      customCss: '.swagger-ui .topbar { display: none }',\n      customSiteTitle: \"API Documentation\",\n    })\n  );\n\n  // Docs in JSON format\n  app.get('/docs.json', (req, res) => {\n    res.setHeader('Content-Type', 'application/json');\n    res.send(specs);\n  });\n\n  console.log('[OK] Swagger documentation available at /docs');\n};\n\n/**\n * Example JSDoc for a route:\n * \n * /**\n *  * @openapi\n *  * /users:\n *  *   get:\n *  *     tags:\n *  *       - Users\n *  *     description: Responds if the app is up and running\n *  *     responses:\n *  *       200:\n *  *         description: App is up and running\n *  * /\n */\n\n/**\n * Example usage in index.ts:\n * \n * import express from 'express';\n * import { setupSwagger } from './libs/docs/swagger';\n * \n * const app = express();\n * \n * // Setup Swagger\n * setupSwagger(app);\n * \n * // Your routes here\n * app.listen(3000);\n */\n"
+      }
+    ],
+    "version": "v5",
+    "framework": "express",
+    "category": "docs",
+    "type": "snippet"
+  },
+  {
+    "name": "zod-swagger",
+    "description": "Programmatic OpenAPI documentation with Zod integration",
+    "dependencies": [
+      "zod",
+      "@asteasolutions/zod-to-openapi",
+      "swagger-ui-express"
+    ],
+    "devDependencies": [
+      "@types/swagger-ui-express",
+      "@types/express"
+    ],
+    "files": [
+      {
+        "name": "libs/docs/zod-swagger.ts",
+        "path": "libs/docs/zod-swagger.ts",
+        "content": "import { OpenAPIRegistry, OpenApiGeneratorV3, extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';\nimport { z } from 'zod';\nimport { Express, Router, Request, Response, NextFunction } from 'express';\nimport swaggerUi from 'swagger-ui-express';\n\n// Extend Zod with OpenAPI capabilities\nextendZodWithOpenApi(z);\n\n/**\n * Documentation Registry\n * Collects all routes and schemas for OpenAPI generation\n */\nexport const registry = new OpenAPIRegistry();\n\n/**\n * Documented Router Helper\n * Wraps Express Router to automatically register routes in the OpenAPI spec\n */\nexport const createDocumentedRouter = () => {\n  const router = Router();\n\n  return {\n    router,\n    /**\n     * Register a documented GET route\n     */\n    get: (path: string, schema: any, ...handlers: any[]) => {\n      registry.registerPath({\n        method: 'get',\n        path,\n        ...schema,\n      });\n      router.get(path, ...handlers);\n    },\n    /**\n     * Register a documented POST route\n     */\n    post: (path: string, schema: any, ...handlers: any[]) => {\n      registry.registerPath({\n        method: 'post',\n        path,\n        ...schema,\n      });\n      router.post(path, ...handlers);\n    },\n    // Add other methods (put, patch, delete) as needed...\n  };\n};\n\n/**\n * Generate OpenAPI Specification\n */\nexport const generateOpenApiSpec = () => {\n  const generator = new OpenApiGeneratorV3(registry.definitions);\n\n  return generator.generateDocument({\n    openapi: '3.0.0',\n    info: {\n      title: 'Express API',\n      version: '1.0.0',\n      description: 'API documentation generated automatically from Zod schemas',\n    },\n    servers: [{ url: '/api' }],\n  });\n};\n\n/**\n * Setup Swagger UI\n */\nexport const setupSwagger = (app: Express) => {\n  const spec = generateOpenApiSpec();\n\n  app.use('/docs', swaggerUi.serve, swaggerUi.setup(spec, {\n    customSiteTitle: \"API Documentation\",\n    customCss: '.swagger-ui .topbar { display: none }',\n  }));\n\n  app.get('/docs.json', (req: Request, res: Response) => {\n    res.json(spec);\n  });\n\n  console.log('[OK] Swagger UI available at /docs');\n};\n\n/**\n * @example\n * // 1. Define schemas\n * const UserSchema = registry.register('User', z.object({\n *   id: z.string().openapi({ example: '123' }),\n *   name: z.string().openapi({ example: 'John Doe' }),\n * }));\n * \n * // 2. Create documented router\n * const { router, post } = createDocumentedRouter();\n * \n * post('/users', {\n *   summary: 'Create a user',\n *   request: {\n *     body: {\n *       content: {\n *         'application/json': {\n *           schema: UserSchema,\n *         },\n *       },\n *     },\n *   },\n *   responses: {\n *     201: {\n *       description: 'User created successfully',\n *       content: {\n *         'application/json': {\n *           schema: UserSchema,\n *         },\n *       },\n *     },\n *   },\n * }, (req, res) => {\n *   res.status(201).json(req.body);\n * });\n */\n"
+      }
+    ],
+    "version": "v5",
+    "framework": "express",
+    "category": "docs",
+    "type": "snippet"
+  },
+  {
     "name": "cors",
     "description": "Basic CORS setup for Express",
     "dependencies": [

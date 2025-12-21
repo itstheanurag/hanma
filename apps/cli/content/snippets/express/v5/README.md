@@ -10,6 +10,7 @@ A comprehensive collection of production-ready code snippets for Express.js v5 a
   - [Queries / Storage](#queries--storage)
   - [Uploads](#uploads)
   - [Mailers](#mailers)
+  - [Documentation](#documentation)
   - [External Services](#external-services)
   - [Core Utilities](#core-utilities)
 - [Middleware](#middleware)
@@ -249,6 +250,33 @@ Email sending using SendGrid API. Supports dynamic templates, batch sending, cat
 **Output:** `libs/mailers/sendgrid.ts`
 
 **Dependencies:** `@sendgrid/mail`
+
+---
+
+### Documentation
+
+API documentation and specification tools.
+
+#### docs/swagger.hbs
+Setup Swagger UI and JSDoc for API documentation. Generates an OpenAPI 3.0.0 specification from JSDoc comments in your routes and models. Provides a `/docs` endpoint for the interactive UI and a `/docs.json` endpoint for the raw specification. Includes pre-configured bearer authentication security scheme.
+
+**Output:** `libs/docs/swagger.ts`
+
+**Dependencies:** `swagger-jsdoc`, `swagger-ui-express`
+
+#### docs/openapi.hbs
+Contract-first OpenAPI validation and documentation. Uses `express-openapi-validator` to enforce your API contract defined in `docs/openapi.yaml`. Includes request and response validation, serving the specification via Swagger UI at `/docs`, and an example `openapi.yaml` file.
+
+**Output:** `libs/docs/openapi.ts`, `docs/openapi.yaml`
+
+**Dependencies:** `express-openapi-validator`, `swagger-ui-express`, `js-yaml`
+
+#### docs/zod-swagger.hbs
+Programmatic and type-safe OpenAPI documentation with Zod integration. Provides a `DocumentedRouter` helper that automatically registers routes into an OpenAPI 3.0.0 specification as you define them in code. This eliminates the need to manually write JSDoc comments or maintain separate YAML files, ensuring your documentation stays in sync with your implementation.
+
+**Output:** `libs/docs/zod-swagger.ts`
+
+**Dependencies:** `zod`, `@asteasolutions/zod-to-openapi`, `swagger-ui-express`
 
 ---
 

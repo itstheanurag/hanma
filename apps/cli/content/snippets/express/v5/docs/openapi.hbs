@@ -1,0 +1,105 @@
+---
+name: openapi
+description: Contract-first OpenAPI validation and documentation
+dependencies:
+  - express-openapi-validator
+  - swagger-ui-express
+  - js-yaml
+devDependencies:
+  - "@types/swagger-ui-express"
+  - "@types/js-yaml"
+  - "@types/express"
+files:
+  - name: libs/docs/openapi.ts
+  - name: docs/openapi.yaml
+---
+import path from 'path';
+import express, { Express } from 'express';
+import * as OpenApiValidator from 'express-openapi-validator';
+import swaggerUi from 'swagger-ui-express';
+import yaml from 'js-yaml';
+import fs from 'fs';
+
+/**
+ * Setup OpenAPI validation and documentation
+ * This follows a contract-first approach where you define your API in openapi.yaml
+ * 
+ * @param app Express application
+ */
+export const setupOpenApi = (app: Express) => {
+  const specPath = path.join(process.cwd(), 'docs/openapi.yaml');
+  
+  if (!fs.existsSync(specPath)) {
+    console.warn(`[WARN] OpenAPI spec not found at ${specPath}. Documentation and validation disabled.`);
+    return;
+  }
+
+  const spec = yaml.load(fs.readFileSync(specPath, 'utf8')) as Record<string, any>;
+
+  // 1. Serve Swagger UI
+  app.use('/docs', swaggerUi.serve, swaggerUi.setup(spec));
+
+  // 2. Install OpenAPI Validator
+  app.use(
+    OpenApiValidator.middleware({
+      apiSpec: specPath,
+      validateRequests: true,
+      validateResponses: true,
+    })
+  );
+
+  // 3. Error handler for validation errors
+  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (err.status) {
+      res.status(err.status).json({
+        message: err.message,
+        errors: err.errors,
+      });
+    } else {
+      next(err);
+    }
+  });
+
+  console.log('[OK] OpenAPI documentation and validation enabled');
+};
+
+/**
+ * Example usage in index.ts:
+ * 
+ * import express from 'express';
+ * import { setupOpenApi } from './libs/docs/openapi';
+ * 
+ * const app = express();
+ * app.use(express.json());
+ * 
+ * // Setup OpenAPI (Contract-first)
+ * setupOpenApi(app);
+ * 
+ * // Your routes here
+ * // They will be automatically validated against openapi.yaml
+ * 
+ * app.listen(3000);
+ */
+
+---
+# docs/openapi.yaml
+openapi: 3.0.0
+info:
+  title: Express API
+  version: 1.0.0
+  description: API documentation and contract
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok

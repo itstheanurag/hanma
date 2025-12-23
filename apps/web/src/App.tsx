@@ -3,7 +3,7 @@ import Navbar from "./components/Navbar";
 import LandingPage from "./components/LandingPage";
 import Docs from "./pages/Docs";
 import Footer from "./components/Footer";
-import { ThemeProvider } from "./components/ThemeContext";
+import { ThemeProvider } from "./components/theme/ThemeContext";
 
 function App() {
   const location = useLocation();

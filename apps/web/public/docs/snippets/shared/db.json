@@ -1,0 +1,62 @@
+{
+  "id": "db",
+  "title": "Database Clients",
+  "description": "Database connection clients",
+  "subcategories": [
+    {
+      "id": "orm-clients",
+      "title": "ORM Clients",
+      "description": "ORM and database driver setups",
+      "snippets": [
+        {
+          "id": "prisma-client",
+          "name": "prisma-client",
+          "displayName": "Prisma Client",
+          "description": "Prisma ORM with singleton pattern",
+          "purpose": "Type-safe database access with connection pooling.",
+          "features": ["Singleton pattern", "Connection pooling", "Type-safe"],
+          "usage": "import { prisma } from './libs/db/prisma';",
+          "output": "libs/db/prisma.ts",
+          "dependencies": ["@prisma/client"],
+          "command": "npx hanma add prisma-client --framework shared"
+        },
+        {
+          "id": "drizzle-client",
+          "name": "drizzle-client",
+          "displayName": "Drizzle Client",
+          "description": "Drizzle ORM with PostgreSQL",
+          "purpose": "Lightweight, type-safe ORM with SQL-like syntax.",
+          "features": ["Type-safe queries", "SQL-like syntax", "Small bundle"],
+          "usage": "import { db } from './libs/db/drizzle';",
+          "output": "libs/db/drizzle.ts",
+          "dependencies": ["drizzle-orm", "postgres"],
+          "command": "npx hanma add drizzle-client --framework shared"
+        },
+        {
+          "id": "mongoose-client",
+          "name": "mongoose-client",
+          "displayName": "Mongoose Client",
+          "description": "MongoDB with Mongoose ODM",
+          "purpose": "MongoDB connection with schema validation.",
+          "features": ["Schema validation", "Middleware", "Plugins"],
+          "usage": "import { connectDB } from './libs/db/mongoose';",
+          "output": "libs/db/mongoose.ts",
+          "dependencies": ["mongoose"],
+          "command": "npx hanma add mongoose-client --framework shared"
+        },
+        {
+          "id": "redis-client",
+          "name": "redis-client",
+          "displayName": "Redis Client",
+          "description": "Redis with ioredis",
+          "purpose": "Redis for caching, sessions, and pub/sub.",
+          "features": ["Cache helpers", "TTL support", "Reconnection"],
+          "usage": "import { redis, cache } from './libs/db/redis';",
+          "output": "libs/db/redis.ts",
+          "dependencies": ["ioredis"],
+          "command": "npx hanma add redis-client --framework shared"
+        }
+      ]
+    }
+  ]
+}

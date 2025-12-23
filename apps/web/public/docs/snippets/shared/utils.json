@@ -1,0 +1,26 @@
+{
+  "id": "utils",
+  "title": "Utilities",
+  "description": "General purpose helpers",
+  "subcategories": [
+    {
+      "id": "logging",
+      "title": "Logging",
+      "description": "Logging utilities",
+      "snippets": [
+        {
+          "id": "shared-logger",
+          "name": "shared-logger",
+          "displayName": "Pino Logger",
+          "description": "Structured logging with Pino",
+          "purpose": "Fast, low-overhead structured logging.",
+          "features": ["Structured logs", "Pretty printing", "Log levels"],
+          "usage": "import { logger } from './utils/logger';",
+          "output": "utils/logger.ts",
+          "dependencies": ["pino", "pino-pretty"],
+          "command": "npx hanma add shared-logger --framework shared"
+        }
+      ]
+    }
+  ]
+}

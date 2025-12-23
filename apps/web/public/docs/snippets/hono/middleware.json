@@ -1,0 +1,161 @@
+{
+  "id": "middleware",
+  "title": "Middleware",
+  "description": "Reusable Hono middleware",
+  "subcategories": [
+    {
+      "id": "security",
+      "title": "Security",
+      "description": "Security middleware",
+      "snippets": [
+        {
+          "id": "hono-cors",
+          "name": "hono-cors",
+          "displayName": "CORS Middleware",
+          "description": "Environment-driven CORS configuration",
+          "purpose": "Configure CORS with environment variables for production flexibility.",
+          "features": [
+            "Environment-driven origins",
+            "Production/development modes",
+            "Validation helper",
+            "Configurable methods and headers"
+          ],
+          "usage": "import { corsMiddleware } from './middleware/cors';\n\napp.use('*', corsMiddleware);",
+          "output": "src/middleware/cors.ts",
+          "dependencies": ["hono"],
+          "command": "npx hanma add hono-cors --framework hono"
+        },
+        {
+          "id": "hono-rate-limiter",
+          "name": "hono-rate-limiter",
+          "displayName": "Rate Limiter",
+          "description": "Rate limiting with multiple presets",
+          "purpose": "Protect your API from abuse with configurable rate limits.",
+          "features": [
+            "Default, auth, API, and strict presets",
+            "Custom key generator",
+            "RateLimit headers",
+            "Skip successful requests option"
+          ],
+          "usage": "import { authLimiter } from './middleware/rate-limiter';\n\napp.use('/api/auth/*', authLimiter);",
+          "output": "src/middleware/rate-limiter.ts",
+          "dependencies": ["hono"],
+          "command": "npx hanma add hono-rate-limiter --framework hono"
+        },
+        {
+          "id": "hono-security",
+          "name": "hono-security",
+          "displayName": "Security Headers",
+          "description": "Comprehensive security headers (like Helmet)",
+          "purpose": "Set security headers for production with environment-aware configuration.",
+          "features": [
+            "Content Security Policy",
+            "HSTS configuration",
+            "XSS protection",
+            "Production/development modes"
+          ],
+          "usage": "import { setupSecurity } from './middleware/security';\n\nsetupSecurity(app);",
+          "output": "src/middleware/security.ts",
+          "dependencies": ["hono"],
+          "command": "npx hanma add hono-security --framework hono"
+        }
+      ]
+    },
+    {
+      "id": "auth",
+      "title": "Authentication",
+      "description": "Authentication middleware",
+      "snippets": [
+        {
+          "id": "hono-jwt",
+          "name": "hono-jwt",
+          "displayName": "JWT Authentication",
+          "description": "JWT middleware with RBAC support",
+          "purpose": "Protect routes with JWT authentication and role-based access control.",
+          "features": [
+            "JWT verification",
+            "Role-based access control",
+            "Token extraction",
+            "Error handling"
+          ],
+          "usage": "import { jwtMiddleware, requireRole } from './middleware/jwt';\n\napp.use('/api/*', jwtMiddleware);\napp.get('/admin', requireRole('admin'), handler);",
+          "output": "src/middleware/jwt.ts",
+          "dependencies": ["hono"],
+          "command": "npx hanma add hono-jwt --framework hono"
+        }
+      ]
+    },
+    {
+      "id": "validation",
+      "title": "Validation",
+      "description": "Request validation middleware",
+      "snippets": [
+        {
+          "id": "hono-zod",
+          "name": "hono-zod",
+          "displayName": "Zod Validation",
+          "description": "Request validation with Zod and error formatting",
+          "purpose": "Validate request bodies, queries, and params with clear error messages.",
+          "features": [
+            "JSON body validation",
+            "Query parameter validation",
+            "URL param validation",
+            "Custom error formatting"
+          ],
+          "usage": "import { validateCreateUser, validatePagination } from './middleware/validator';\n\napp.post('/users', validateCreateUser, handler);",
+          "output": "src/middleware/validator.ts",
+          "dependencies": ["hono", "@hono/zod-validator", "zod"],
+          "command": "npx hanma add hono-zod --framework hono"
+        }
+      ]
+    },
+    {
+      "id": "logging",
+      "title": "Logging",
+      "description": "Request logging middleware",
+      "snippets": [
+        {
+          "id": "hono-logger",
+          "name": "hono-logger",
+          "displayName": "Logger Middleware",
+          "description": "Structured request logging with timing",
+          "purpose": "Log all requests with timing information and color-coded status.",
+          "features": [
+            "Request timing",
+            "Color-coded output",
+            "Status code logging",
+            "Method and path logging"
+          ],
+          "usage": "import { setupLogger } from './middleware/logger';\n\nsetupLogger(app);",
+          "output": "src/middleware/logger.ts",
+          "dependencies": ["hono"],
+          "command": "npx hanma add hono-logger --framework hono"
+        }
+      ]
+    },
+    {
+      "id": "errors",
+      "title": "Error Handling",
+      "description": "Error handling middleware",
+      "snippets": [
+        {
+          "id": "hono-error-handler",
+          "name": "hono-error-handler",
+          "displayName": "Error Handler",
+          "description": "Global error handling with custom error classes",
+          "purpose": "Centralized error handling with structured responses.",
+          "features": [
+            "Custom error classes",
+            "Production-safe messages",
+            "HTTP exception handling",
+            "Async handler wrapper"
+          ],
+          "usage": "import { errorHandler, NotFoundError } from './middleware/error-handler';\n\napp.onError(errorHandler);",
+          "output": "src/middleware/error-handler.ts",
+          "dependencies": ["hono"],
+          "command": "npx hanma add hono-error-handler --framework hono"
+        }
+      ]
+    }
+  ]
+}

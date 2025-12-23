@@ -1,0 +1,41 @@
+{
+  "framework": "hono",
+  "version": "v4",
+  "title": "Hono v4 Snippets",
+  "description": "Production-ready code snippets for Hono.js v4 applications.",
+  "installNote": "Install snippets with: npx hanma add <snippet-name> [snippet-name...] (supports multiple)",
+  "concept": {
+    "whatIsASnippet": "A snippet is a single, self-contained code file that provides a specific utility, middleware, or integration. Snippets are designed to be dropped into your project and customized as needed.",
+    "whenToUseSnippets": [
+      "When you need a specific utility or middleware",
+      "When you want copy-paste code you own and can modify",
+      "When you prefer composition over packages"
+    ],
+    "snippetsVsPackages": {
+      "snippets": "Code you own - copy, paste, modify freely",
+      "packages": "External dependencies - updates managed by maintainers",
+      "benefit": "Snippets give you full control and no dependency bloat"
+    }
+  },
+  "examples": [
+    {
+      "title": "Add a single snippet",
+      "description": "Add the Hono basic server to your project",
+      "command": "npx hanma add hono-basic"
+    },
+    {
+      "title": "Add multiple snippets",
+      "description": "Add several related snippets at once",
+      "command": "npx hanma add hono-cors hono-logger"
+    },
+    {
+      "title": "Interactive selection",
+      "description": "Use multi-select to choose snippets",
+      "command": "npx hanma add --framework hono"
+    }
+  ],
+  "categoryFiles": [
+    { "id": "libs", "file": "libs.json", "title": "Libraries", "description": "Core libraries and server setups" },
+    { "id": "middleware", "file": "middleware.json", "title": "Middleware", "description": "Reusable Hono middleware" }
+  ]
+}

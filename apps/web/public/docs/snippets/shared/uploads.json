@@ -1,0 +1,74 @@
+{
+  "id": "uploads",
+  "title": "Uploads",
+  "description": "File upload utilities",
+  "subcategories": [
+    {
+      "id": "cloud-storage",
+      "title": "Cloud Storage",
+      "description": "Upload to cloud storage providers",
+      "snippets": [
+        {
+          "id": "aws-s3-upload",
+          "name": "aws-s3-upload",
+          "displayName": "AWS S3 Upload",
+          "description": "S3 presigned URLs for direct uploads",
+          "purpose": "Upload files directly to S3 from the browser.",
+          "features": ["Presigned PUT URLs", "Multipart support", "Download URLs"],
+          "usage": "import { getPresignedPutUrl } from './libs/uploads/aws-s3';",
+          "output": "libs/uploads/aws-s3.ts",
+          "dependencies": ["@aws-sdk/client-s3", "@aws-sdk/s3-request-presigner"],
+          "command": "npx hanma add aws-s3-upload --framework shared"
+        },
+        {
+          "id": "cloudflare-r2-upload",
+          "name": "cloudflare-r2-upload",
+          "displayName": "Cloudflare R2",
+          "description": "S3-compatible with zero egress fees",
+          "purpose": "Drop-in S3 replacement with global edge network.",
+          "features": ["S3-compatible", "Zero egress", "Presigned URLs"],
+          "usage": "import { getPresignedPutUrl } from './libs/uploads/cloudflare-r2';",
+          "output": "libs/uploads/cloudflare-r2.ts",
+          "dependencies": ["@aws-sdk/client-s3", "@aws-sdk/s3-request-presigner"],
+          "command": "npx hanma add cloudflare-r2-upload --framework shared"
+        },
+        {
+          "id": "azure-blob-upload",
+          "name": "azure-blob-upload",
+          "displayName": "Azure Blob",
+          "description": "Azure Blob Storage uploads",
+          "purpose": "Upload to Azure Blob Storage with SAS URLs.",
+          "features": ["SAS URLs", "Container management"],
+          "usage": "import { getSasUrl } from './libs/uploads/azure-blob';",
+          "output": "libs/uploads/azure-blob.ts",
+          "dependencies": ["@azure/storage-blob"],
+          "command": "npx hanma add azure-blob-upload --framework shared"
+        },
+        {
+          "id": "gcp-storage-upload",
+          "name": "gcp-storage-upload",
+          "displayName": "GCP Storage",
+          "description": "Google Cloud Storage uploads",
+          "purpose": "Upload to Google Cloud Storage.",
+          "features": ["Signed URLs", "Resumable uploads"],
+          "usage": "import { getSignedUrl } from './libs/uploads/gcp-storage';",
+          "output": "libs/uploads/gcp-storage.ts",
+          "dependencies": ["@google-cloud/storage"],
+          "command": "npx hanma add gcp-storage-upload --framework shared"
+        },
+        {
+          "id": "cloudinary-upload",
+          "name": "cloudinary-upload",
+          "displayName": "Cloudinary",
+          "description": "Image/video with transformations",
+          "purpose": "Media uploads with on-the-fly transformations.",
+          "features": ["Image transforms", "Video processing", "CDN delivery"],
+          "usage": "import { uploadImage } from './libs/uploads/cloudinary';",
+          "output": "libs/uploads/cloudinary.ts",
+          "dependencies": ["cloudinary"],
+          "command": "npx hanma add cloudinary-upload --framework shared"
+        }
+      ]
+    }
+  ]
+}

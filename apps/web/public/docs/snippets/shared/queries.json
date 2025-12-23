@@ -1,0 +1,98 @@
+{
+  "id": "queries",
+  "title": "Query Storage",
+  "description": "Generic CRUD storage classes",
+  "subcategories": [
+    {
+      "id": "storage-classes",
+      "title": "Storage Classes",
+      "description": "Reusable CRUD patterns for various ORMs",
+      "snippets": [
+        {
+          "id": "prisma-storage",
+          "name": "prisma-storage",
+          "displayName": "Prisma Storage",
+          "description": "Generic CRUD for Prisma",
+          "purpose": "Reusable CRUD operations for any Prisma model.",
+          "features": ["CRUD ops", "Bulk operations", "Pagination"],
+          "usage": "const storage = new PrismaStorage(prisma, 'user');",
+          "output": "libs/queries/prisma-storage.ts",
+          "dependencies": ["@prisma/client"],
+          "command": "npx hanma add prisma-storage --framework shared"
+        },
+        {
+          "id": "drizzle-storage",
+          "name": "drizzle-storage",
+          "displayName": "Drizzle Storage",
+          "description": "Generic CRUD for Drizzle",
+          "purpose": "Reusable CRUD operations for Drizzle tables.",
+          "features": ["CRUD ops", "Pagination", "Type-safe"],
+          "usage": "const storage = new DrizzleStorage(db, usersTable);",
+          "output": "libs/queries/drizzle-storage.ts",
+          "dependencies": ["drizzle-orm"],
+          "command": "npx hanma add drizzle-storage --framework shared"
+        },
+        {
+          "id": "sequelize-storage",
+          "name": "sequelize-storage",
+          "displayName": "Sequelize Storage",
+          "description": "Generic CRUD for Sequelize",
+          "purpose": "CRUD operations for Sequelize models.",
+          "features": ["CRUD ops", "Soft delete", "Pagination"],
+          "usage": "const storage = new SequelizeStorage(UserModel);",
+          "output": "libs/queries/sequelize-storage.ts",
+          "dependencies": ["sequelize"],
+          "command": "npx hanma add sequelize-storage --framework shared"
+        },
+        {
+          "id": "mongodb-storage",
+          "name": "mongodb-storage",
+          "displayName": "MongoDB Storage",
+          "description": "Generic CRUD for MongoDB",
+          "purpose": "CRUD operations for MongoDB collections.",
+          "features": ["CRUD ops", "Aggregation", "Pagination"],
+          "usage": "const storage = new MongoStorage('users');",
+          "output": "libs/queries/mongodb-storage.ts",
+          "dependencies": ["mongodb"],
+          "command": "npx hanma add mongodb-storage --framework shared"
+        },
+        {
+          "id": "pg-storage",
+          "name": "pg-storage",
+          "displayName": "PostgreSQL Storage",
+          "description": "Raw PostgreSQL storage",
+          "purpose": "Direct SQL queries with pg driver.",
+          "features": ["Raw SQL", "Connection pooling", "Transactions"],
+          "usage": "const storage = new PgStorage('users');",
+          "output": "libs/queries/pg-storage.ts",
+          "dependencies": ["pg"],
+          "command": "npx hanma add pg-storage --framework shared"
+        },
+        {
+          "id": "mysql-storage",
+          "name": "mysql-storage",
+          "displayName": "MySQL Storage",
+          "description": "Generic CRUD for MySQL",
+          "purpose": "CRUD operations for MySQL.",
+          "features": ["CRUD ops", "Prepared statements"],
+          "usage": "const storage = new MysqlStorage('users');",
+          "output": "libs/queries/mysql-storage.ts",
+          "dependencies": ["mysql2"],
+          "command": "npx hanma add mysql-storage --framework shared"
+        },
+        {
+          "id": "sqlite-storage",
+          "name": "sqlite-storage",
+          "displayName": "SQLite Storage",
+          "description": "Generic CRUD for SQLite",
+          "purpose": "CRUD operations for SQLite.",
+          "features": ["Sync API", "File or in-memory"],
+          "usage": "const storage = new SqliteStorage('users');",
+          "output": "libs/queries/sqlite-storage.ts",
+          "dependencies": ["better-sqlite3"],
+          "command": "npx hanma add sqlite-storage --framework shared"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "id": "libs",
+  "title": "Libraries",
+  "description": "Core libraries and server setups",
+  "subcategories": [
+    {
+      "id": "servers",
+      "title": "Servers",
+      "description": "Elysia server implementations",
+      "snippets": [
+        {
+          "id": "elysia-basic",
+          "name": "elysia-basic",
+          "displayName": "Elysia Basic Server",
+          "description": "Production-ready Elysia server with Swagger",
+          "purpose": "Start an Elysia server with documentation and error handling.",
+          "features": [
+            "Swagger documentation",
+            "Graceful shutdown",
+            "Error handling",
+            "Health check"
+          ],
+          "usage": "// Server starts automatically\nbun run src/index.ts",
+          "output": "src/index.ts",
+          "dependencies": ["elysia", "@elysiajs/swagger"],
+          "command": "npx hanma add elysia-basic --framework elysia"
+        }
+      ]
+    },
+    {
+      "id": "utilities",
+      "title": "Utilities",
+      "description": "Common utilities",
+      "snippets": [
+        {
+          "id": "elysia-http-client",
+          "name": "elysia-http-client",
+          "displayName": "HTTP Client",
+          "description": "Fetch-based HTTP client with retry logic",
+          "purpose": "Make HTTP requests with automatic retries using native fetch.",
+          "features": [
+            "Native fetch",
+            "Automatic retries",
+            "Timeout handling"
+          ],
+          "usage": "import { httpClient } from './libs/http-client';",
+          "output": "src/libs/http-client.ts",
+          "dependencies": [],
+          "command": "npx hanma add elysia-http-client --framework elysia"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "id": "libs",
+  "title": "Libraries",
+  "description": "HTTP clients and environment validation",
+  "subcategories": [
+    {
+      "id": "utilities",
+      "title": "Utilities",
+      "description": "Common utility libraries",
+      "snippets": [
+        {
+          "id": "http-client",
+          "name": "http-client",
+          "displayName": "HTTP Client",
+          "description": "Axios-based HTTP client with retries",
+          "purpose": "Make HTTP requests with automatic retries.",
+          "features": ["Automatic retries", "Exponential backoff", "Interceptors"],
+          "usage": "import { httpClient } from './libs/http-client';",
+          "output": "libs/http-client.ts",
+          "dependencies": ["axios"],
+          "command": "npx hanma add http-client --framework shared"
+        },
+        {
+          "id": "env-validation",
+          "name": "env-validation",
+          "displayName": "Env Validation",
+          "description": "Type-safe environment validation with Zod",
+          "purpose": "Validate environment variables at startup.",
+          "features": ["Zod validation", "Type-safe access", "Defaults"],
+          "usage": "import { env } from './libs/env-validation';",
+          "output": "libs/env-validation.ts",
+          "dependencies": ["zod", "dotenv"],
+          "command": "npx hanma add env-validation --framework shared"
+        }
+      ]
+    }
+  ]
+}

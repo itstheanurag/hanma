@@ -1,0 +1,50 @@
+{
+  "id": "plugins",
+  "title": "Plugins",
+  "description": "Reusable Elysia plugins",
+  "subcategories": [
+    {
+      "id": "core-plugins",
+      "title": "Core Plugins",
+      "description": "Essential Elysia plugins",
+      "snippets": [
+        {
+          "id": "elysia-cors",
+          "name": "elysia-cors",
+          "displayName": "CORS Plugin",
+          "description": "CORS configuration for Elysia",
+          "purpose": "Enable cross-origin requests with configurable options.",
+          "features": ["Origin whitelist", "Credentials support", "Methods config"],
+          "usage": "import { corsPlugin } from './plugins/cors';\n\napp.use(corsPlugin);",
+          "output": "src/plugins/cors.ts",
+          "dependencies": ["elysia", "@elysiajs/cors"],
+          "command": "npx hanma add elysia-cors --framework elysia"
+        },
+        {
+          "id": "elysia-jwt",
+          "name": "elysia-jwt",
+          "displayName": "JWT Plugin",
+          "description": "JWT authentication for Elysia",
+          "purpose": "Add JWT authentication to your Elysia app.",
+          "features": ["JWT sign/verify", "Protected routes", "Token refresh"],
+          "usage": "import { jwtPlugin } from './plugins/jwt';\n\napp.use(jwtPlugin);",
+          "output": "src/plugins/jwt.ts",
+          "dependencies": ["elysia", "@elysiajs/jwt"],
+          "command": "npx hanma add elysia-jwt --framework elysia"
+        },
+        {
+          "id": "elysia-swagger",
+          "name": "elysia-swagger",
+          "displayName": "Swagger Plugin",
+          "description": "Swagger documentation for Elysia",
+          "purpose": "Auto-generate API documentation.",
+          "features": ["Auto-docs", "Schema inference", "OpenAPI spec"],
+          "usage": "import { swaggerPlugin } from './plugins/swagger';\n\napp.use(swaggerPlugin);",
+          "output": "src/plugins/swagger.ts",
+          "dependencies": ["elysia", "@elysiajs/swagger"],
+          "command": "npx hanma add elysia-swagger --framework elysia"
+        }
+      ]
+    }
+  ]
+}

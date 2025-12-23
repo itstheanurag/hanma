@@ -1,0 +1,46 @@
+{
+  "framework": "shared",
+  "version": "v1",
+  "title": "Shared Snippets",
+  "description": "Framework-agnostic utilities that work across Express, Hono, Elysia, and any Node.js/Bun project.",
+  "installNote": "Install snippets with: npx hanma add <snippet-name> --framework shared",
+  "concept": {
+    "whatIsASnippet": "Shared snippets are framework-agnostic utilities like database clients, mailers, and upload handlers that work in any project.",
+    "whenToUseSnippets": [
+      "When you need utilities like email, file uploads, or database access",
+      "When you want to reuse code across different frameworks",
+      "When the code doesn't depend on Express/Hono/Elysia specific APIs"
+    ],
+    "snippetsVsPackages": {
+      "snippets": "Code you own - copy, paste, modify freely",
+      "packages": "External dependencies - updates managed by maintainers",
+      "benefit": "Snippets give you full control and no dependency bloat"
+    }
+  },
+  "examples": [
+    {
+      "title": "Add email sending",
+      "description": "Add Resend email client to your project",
+      "command": "npx hanma add resend --framework shared"
+    },
+    {
+      "title": "Add S3 uploads", 
+      "description": "Add AWS S3 upload utilities",
+      "command": "npx hanma add aws-s3-upload --framework shared"
+    },
+    {
+      "title": "Add database client",
+      "description": "Add Prisma client setup",
+      "command": "npx hanma add prisma-client --framework shared"
+    }
+  ],
+  "categoryFiles": [
+    { "id": "mailers", "file": "mailers.json", "title": "Mailers", "description": "Email sending utilities (Resend, Nodemailer, SendGrid, AWS SES)" },
+    { "id": "uploads", "file": "uploads.json", "title": "Uploads", "description": "File upload utilities (S3, R2, Azure, GCP, Cloudinary)" },
+    { "id": "db", "file": "db.json", "title": "Database Clients", "description": "Database connection clients (Prisma, Drizzle, Mongoose, Redis)" },
+    { "id": "queries", "file": "queries.json", "title": "Query Storage", "description": "Generic CRUD storage classes for various ORMs" },
+    { "id": "passwords", "file": "passwords.json", "title": "Passwords", "description": "Password hashing utilities (bcrypt, argon2, crypto)" },
+    { "id": "libs", "file": "libs.json", "title": "Libraries", "description": "HTTP clients and environment validation" },
+    { "id": "utils", "file": "utils.json", "title": "Utilities", "description": "Loggers and general purpose helpers" }
+  ]
+}

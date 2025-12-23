@@ -1,0 +1,80 @@
+{
+  "id": "mailers",
+  "title": "Mailers",
+  "description": "Email sending utilities",
+  "subcategories": [
+    {
+      "id": "email-providers",
+      "title": "Email Providers",
+      "description": "Email sending with multiple providers",
+      "snippets": [
+        {
+          "id": "resend",
+          "name": "resend",
+          "displayName": "Resend Email",
+          "description": "Modern email API with batch support",
+          "purpose": "Simple email API with excellent DX and React Email support.",
+          "features": [
+            "Batch sending",
+            "Email templates",
+            "Delivery tracking",
+            "Generous free tier"
+          ],
+          "usage": "import { sendMail } from './libs/mailers/resend';\n\nawait sendMail({ to: 'user@example.com', subject: 'Hello' });",
+          "output": "libs/mailers/resend.ts",
+          "dependencies": ["resend"],
+          "command": "npx hanma add resend --framework shared"
+        },
+        {
+          "id": "nodemailer",
+          "name": "nodemailer",
+          "displayName": "Nodemailer",
+          "description": "SMTP email with any provider",
+          "purpose": "Universal email transport for any SMTP server.",
+          "features": [
+            "SMTP transport",
+            "Attachments",
+            "HTML emails",
+            "Connection pooling"
+          ],
+          "usage": "import { sendEmail } from './libs/mailers/nodemailer';\n\nawait sendEmail({ to: 'user@example.com' });",
+          "output": "libs/mailers/nodemailer.ts",
+          "dependencies": ["nodemailer"],
+          "command": "npx hanma add nodemailer --framework shared"
+        },
+        {
+          "id": "sendgrid",
+          "name": "sendgrid",
+          "displayName": "SendGrid",
+          "description": "SendGrid email API",
+          "purpose": "Enterprise email with templates and analytics.",
+          "features": [
+            "Template support",
+            "Analytics",
+            "High deliverability"
+          ],
+          "usage": "import { sendEmail } from './libs/mailers/sendgrid';",
+          "output": "libs/mailers/sendgrid.ts",
+          "dependencies": ["@sendgrid/mail"],
+          "command": "npx hanma add sendgrid --framework shared"
+        },
+        {
+          "id": "aws-ses",
+          "name": "aws-ses",
+          "displayName": "AWS SES",
+          "description": "Amazon Simple Email Service",
+          "purpose": "Cost-effective email at scale on AWS.",
+          "features": [
+            "Pay-per-email",
+            "AWS integration",
+            "Bounce handling"
+          ],
+          "usage": "import { sendEmail } from './libs/mailers/aws-ses';",
+          "output": "libs/mailers/aws-ses.ts",
+          "dependencies": ["@aws-sdk/client-ses"],
+          "command": "npx hanma add aws-ses --framework shared"
+        }
+      ]
+    }
+  ]
+}

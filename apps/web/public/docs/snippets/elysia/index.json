@@ -1,0 +1,41 @@
+{
+  "framework": "elysia",
+  "version": "v1",
+  "title": "Elysia v1 Snippets",
+  "description": "Production-ready code snippets for Elysia.js v1 applications.",
+  "installNote": "Install snippets with: npx hanma add <snippet-name> [snippet-name...] (supports multiple)",
+  "concept": {
+    "whatIsASnippet": "A snippet is a single, self-contained code file that provides a specific utility, middleware, or integration. Snippets are designed to be dropped into your project and customized as needed.",
+    "whenToUseSnippets": [
+      "When you need a specific utility or middleware",
+      "When you want copy-paste code you own and can modify",
+      "When you prefer composition over packages"
+    ],
+    "snippetsVsPackages": {
+      "snippets": "Code you own - copy, paste, modify freely",
+      "packages": "External dependencies - updates managed by maintainers",
+      "benefit": "Snippets give you full control and no dependency bloat"
+    }
+  },
+  "examples": [
+    {
+      "title": "Add a single snippet",
+      "description": "Add the Elysia basic server to your project",
+      "command": "npx hanma add elysia-basic"
+    },
+    {
+      "title": "Add multiple snippets",
+      "description": "Add several related snippets at once",
+      "command": "npx hanma add elysia-cors elysia-swagger"
+    },
+    {
+      "title": "Interactive selection",
+      "description": "Use multi-select to choose snippets",
+      "command": "npx hanma add --framework elysia"
+    }
+  ],
+  "categoryFiles": [
+    { "id": "libs", "file": "libs.json", "title": "Libraries", "description": "Core libraries and server setups" },
+    { "id": "plugins", "file": "plugins.json", "title": "Plugins", "description": "Reusable Elysia plugins" }
+  ]
+}

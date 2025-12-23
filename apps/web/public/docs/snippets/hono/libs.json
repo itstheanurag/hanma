@@ -1,0 +1,72 @@
+{
+  "id": "libs",
+  "title": "Libraries",
+  "description": "Core libraries and server setups",
+  "subcategories": [
+    {
+      "id": "servers",
+      "title": "Servers",
+      "description": "Hono server implementations",
+      "snippets": [
+        {
+          "id": "hono-basic",
+          "name": "hono-basic",
+          "displayName": "Hono Basic Server",
+          "description": "Production-ready Hono server with graceful shutdown",
+          "purpose": "Start a Hono server with proper production configuration including request ID, error handling, and health checks.",
+          "features": [
+            "Graceful shutdown on SIGTERM/SIGINT",
+            "Structured error handling",
+            "Request ID middleware",
+            "Health check endpoint"
+          ],
+          "usage": "import app from './index';\n\n// Server starts automatically on PORT",
+          "output": "src/index.ts",
+          "dependencies": ["hono", "@hono/node-server"],
+          "command": "npx hanma add hono-basic --framework hono"
+        }
+      ]
+    },
+    {
+      "id": "utilities",
+      "title": "Utilities",
+      "description": "Common Hono utilities",
+      "snippets": [
+        {
+          "id": "hono-http-client",
+          "name": "hono-http-client",
+          "displayName": "HTTP Client",
+          "description": "Axios-based HTTP client with retry logic",
+          "purpose": "Make HTTP requests with automatic retries and exponential backoff.",
+          "features": [
+            "Automatic retries",
+            "Exponential backoff",
+            "Request/response logging",
+            "Type-safe helpers"
+          ],
+          "usage": "import { httpClient } from './libs/http-client';\n\nconst data = await httpClient.get('/api/users');",
+          "output": "src/libs/http-client.ts",
+          "dependencies": ["axios"],
+          "command": "npx hanma add hono-http-client --framework hono"
+        },
+        {
+          "id": "hono-env",
+          "name": "hono-env",
+          "displayName": "Environment Validation",
+          "description": "Type-safe environment variable validation using Zod",
+          "purpose": "Validate environment variables at startup with detailed error reporting.",
+          "features": [
+            "Zod schema validation",
+            "Type-safe env access",
+            "Detailed error messages",
+            "Default values"
+          ],
+          "usage": "import { env } from './config/env';\n\nconsole.log(env.DATABASE_URL);",
+          "output": "src/config/env.ts",
+          "dependencies": ["zod", "dotenv"],
+          "command": "npx hanma add hono-env --framework hono"
+        }
+      ]
+    }
+  ]
+}

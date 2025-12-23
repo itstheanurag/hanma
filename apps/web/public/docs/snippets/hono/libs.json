@@ -1,52 +1,177 @@
 {
   "id": "libs",
   "title": "Libraries",
-  "description": "Core libraries and server setups",
+  "description": "Core libraries, server setups, and utilities for Hono applications",
   "subcategories": [
     {
       "id": "servers",
       "title": "Servers",
-      "description": "Hono server implementations",
+      "description": "Production-ready server implementations for different runtimes and deployment targets",
       "snippets": [
         {
           "id": "hono-basic",
           "name": "hono-basic",
-          "displayName": "Hono Basic Server",
-          "description": "Production-ready Hono server with graceful shutdown",
-          "purpose": "Start a Hono server with proper production configuration including request ID, error handling, and health checks.",
+          "displayName": "Node.js Server",
+          "description": "Production-ready Hono server for Node.js with @hono/node-server",
+          "purpose": "Deploy Hono on Node.js with security headers, structured logging, and graceful shutdown. Best for traditional Node.js hosting.",
           "features": [
-            "Graceful shutdown on SIGTERM/SIGINT",
-            "Structured error handling",
-            "Request ID middleware",
-            "Health check endpoint"
+            "Security headers via secureHeaders()",
+            "Structured JSON logging for observability",
+            "Health, ready, and live endpoints for k8s",
+            "Graceful shutdown with configurable timeout",
+            "CORS with configurable origins",
+            "Request timing middleware"
           ],
-          "usage": "import app from './index';\n\n// Server starts automatically on PORT",
+          "usage": "// Server starts automatically\n// Health check: GET /health\n// Readiness: GET /ready\n// Liveness: GET /live",
           "output": "src/index.ts",
           "dependencies": ["hono", "@hono/node-server"],
+          "devDependencies": ["@types/node"],
+          "envVars": [
+            { "name": "PORT", "default": "3000", "description": "Server port" },
+            { "name": "NODE_ENV", "default": "development", "description": "Environment mode" },
+            { "name": "CORS_ORIGINS", "description": "Comma-separated allowed origins" },
+            { "name": "SHUTDOWN_TIMEOUT", "default": "10000", "description": "Graceful shutdown timeout (ms)" }
+          ],
           "command": "npx hanma add hono-basic --framework hono"
+        },
+        {
+          "id": "hono-bun",
+          "name": "hono-bun",
+          "displayName": "Bun Server",
+          "description": "Production-ready Hono server optimized for Bun runtime",
+          "purpose": "Deploy Hono on Bun with native Bun.serve(). Best for high-performance applications using Bun.",
+          "features": [
+            "Native Bun.serve() for maximum performance",
+            "Security headers and CORS",
+            "Structured JSON logging",
+            "Health, ready, and live endpoints",
+            "Graceful shutdown",
+            "Memory and uptime reporting"
+          ],
+          "usage": "// Run with: bun run src/index.ts\n// Health check: GET /health",
+          "output": "src/index.ts",
+          "dependencies": ["hono"],
+          "envVars": [
+            { "name": "PORT", "default": "3000", "description": "Server port" },
+            { "name": "NODE_ENV", "default": "development", "description": "Environment mode" },
+            { "name": "CORS_ORIGINS", "description": "Comma-separated allowed origins" }
+          ],
+          "command": "npx hanma add hono-bun --framework hono"
+        },
+        {
+          "id": "hono-deno",
+          "name": "hono-deno",
+          "displayName": "Deno Server",
+          "description": "Production-ready Hono server for Deno runtime",
+          "purpose": "Deploy Hono on Deno with native Deno.serve(). Best for secure, modern TypeScript applications.",
+          "features": [
+            "Native Deno.serve() with fetch API",
+            "Security headers and CORS",
+            "Deno runtime version reporting",
+            "Memory usage monitoring",
+            "Signal-based graceful shutdown"
+          ],
+          "usage": "// Run with: deno run --allow-net --allow-env src/index.ts\n// Health check: GET /health",
+          "output": "src/index.ts",
+          "dependencies": [],
+          "envVars": [
+            { "name": "PORT", "default": "3000", "description": "Server port" },
+            { "name": "DENO_ENV", "default": "development", "description": "Environment mode" },
+            { "name": "CORS_ORIGINS", "description": "Comma-separated allowed origins" }
+          ],
+          "command": "npx hanma add hono-deno --framework hono"
+        },
+        {
+          "id": "hono-cloudflare-workers",
+          "name": "hono-cloudflare-workers",
+          "displayName": "Cloudflare Workers",
+          "description": "Hono server for Cloudflare Workers with typed bindings",
+          "purpose": "Deploy Hono to Cloudflare Workers edge network. Best for globally distributed, low-latency APIs.",
+          "features": [
+            "Typed bindings for KV, D1, R2",
+            "Edge caching with cache() middleware",
+            "Geo context (colo, country, city)",
+            "Environment-based CORS",
+            "Worker-specific error handling"
+          ],
+          "usage": "// Deploy with: wrangler deploy\n// Health includes edge location info",
+          "output": "src/index.ts",
+          "dependencies": ["hono"],
+          "devDependencies": ["wrangler", "@cloudflare/workers-types"],
+          "envVars": [
+            { "name": "ENVIRONMENT", "default": "development", "description": "Wrangler environment" },
+            { "name": "CORS_ORIGINS", "description": "Comma-separated allowed origins" }
+          ],
+          "command": "npx hanma add hono-cloudflare-workers --framework hono"
+        },
+        {
+          "id": "hono-vercel",
+          "name": "hono-vercel",
+          "displayName": "Vercel Edge Functions",
+          "description": "Hono server for Vercel Edge Functions",
+          "purpose": "Deploy Hono to Vercel Edge. Best for Next.js projects needing edge API routes.",
+          "features": [
+            "Vercel Edge runtime",
+            "Edge caching with stale-while-revalidate",
+            "Region awareness",
+            "Security headers",
+            "Deployment URL context"
+          ],
+          "usage": "// Deploy with: vercel\n// API routes at /api/*",
+          "output": "api/index.ts",
+          "dependencies": ["hono"],
+          "devDependencies": ["vercel"],
+          "envVars": [
+            { "name": "NODE_ENV", "default": "development", "description": "Environment mode" },
+            { "name": "CORS_ORIGINS", "description": "Comma-separated allowed origins" }
+          ],
+          "command": "npx hanma add hono-vercel --framework hono"
+        },
+        {
+          "id": "hono-lambda",
+          "name": "hono-lambda",
+          "displayName": "AWS Lambda",
+          "description": "Hono server for AWS Lambda with API Gateway",
+          "purpose": "Deploy Hono to AWS Lambda. Best for serverless architectures on AWS.",
+          "features": [
+            "AWS Lambda adapter",
+            "Cold start tracking",
+            "CloudWatch-compatible logging",
+            "API Gateway integration",
+            "Remaining time awareness"
+          ],
+          "usage": "// Export handler for Lambda\n// export { handler } from './index';",
+          "output": "src/index.ts",
+          "dependencies": ["hono", "@hono/aws-lambda"],
+          "devDependencies": ["@types/aws-lambda"],
+          "envVars": [
+            { "name": "NODE_ENV", "default": "development", "description": "Environment mode" },
+            { "name": "CORS_ORIGINS", "description": "Comma-separated allowed origins" }
+          ],
+          "command": "npx hanma add hono-lambda --framework hono"
         }
       ]
     },
     {
       "id": "utilities",
       "title": "Utilities",
-      "description": "Common Hono utilities",
+      "description": "Common utilities for Hono applications",
       "snippets": [
         {
           "id": "hono-http-client",
           "name": "hono-http-client",
           "displayName": "HTTP Client",
-          "description": "Axios-based HTTP client with retry logic",
-          "purpose": "Make HTTP requests with automatic retries and exponential backoff.",
+          "description": "Fetch-based HTTP client with retry logic and timeout",
+          "purpose": "Make HTTP requests with automatic retries, exponential backoff, and request timeout.",
           "features": [
-            "Automatic retries",
-            "Exponential backoff",
-            "Request/response logging",
-            "Type-safe helpers"
+            "Automatic retries with exponential backoff",
+            "Request timeout handling",
+            "JSON helpers",
+            "Error wrapping"
           ],
           "usage": "import { httpClient } from './libs/http-client';\n\nconst data = await httpClient.get('/api/users');",
           "output": "src/libs/http-client.ts",
-          "dependencies": ["axios"],
+          "dependencies": [],
           "command": "npx hanma add hono-http-client --framework hono"
         },
         {
@@ -59,7 +184,7 @@
             "Zod schema validation",
             "Type-safe env access",
             "Detailed error messages",
-            "Default values"
+            "Default value support"
           ],
           "usage": "import { env } from './config/env';\n\nconsole.log(env.DATABASE_URL);",
           "output": "src/config/env.ts",

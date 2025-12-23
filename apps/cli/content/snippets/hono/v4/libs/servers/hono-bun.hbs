@@ -1,11 +1,8 @@
 ---
-name: hono-basic
-description: Production-ready Hono server for Node.js with security, observability, and graceful shutdown
+name: hono-bun
+description: Production-ready Hono server optimized for Bun runtime with security, typing, and observability
 dependencies:
   - hono
-  - "@hono/node-server"
-devDependencies:
-  - "@types/node"
 files:
   - name: src/index.ts
 ---
@@ -15,15 +12,13 @@ import { requestId } from "hono/request-id";
 import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
 import { timing } from "hono/timing";
-import { serve } from "@hono/node-server";
 import type { Context } from "hono";
 
 // Environment configuration
 const config = {
-  port: Number(process.env.PORT) || 3000,
-  env: process.env.NODE_ENV || "development",
-  corsOrigins: process.env.CORS_ORIGINS?.split(",") || ["*"],
-  shutdownTimeout: Number(process.env.SHUTDOWN_TIMEOUT) || 10000,
+  port: Number(Bun.env.PORT) || 3000,
+  env: Bun.env.NODE_ENV || "development",
+  corsOrigins: Bun.env.CORS_ORIGINS?.split(",") || ["*"],
 };
 
 // Application type with custom variables
@@ -64,8 +59,8 @@ app.get("/health", (c) => {
   return c.json({
     status: "healthy",
     timestamp: new Date().toISOString(),
-    runtime: "node",
-    version: process.version,
+    runtime: "bun",
+    version: Bun.version,
     uptime: {
       seconds: Math.floor(uptime),
       formatted: formatUptime(uptime),
@@ -90,7 +85,7 @@ app.get("/live", (c) => c.text("OK"));
 // Example route
 app.get("/", (c) => {
   return c.json({
-    message: "Hello from Hono!",
+    message: "Hello from Bun!",
     requestId: c.get("requestId"),
     environment: config.env,
   });
@@ -116,7 +111,7 @@ app.onError((err, c) => {
   const requestId = c.get("requestId") || "unknown";
   const status = "status" in err ? (err.status as number) : 500;
   
-  // Structured error logging
+  // Log error with context
   console.error(JSON.stringify({
     level: "error",
     message: err.message,
@@ -161,50 +156,42 @@ function formatBytes(bytes: number): string {
 }
 
 // Start server
-const server = serve({
-  fetch: app.fetch,
+const server = Bun.serve({
   port: config.port,
-}, (info) => {
-  console.log(JSON.stringify({
-    level: "info",
-    message: "Server started",
-    port: info.port,
-    environment: config.env,
-    timestamp: new Date().toISOString(),
-  }));
+  fetch: app.fetch,
+  error(error) {
+    console.error("Unhandled server error:", error);
+    return new Response("Internal Server Error", { status: 500 });
+  },
 });
 
-// Graceful shutdown
-let isShuttingDown = false;
+console.log(JSON.stringify({
+  level: "info",
+  message: "Server started",
+  port: server.port,
+  environment: config.env,
+  timestamp: new Date().toISOString(),
+}));
 
+// Graceful shutdown
 const shutdown = (signal: string) => {
-  if (isShuttingDown) return;
-  isShuttingDown = true;
-  
   console.log(JSON.stringify({
     level: "info",
     message: `${signal} received, shutting down gracefully`,
     timestamp: new Date().toISOString(),
   }));
   
-  server.close(() => {
+  server.stop();
+  
+  // Allow pending requests to complete
+  setTimeout(() => {
     console.log(JSON.stringify({
       level: "info",
       message: "Server stopped",
       timestamp: new Date().toISOString(),
     }));
     process.exit(0);
-  });
-  
-  // Force shutdown after timeout
-  setTimeout(() => {
-    console.error(JSON.stringify({
-      level: "error",
-      message: "Forced shutdown due to timeout",
-      timestamp: new Date().toISOString(),
-    }));
-    process.exit(1);
-  }, config.shutdownTimeout).unref();
+  }, 5000);
 };
 
 process.on("SIGTERM", () => shutdown("SIGTERM"));

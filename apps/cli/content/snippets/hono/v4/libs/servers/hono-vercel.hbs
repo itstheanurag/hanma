@@ -1,0 +1,145 @@
+---
+name: hono-vercel
+description: Production-ready Hono server for Vercel Edge Functions with region awareness and caching
+dependencies:
+  - hono
+devDependencies:
+  - vercel
+files:
+  - name: api/index.ts
+---
+import { Hono } from "hono";
+import { handle } from "hono/vercel";
+import { logger } from "hono/logger";
+import { requestId } from "hono/request-id";
+import { cors } from "hono/cors";
+import { secureHeaders } from "hono/secure-headers";
+import { timing } from "hono/timing";
+import { cache } from "hono/cache";
+
+export const config = {
+  runtime: "edge",
+};
+
+// Environment configuration
+const envConfig = {
+  env: process.env.NODE_ENV || "development",
+  corsOrigins: process.env.CORS_ORIGINS?.split(",") || ["*"],
+  region: process.env.VERCEL_REGION || "unknown",
+  deployment: process.env.VERCEL_URL || "localhost",
+};
+
+// Application type
+type AppEnv = {
+  Variables: {
+    requestId: string;
+  };
+};
+
+const app = new Hono<AppEnv>().basePath("/api");
+
+// Security and observability middleware
+app.use("*", secureHeaders());
+app.use("*", timing());
+app.use("*", requestId());
+app.use("*", logger());
+app.use("*", cors({
+  origin: envConfig.corsOrigins,
+  allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowHeaders: ["Content-Type", "Authorization", "X-Request-ID"],
+  exposeHeaders: ["X-Request-ID", "X-Response-Time"],
+  maxAge: 86400,
+  credentials: true,
+}));
+
+// Cached health check
+app.get(
+  "/health",
+  cache({
+    cacheName: "health-check",
+    cacheControl: "public, max-age=60",
+  }),
+  (c) => {
+    return c.json({
+      status: "healthy",
+      timestamp: new Date().toISOString(),
+      runtime: "vercel-edge",
+      region: envConfig.region,
+      deployment: envConfig.deployment,
+      environment: envConfig.env,
+    });
+  }
+);
+
+// Example route
+app.get("/", (c) => {
+  return c.json({
+    message: "Hello from Vercel Edge!",
+    requestId: c.get("requestId"),
+    region: envConfig.region,
+    environment: envConfig.env,
+  });
+});
+
+// Example with caching
+app.get(
+  "/cached",
+  cache({
+    cacheName: "cached-response",
+    cacheControl: "public, max-age=300, s-maxage=600, stale-while-revalidate=86400",
+  }),
+  (c) => {
+    return c.json({
+      data: "This response is cached at the edge",
+      generatedAt: new Date().toISOString(),
+      requestId: c.get("requestId"),
+    });
+  }
+);
+
+// 404 handler
+app.notFound((c) => {
+  return c.json(
+    {
+      success: false,
+      error: {
+        code: "NOT_FOUND",
+        message: `Path ${c.req.method} ${c.req.path} not found`,
+      },
+      requestId: c.get("requestId"),
+    },
+    404
+  );
+});
+
+// Global error handler
+app.onError((err, c) => {
+  const requestId = c.get("requestId") || "unknown";
+  const status = "status" in err ? (err.status as number) : 500;
+  const isProduction = envConfig.env === "production";
+  
+  // Log error (visible in Vercel logs)
+  console.error(JSON.stringify({
+    level: "error",
+    message: err.message,
+    requestId,
+    path: c.req.path,
+    method: c.req.method,
+    region: envConfig.region,
+    timestamp: new Date().toISOString(),
+  }));
+  
+  return c.json(
+    {
+      success: false,
+      error: {
+        code: status === 500 ? "INTERNAL_ERROR" : "REQUEST_ERROR",
+        message: isProduction ? "An unexpected error occurred" : err.message,
+      },
+      requestId,
+    },
+    status
+  );
+});
+
+export default handle(app);

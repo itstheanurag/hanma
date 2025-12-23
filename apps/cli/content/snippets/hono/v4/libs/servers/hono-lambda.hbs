@@ -1,0 +1,177 @@
+---
+name: hono-lambda
+description: Production-ready Hono server for AWS Lambda with API Gateway, cold start optimization, and observability
+dependencies:
+  - hono
+  - "@hono/aws-lambda"
+devDependencies:
+  - "@types/aws-lambda"
+files:
+  - name: src/index.ts
+---
+import { Hono } from "hono";
+import { handle, type LambdaEvent, type LambdaContext } from "@hono/aws-lambda";
+import { logger } from "hono/logger";
+import { requestId } from "hono/request-id";
+import { cors } from "hono/cors";
+import { secureHeaders } from "hono/secure-headers";
+import { timing } from "hono/timing";
+
+// Environment configuration
+const config = {
+  env: process.env.NODE_ENV || "development",
+  corsOrigins: process.env.CORS_ORIGINS?.split(",") || ["*"],
+  region: process.env.AWS_REGION || "unknown",
+  functionName: process.env.AWS_LAMBDA_FUNCTION_NAME || "unknown",
+};
+
+// Cold start tracking
+let coldStart = true;
+
+// Application type
+type AppEnv = {
+  Variables: {
+    requestId: string;
+    lambdaContext: LambdaContext;
+  };
+};
+
+const app = new Hono<AppEnv>();
+
+// Security and observability middleware
+app.use("*", secureHeaders());
+app.use("*", timing());
+app.use("*", requestId());
+app.use("*", logger());
+app.use("*", cors({
+  origin: config.corsOrigins,
+  allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowHeaders: ["Content-Type", "Authorization", "X-Request-ID"],
+  exposeHeaders: ["X-Request-ID", "X-Response-Time"],
+  maxAge: 86400,
+  credentials: true,
+}));
+
+// Health check endpoint
+app.get("/health", (c) => {
+  const isColdStart = coldStart;
+  coldStart = false;
+  
+  return c.json({
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+    runtime: "aws-lambda",
+    region: config.region,
+    functionName: config.functionName,
+    coldStart: isColdStart,
+    memoryLimit: `${process.env.AWS_LAMBDA_FUNCTION_MEMORY_SIZE}MB`,
+  });
+});
+
+// Example route
+app.get("/", (c) => {
+  return c.json({
+    message: "Hello from AWS Lambda!",
+    requestId: c.get("requestId"),
+    environment: config.env,
+  });
+});
+
+// Example with path parameters and validation
+app.get("/users/:id", (c) => {
+  const id = c.req.param("id");
+  
+  // Basic validation
+  if (!/^\d+$/.test(id)) {
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "User ID must be a number",
+        },
+      },
+      400
+    );
+  }
+  
+  return c.json({
+    user: {
+      id: Number(id),
+      name: "Example User",
+    },
+    requestId: c.get("requestId"),
+  });
+});
+
+// 404 handler
+app.notFound((c) => {
+  return c.json(
+    {
+      success: false,
+      error: {
+        code: "NOT_FOUND",
+        message: `Path ${c.req.method} ${c.req.path} not found`,
+      },
+      requestId: c.get("requestId"),
+    },
+    404
+  );
+});
+
+// Global error handler
+app.onError((err, c) => {
+  const requestId = c.get("requestId") || "unknown";
+  const status = "status" in err ? (err.status as number) : 500;
+  
+  // Structured logging for CloudWatch
+  console.error(JSON.stringify({
+    level: "error",
+    message: err.message,
+    stack: err.stack,
+    requestId,
+    path: c.req.path,
+    method: c.req.method,
+    functionName: config.functionName,
+    region: config.region,
+    timestamp: new Date().toISOString(),
+  }));
+  
+  return c.json(
+    {
+      success: false,
+      error: {
+        code: status === 500 ? "INTERNAL_ERROR" : "REQUEST_ERROR",
+        message: config.env === "production" 
+          ? "An unexpected error occurred" 
+          : err.message,
+      },
+      requestId,
+    },
+    status
+  );
+});
+
+// Lambda handler with cold start reset
+export const handler = async (event: LambdaEvent, context: LambdaContext) => {
+  // Track cold start per invocation
+  const isCold = coldStart;
+  coldStart = false;
+  
+  // Add cold start header
+  const response = await handle(app)(event, context);
+  
+  // Log invocation metrics
+  console.log(JSON.stringify({
+    level: "info",
+    type: "invocation",
+    path: event.path || event.rawPath,
+    method: event.httpMethod || event.requestContext?.http?.method,
+    coldStart: isCold,
+    remainingTimeMs: context.getRemainingTimeInMillis(),
+    requestId: context.awsRequestId,
+    timestamp: new Date().toISOString(),
+  }));
+  
+  return response;
+};

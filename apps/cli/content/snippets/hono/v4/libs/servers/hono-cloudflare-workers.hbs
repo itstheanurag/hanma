@@ -1,0 +1,165 @@
+---
+name: hono-cloudflare-workers
+description: Production-ready Hono server for Cloudflare Workers with bindings, security, and edge features
+dependencies:
+  - hono
+devDependencies:
+  - wrangler
+  - "@cloudflare/workers-types"
+files:
+  - name: src/index.ts
+---
+import { Hono } from "hono";
+import { logger } from "hono/logger";
+import { requestId } from "hono/request-id";
+import { cors } from "hono/cors";
+import { secureHeaders } from "hono/secure-headers";
+import { timing } from "hono/timing";
+import { cache } from "hono/cache";
+
+// Type definitions for Cloudflare bindings
+type Bindings = {
+  ENVIRONMENT: string;
+  CORS_ORIGINS: string;
+  // Add your bindings here:
+  // MY_KV: KVNamespace;
+  // MY_DB: D1Database;
+  // MY_R2: R2Bucket;
+};
+
+type Variables = {
+  requestId: string;
+};
+
+const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+
+// Security middleware
+app.use("*", secureHeaders());
+app.use("*", timing());
+app.use("*", requestId());
+app.use("*", logger());
+
+// Dynamic CORS based on environment binding
+app.use("*", async (c, next) => {
+  const origins = c.env.CORS_ORIGINS?.split(",") || ["*"];
+  return cors({
+    origin: origins,
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization", "X-Request-ID"],
+    exposeHeaders: ["X-Request-ID", "X-Response-Time"],
+    maxAge: 86400,
+    credentials: true,
+  })(c, next);
+});
+
+// Cache static responses at edge
+app.get(
+  "/health",
+  cache({
+    cacheName: "health-check",
+    cacheControl: "public, max-age=60",
+  }),
+  (c) => {
+    const cf = c.req.raw.cf;
+    
+    return c.json({
+      status: "healthy",
+      timestamp: new Date().toISOString(),
+      runtime: "cloudflare-workers",
+      edge: {
+        colo: cf?.colo || "unknown",
+        country: cf?.country || "unknown",
+        city: cf?.city || "unknown",
+        region: cf?.region || "unknown",
+      },
+      environment: c.env.ENVIRONMENT || "development",
+    });
+  }
+);
+
+// Example route with request context
+app.get("/", (c) => {
+  const cf = c.req.raw.cf;
+  
+  return c.json({
+    message: "Hello from Cloudflare Workers!",
+    requestId: c.get("requestId"),
+    edge: {
+      colo: cf?.colo,
+      country: cf?.country,
+    },
+  });
+});
+
+// Example: KV operations (uncomment when binding is configured)
+// app.get("/kv/:key", async (c) => {
+//   const key = c.req.param("key");
+//   const value = await c.env.MY_KV.get(key);
+//   
+//   if (!value) {
+//     return c.json({ 
+//       success: false, 
+//       error: { code: "NOT_FOUND", message: "Key not found" } 
+//     }, 404);
+//   }
+//   
+//   return c.json({ key, value });
+// });
+
+// app.put("/kv/:key", async (c) => {
+//   const key = c.req.param("key");
+//   const body = await c.req.json<{ value: string; ttl?: number }>();
+//   
+//   await c.env.MY_KV.put(key, body.value, {
+//     expirationTtl: body.ttl || 3600,
+//   });
+//   
+//   return c.json({ success: true, key });
+// });
+
+// 404 handler
+app.notFound((c) => {
+  return c.json(
+    {
+      success: false,
+      error: {
+        code: "NOT_FOUND",
+        message: `Path ${c.req.method} ${c.req.path} not found`,
+      },
+      requestId: c.get("requestId"),
+    },
+    404
+  );
+});
+
+// Global error handler
+app.onError((err, c) => {
+  const requestId = c.get("requestId") || "unknown";
+  const status = "status" in err ? (err.status as number) : 500;
+  const isProduction = c.env.ENVIRONMENT === "production";
+  
+  // Log to console (visible in Workers logs)
+  console.error(JSON.stringify({
+    level: "error",
+    message: err.message,
+    requestId,
+    path: c.req.path,
+    method: c.req.method,
+    colo: c.req.raw.cf?.colo,
+    timestamp: new Date().toISOString(),
+  }));
+  
+  return c.json(
+    {
+      success: false,
+      error: {
+        code: status === 500 ? "INTERNAL_ERROR" : "REQUEST_ERROR",
+        message: isProduction ? "An unexpected error occurred" : err.message,
+      },
+      requestId,
+    },
+    status
+  );
+});
+
+export default app;

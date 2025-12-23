@@ -1,32 +1,25 @@
 ---
-name: hono-basic
-description: Production-ready Hono server for Node.js with security, observability, and graceful shutdown
-dependencies:
-  - hono
-  - "@hono/node-server"
-devDependencies:
-  - "@types/node"
+name: hono-deno
+description: Production-ready Hono server for Deno runtime with security, typing, and observability
+dependencies: []
 files:
   - name: src/index.ts
 ---
-import { Hono } from "hono";
-import { logger } from "hono/logger";
-import { requestId } from "hono/request-id";
-import { cors } from "hono/cors";
-import { secureHeaders } from "hono/secure-headers";
-import { timing } from "hono/timing";
-import { serve } from "@hono/node-server";
-import type { Context } from "hono";
+import { Hono } from "https://deno.land/x/hono/mod.ts";
+import { logger } from "https://deno.land/x/hono/middleware.ts";
+import { requestId } from "https://deno.land/x/hono/middleware.ts";
+import { cors } from "https://deno.land/x/hono/middleware.ts";
+import { secureHeaders } from "https://deno.land/x/hono/middleware.ts";
+import { timing } from "https://deno.land/x/hono/middleware.ts";
 
 // Environment configuration
 const config = {
-  port: Number(process.env.PORT) || 3000,
-  env: process.env.NODE_ENV || "development",
-  corsOrigins: process.env.CORS_ORIGINS?.split(",") || ["*"],
-  shutdownTimeout: Number(process.env.SHUTDOWN_TIMEOUT) || 10000,
+  port: Number(Deno.env.get("PORT")) || 3000,
+  env: Deno.env.get("DENO_ENV") || "development",
+  corsOrigins: Deno.env.get("CORS_ORIGINS")?.split(",") || ["*"],
 };
 
-// Application type with custom variables
+// Application type
 type AppEnv = {
   Variables: {
     requestId: string;
@@ -50,7 +43,7 @@ app.use("*", cors({
   credentials: true,
 }));
 
-// Request timing middleware
+// Request timing
 app.use("*", async (c, next) => {
   c.set("startTime", Date.now());
   await next();
@@ -58,18 +51,15 @@ app.use("*", async (c, next) => {
 
 // Health check endpoint
 app.get("/health", (c) => {
-  const uptime = process.uptime();
-  const memory = process.memoryUsage();
+  const memory = Deno.memoryUsage();
   
   return c.json({
     status: "healthy",
     timestamp: new Date().toISOString(),
-    runtime: "node",
-    version: process.version,
-    uptime: {
-      seconds: Math.floor(uptime),
-      formatted: formatUptime(uptime),
-    },
+    runtime: "deno",
+    version: Deno.version.deno,
+    typescript: Deno.version.typescript,
+    v8: Deno.version.v8,
     memory: {
       heapUsed: formatBytes(memory.heapUsed),
       heapTotal: formatBytes(memory.heapTotal),
@@ -78,9 +68,8 @@ app.get("/health", (c) => {
   });
 });
 
-// Readiness check for k8s/container orchestration
+// Readiness check
 app.get("/ready", (c) => {
-  // Add your readiness checks here (DB connection, cache, etc.)
   return c.json({ ready: true });
 });
 
@@ -90,7 +79,7 @@ app.get("/live", (c) => c.text("OK"));
 // Example route
 app.get("/", (c) => {
   return c.json({
-    message: "Hello from Hono!",
+    message: "Hello from Deno!",
     requestId: c.get("requestId"),
     environment: config.env,
   });
@@ -116,7 +105,7 @@ app.onError((err, c) => {
   const requestId = c.get("requestId") || "unknown";
   const status = "status" in err ? (err.status as number) : 500;
   
-  // Structured error logging
+  // Structured logging
   console.error(JSON.stringify({
     level: "error",
     message: err.message,
@@ -142,14 +131,7 @@ app.onError((err, c) => {
   );
 });
 
-// Utility functions
-function formatUptime(seconds: number): string {
-  const days = Math.floor(seconds / 86400);
-  const hours = Math.floor((seconds % 86400) / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  return `${days}d ${hours}h ${mins}m`;
-}
-
+// Utility function
 function formatBytes(bytes: number): string {
   const units = ["B", "KB", "MB", "GB"];
   let i = 0;
@@ -160,52 +142,47 @@ function formatBytes(bytes: number): string {
   return `${bytes.toFixed(2)} ${units[i]}`;
 }
 
+// Abort controller for graceful shutdown
+const abortController = new AbortController();
+
 // Start server
-const server = serve({
-  fetch: app.fetch,
-  port: config.port,
-}, (info) => {
-  console.log(JSON.stringify({
-    level: "info",
-    message: "Server started",
-    port: info.port,
-    environment: config.env,
-    timestamp: new Date().toISOString(),
-  }));
-});
+Deno.serve(
+  {
+    port: config.port,
+    signal: abortController.signal,
+    onListen: ({ port, hostname }) => {
+      console.log(JSON.stringify({
+        level: "info",
+        message: "Server started",
+        hostname,
+        port,
+        environment: config.env,
+        timestamp: new Date().toISOString(),
+      }));
+    },
+  },
+  app.fetch
+);
 
 // Graceful shutdown
-let isShuttingDown = false;
-
 const shutdown = (signal: string) => {
-  if (isShuttingDown) return;
-  isShuttingDown = true;
-  
   console.log(JSON.stringify({
     level: "info",
     message: `${signal} received, shutting down gracefully`,
     timestamp: new Date().toISOString(),
   }));
   
-  server.close(() => {
+  abortController.abort();
+  
+  setTimeout(() => {
     console.log(JSON.stringify({
       level: "info",
       message: "Server stopped",
       timestamp: new Date().toISOString(),
     }));
-    process.exit(0);
-  });
-  
-  // Force shutdown after timeout
-  setTimeout(() => {
-    console.error(JSON.stringify({
-      level: "error",
-      message: "Forced shutdown due to timeout",
-      timestamp: new Date().toISOString(),
-    }));
-    process.exit(1);
-  }, config.shutdownTimeout).unref();
+    Deno.exit(0);
+  }, 5000);
 };
 
-process.on("SIGTERM", () => shutdown("SIGTERM"));
-process.on("SIGINT", () => shutdown("SIGINT"));
+Deno.addSignalListener("SIGTERM", () => shutdown("SIGTERM"));
+Deno.addSignalListener("SIGINT", () => shutdown("SIGINT"));

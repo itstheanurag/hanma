@@ -6,7 +6,7 @@ const FAQ = () => {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
-    <section className="py-24 px-6 bg-background">
+    <section className="py-24 px-6 bg-surface">
       <div className="max-w-3xl mx-auto">
         <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
           Frequently Asked Questions
@@ -23,7 +23,7 @@ const FAQ = () => {
             >
               <button
                 onClick={() => setOpenIndex(openIndex === idx ? null : idx)}
-                className="w-full flex items-center justify-between text-left p-6 hover:bg-surface-hover transition-colors"
+                className="w-full flex items-center justify-between text-left p-6  transition-colors"
               >
                 <span className="text-foreground font-medium">
                   {faq.question}
@@ -42,7 +42,7 @@ const FAQ = () => {
                     : "max-h-0 opacity-0"
                 }`}
               >
-                <div className="px-6 pb-6 text-sm text-muted leading-relaxed border-t border-border pt-4">
+                <div className="px-6 pb-6 text-sm text-muted leading-relaxed border-t border-border pt-4 bg-background">
                   {faq.answer}
                 </div>
               </div>

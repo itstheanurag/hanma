@@ -1,6 +1,6 @@
 import { LuGithub, LuMoon, LuSun } from "react-icons/lu";
 import Logo from "./Logo";
-import { useTheme } from "./ThemeContext";
+import { useTheme } from "./theme/ThemeContext";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 

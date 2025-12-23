@@ -1,0 +1,90 @@
+---
+name: drizzle-client
+description: Drizzle ORM client setup with PostgreSQL
+dependencies:
+  - drizzle-orm
+  - pg
+devDependencies:
+  - drizzle-kit
+  - "@types/pg"
+files:
+  - name: libs/db/drizzle.ts
+---
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+
+/**
+ * PostgreSQL connection pool
+ */
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 20,                    // Maximum connections in pool
+  idleTimeoutMillis: 30000,   // Close idle connections after 30s
+  connectionTimeoutMillis: 5000,
+});
+
+// Log pool errors
+pool.on('error', (err) => {
+  console.error('[ERROR] Unexpected database pool error:', err);
+});
+
+/**
+ * Drizzle ORM instance
+ * Import your schema and pass it here for type-safe queries
+ * 
+ * @example
+ * import * as schema from './schema';
+ * export const db = drizzle(pool, { schema });
+ */
+export const db = drizzle(pool);
+
+/**
+ * Connect to database with health check
+ */
+export const connectDatabase = async () => {
+  try {
+    const client = await pool.connect();
+    await client.query('SELECT NOW()');
+    client.release();
+    console.log('[OK] Database connected');
+  } catch (error) {
+    console.error('[ERROR] Database connection failed:', error);
+    throw error;
+  }
+};
+
+/**
+ * Disconnect from database (for graceful shutdown)
+ */
+export const disconnectDatabase = async () => {
+  await pool.end();
+  console.log('[INFO] Database disconnected');
+};
+
+/**
+ * Health check for database connection
+ */
+export const isDatabaseHealthy = async (): Promise<boolean> => {
+  try {
+    const client = await pool.connect();
+    await client.query('SELECT 1');
+    client.release();
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Transaction helper
+ * @example
+ * await transaction(async (tx) => {
+ *   await tx.insert(users).values({ name: 'John' });
+ *   await tx.insert(posts).values({ title: 'Hello' });
+ * });
+ */
+export const transaction = async <T>(
+  fn: (tx: typeof db) => Promise<T>
+): Promise<T> => {
+  return db.transaction(fn);
+};

@@ -1,0 +1,284 @@
+---
+name: sequelize-storage
+description: Generic Storage class for Sequelize ORM with CRUD, bulk operations, and pagination
+dependencies:
+  - sequelize
+files:
+  - name: libs/queries/sequelize-storage.ts
+---
+import {
+  Model,
+  ModelStatic,
+  WhereOptions,
+  FindOptions,
+  CreateOptions,
+  UpdateOptions,
+  DestroyOptions,
+  Op,
+  Sequelize,
+} from 'sequelize';
+
+/**
+ * Generic Storage class for Sequelize ORM
+ * Provides standardized CRUD operations
+ * 
+ * @example
+ * import { sequelize } from '@/libs/db/sequelize';
+ * import { User } from '@/models/User';
+ * 
+ * const userStorage = new SequelizeStorage(User, sequelize);
+ * const user = await userStorage.create({ name: 'John', email: 'john@example.com' });
+ * const paginatedUsers = await userStorage.paginate({ page: 1, limit: 10 });
+ */
+
+export interface PaginationOptions<T> {
+  page?: number;
+  limit?: number;
+  cursor?: string | number;
+  cursorField?: keyof T;
+  orderBy?: keyof T;
+  orderDir?: 'ASC' | 'DESC';
+  where?: WhereOptions<T>;
+  include?: FindOptions['include'];
+}
+
+export interface PaginatedResult<T> {
+  data: T[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+    nextCursor?: string | number;
+  };
+}
+
+export class SequelizeStorage<
+  TModel extends Model,
+  TAttributes = TModel['_attributes'],
+  TCreationAttributes = TModel['_creationAttributes']
+> {
+  constructor(
+    private model: ModelStatic<TModel>,
+    private sequelize: Sequelize,
+    private primaryKey: keyof TAttributes = 'id' as keyof TAttributes
+  ) {}
+
+  /**
+   * Create a single record
+   */
+  async create(
+    data: TCreationAttributes,
+    options?: CreateOptions
+  ): Promise<TModel> {
+    return this.model.create(data as any, options);
+  }
+
+  /**
+   * Find all records with optional filters
+   */
+  async findAll(options?: FindOptions<TAttributes>): Promise<TModel[]> {
+    return this.model.findAll(options);
+  }
+
+  /**
+   * Find a record by ID
+   */
+  async findById(
+    id: string | number,
+    options?: Omit<FindOptions<TAttributes>, 'where'>
+  ): Promise<TModel | null> {
+    return this.model.findByPk(id, options);
+  }
+
+  /**
+   * Find first record matching filters
+   */
+  async findOne(options: FindOptions<TAttributes>): Promise<TModel | null> {
+    return this.model.findOne(options);
+  }
+
+  /**
+   * Update a record by ID
+   */
+  async update(
+    id: string | number,
+    data: Partial<TAttributes>,
+    options?: Omit<UpdateOptions<TAttributes>, 'where'>
+  ): Promise<TModel | null> {
+    const [affectedCount] = await this.model.update(data as any, {
+      where: { [this.primaryKey]: id } as WhereOptions<TAttributes>,
+      ...options,
+    });
+    
+    if (affectedCount === 0) return null;
+    return this.findById(id);
+  }
+
+  /**
+   * Hard delete a record by ID
+   */
+  async delete(id: string | number, options?: DestroyOptions<TAttributes>): Promise<boolean> {
+    const affectedCount = await this.model.destroy({
+      where: { [this.primaryKey]: id } as WhereOptions<TAttributes>,
+      ...options,
+    });
+    return affectedCount > 0;
+  }
+
+  /**
+   * Soft delete a record (requires paranoid: true in model)
+   * Or manually sets deletedAt if not using paranoid
+   */
+  async softDelete(id: string | number): Promise<TModel | null> {
+    // If model is paranoid, destroy will soft delete
+    if ((this.model as any).options?.paranoid) {
+      await this.model.destroy({
+        where: { [this.primaryKey]: id } as WhereOptions<TAttributes>,
+      });
+      return this.findById(id, { paranoid: false } as any);
+    }
+    
+    // Manual soft delete
+    return this.update(id, { deletedAt: new Date() } as any);
+  }
+
+  /**
+   * Restore a soft-deleted record
+   */
+  async restore(id: string | number): Promise<TModel | null> {
+    if ((this.model as any).options?.paranoid) {
+      await this.model.restore({
+        where: { [this.primaryKey]: id } as WhereOptions<TAttributes>,
+      } as any);
+      return this.findById(id);
+    }
+    
+    return this.update(id, { deletedAt: null } as any);
+  }
+
+  /**
+   * Bulk create records
+   */
+  async bulkCreate(
+    data: TCreationAttributes[],
+    options?: CreateOptions
+  ): Promise<TModel[]> {
+    return this.model.bulkCreate(data as any[], options);
+  }
+
+  /**
+   * Bulk update records by IDs
+   */
+  async bulkUpdate(
+    ids: (string | number)[],
+    data: Partial<TAttributes>
+  ): Promise<number> {
+    const [affectedCount] = await this.model.update(data as any, {
+      where: { [this.primaryKey]: { [Op.in]: ids } } as WhereOptions<TAttributes>,
+    });
+    return affectedCount;
+  }
+
+  /**
+   * Bulk delete records by IDs
+   */
+  async bulkDelete(ids: (string | number)[]): Promise<number> {
+    return this.model.destroy({
+      where: { [this.primaryKey]: { [Op.in]: ids } } as WhereOptions<TAttributes>,
+    });
+  }
+
+  /**
+   * Paginated query with offset or cursor-based pagination
+   */
+  async paginate(options: PaginationOptions<TAttributes> = {}): Promise<PaginatedResult<TModel>> {
+    const {
+      page = 1,
+      limit = 10,
+      cursor,
+      cursorField = this.primaryKey,
+      orderBy = this.primaryKey,
+      orderDir = 'DESC',
+      where = {},
+      include,
+    } = options;
+
+    // Build where clause for cursor
+    let whereClause = { ...where } as WhereOptions<TAttributes>;
+    if (cursor) {
+      const cursorOp = orderDir === 'ASC' ? Op.gt : Op.lt;
+      whereClause = {
+        ...whereClause,
+        [cursorField]: { [cursorOp]: cursor },
+      } as WhereOptions<TAttributes>;
+    }
+
+    // Get total count
+    const total = await this.model.count({ where: where as WhereOptions<TAttributes> });
+
+    // Execute query
+    const { rows: data } = await this.model.findAndCountAll({
+      where: whereClause,
+      include,
+      order: [[orderBy as string, orderDir]],
+      limit,
+      offset: cursor ? 0 : (page - 1) * limit,
+    });
+
+    const totalPages = Math.ceil(total / limit);
+    const nextCursor = data.length > 0 
+      ? (data[data.length - 1] as any)[cursorField] 
+      : undefined;
+
+    return {
+      data,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNext: cursor ? data.length === limit : page < totalPages,
+        hasPrev: cursor ? !!cursor : page > 1,
+        nextCursor,
+      },
+    };
+  }
+
+  /**
+   * Count records
+   */
+  async count(where?: WhereOptions<TAttributes>): Promise<number> {
+    return this.model.count({ where });
+  }
+
+  /**
+   * Check if record exists
+   */
+  async exists(where: WhereOptions<TAttributes>): Promise<boolean> {
+    const count = await this.model.count({ where });
+    return count > 0;
+  }
+
+  /**
+   * Find or create a record
+   */
+  async findOrCreate(
+    where: WhereOptions<TAttributes>,
+    defaults: TCreationAttributes
+  ): Promise<[TModel, boolean]> {
+    return this.model.findOrCreate({
+      where,
+      defaults: defaults as any,
+    });
+  }
+
+  /**
+   * Execute operations in a transaction
+   */
+  async transaction<T>(fn: (t: any) => Promise<T>): Promise<T> {
+    return this.sequelize.transaction(fn);
+  }
+}

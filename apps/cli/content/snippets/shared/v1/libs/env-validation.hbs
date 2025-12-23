@@ -1,0 +1,36 @@
+---
+name: env-validation
+description: Type-safe environment variable validation using Zod
+dependencies:
+  - zod
+  - dotenv
+files:
+  - name: config/env.ts
+---
+import 'dotenv/config';
+import { z } from 'zod';
+
+const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  PORT: z.string().transform(Number).default('3000'),
+  // Add your environment variables here
+  // DATABASE_URL: z.string().url(),
+  // JWT_SECRET: z.string().min(1),
+});
+
+const _env = envSchema.safeParse(process.env);
+
+if (!_env.success) {
+  console.error('[ERROR] Invalid environment variables:');
+  _env.error.format()._errors.forEach((message) => {
+    console.error(message);
+  });
+  // Flatten errors for better readability
+  Object.entries(_env.error.flatten().fieldErrors).forEach(([key, errors]) => {
+      console.error(`  ${key}: ${errors.join(', ')}`);
+  });
+  
+  process.exit(1);
+}
+
+export const env = _env.data;

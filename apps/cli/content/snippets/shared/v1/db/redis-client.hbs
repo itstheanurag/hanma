@@ -1,0 +1,120 @@
+---
+name: redis-client
+description: Redis client setup with connection handling and retry logic
+dependencies:
+  - ioredis
+devDependencies:
+  - "@types/ioredis"
+files:
+  - name: libs/db/redis.ts
+---
+import Redis from 'ioredis';
+
+/**
+ * Redis client configuration
+ */
+const redisConfig = {
+  host: process.env.REDIS_HOST || 'localhost',
+  port: parseInt(process.env.REDIS_PORT || '6379', 10),
+  password: process.env.REDIS_PASSWORD || undefined,
+  db: parseInt(process.env.REDIS_DB || '0', 10),
+  retryStrategy: (times: number) => {
+    if (times > 10) {
+      console.error('[ERROR] Redis: Max retries reached');
+      return null; // Stop retrying
+    }
+    return Math.min(times * 100, 3000); // Exponential backoff, max 3s
+  },
+  maxRetriesPerRequest: 3,
+};
+
+/**
+ * Redis client instance
+ */
+export const redis = new Redis(redisConfig);
+
+// Connection event handlers
+redis.on('connect', () => {
+  console.log('[OK] Redis connected');
+});
+
+redis.on('error', (err) => {
+  console.error('[ERROR] Redis error:', err.message);
+});
+
+redis.on('close', () => {
+  console.log('[INFO] Redis connection closed');
+});
+
+/**
+ * Disconnect from Redis (for graceful shutdown)
+ */
+export const disconnectRedis = async () => {
+  await redis.quit();
+};
+
+/**
+ * Health check for Redis connection
+ */
+export const isRedisHealthy = async (): Promise<boolean> => {
+  try {
+    const pong = await redis.ping();
+    return pong === 'PONG';
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Cache helpers with JSON serialization
+ */
+export const cache = {
+  /**
+   * Get cached value
+   */
+  async get<T>(key: string): Promise<T | null> {
+    const value = await redis.get(key);
+    if (!value) return null;
+    try {
+      return JSON.parse(value) as T;
+    } catch {
+      return value as T;
+    }
+  },
+
+  /**
+   * Set cached value with optional TTL
+   * @param key Cache key
+   * @param value Value to cache
+   * @param ttlSeconds Time to live in seconds (optional)
+   */
+  async set(key: string, value: unknown, ttlSeconds?: number): Promise<void> {
+    const serialized = typeof value === 'string' ? value : JSON.stringify(value);
+    if (ttlSeconds) {
+      await redis.setex(key, ttlSeconds, serialized);
+    } else {
+      await redis.set(key, serialized);
+    }
+  },
+
+  /**
+   * Delete cached value
+   */
+  async del(key: string): Promise<void> {
+    await redis.del(key);
+  },
+
+  /**
+   * Check if key exists
+   */
+  async exists(key: string): Promise<boolean> {
+    return (await redis.exists(key)) === 1;
+  },
+
+  /**
+   * Get remaining TTL in seconds
+   */
+  async ttl(key: string): Promise<number> {
+    return redis.ttl(key);
+  },
+};

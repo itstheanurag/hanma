@@ -1,0 +1,274 @@
+---
+name: drizzle-storage
+description: Generic Storage class for Drizzle ORM with CRUD, bulk operations, and pagination
+dependencies:
+  - drizzle-orm
+files:
+  - name: libs/queries/drizzle-storage.ts
+---
+import { eq, and, desc, asc, sql, type SQL } from 'drizzle-orm';
+import type { PgTable, PgColumn } from 'drizzle-orm/pg-core';
+
+/**
+ * Generic Storage class for Drizzle ORM (PostgreSQL)
+ * Provides standardized CRUD operations with type safety
+ * 
+ * @example
+ * import { db } from '@/libs/db/drizzle';
+ * import { users } from '@/db/schema';
+ * 
+ * const userStorage = new DrizzleStorage(db, users, 'id');
+ * const user = await userStorage.create({ name: 'John', email: 'john@example.com' });
+ * const allUsers = await userStorage.findAll();
+ * const paginatedUsers = await userStorage.paginate({ page: 1, limit: 10 });
+ */
+
+export type FilterOperator = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'like' | 'ilike';
+
+export interface Filter<T> {
+  field: keyof T;
+  operator: FilterOperator;
+  value: unknown;
+}
+
+export interface PaginationOptions {
+  page?: number;
+  limit?: number;
+  cursor?: string | number;
+  cursorField?: string;
+  orderBy?: string;
+  orderDir?: 'asc' | 'desc';
+}
+
+export interface PaginatedResult<T> {
+  data: T[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+    nextCursor?: string | number;
+  };
+}
+
+// Generic Drizzle database type - works with any driver
+type DrizzleDb = {
+  select: () => any;
+  insert: (table: any) => any;
+  update: (table: any) => any;
+  delete: (table: any) => any;
+};
+
+export class DrizzleStorage<
+  TTable extends PgTable,
+  TInsert extends Record<string, unknown>,
+  TSelect extends Record<string, unknown>
+> {
+  constructor(
+    private db: DrizzleDb,
+    private table: TTable,
+    private primaryKey: keyof TSelect = 'id' as keyof TSelect
+  ) {}
+
+  /**
+   * Create a single record
+   */
+  async create(data: TInsert): Promise<TSelect> {
+    const result = await this.db
+      .insert(this.table)
+      .values(data as any)
+      .returning();
+    return result[0] as TSelect;
+  }
+
+  /**
+   * Find all records with optional filters
+   */
+  async findAll(filters?: Filter<TSelect>[]): Promise<TSelect[]> {
+    let query = this.db.select().from(this.table);
+    
+    if (filters && filters.length > 0) {
+      const conditions = this.buildConditions(filters);
+      query = query.where(and(...conditions)) as any;
+    }
+    
+    return query as unknown as Promise<TSelect[]>;
+  }
+
+  /**
+   * Find a record by ID
+   */
+  async findById(id: string | number): Promise<TSelect | null> {
+    const pkColumn = (this.table as any)[this.primaryKey] as PgColumn;
+    const result = await this.db
+      .select()
+      .from(this.table)
+      .where(eq(pkColumn, id as any))
+      .limit(1);
+    return (result[0] as TSelect) || null;
+  }
+
+  /**
+   * Find first record matching filters
+   */
+  async findOne(filters: Filter<TSelect>[]): Promise<TSelect | null> {
+    const conditions = this.buildConditions(filters);
+    const result = await this.db
+      .select()
+      .from(this.table)
+      .where(and(...conditions))
+      .limit(1);
+    return (result[0] as TSelect) || null;
+  }
+
+  /**
+   * Update a record by ID
+   */
+  async update(id: string | number, data: Partial<TInsert>): Promise<TSelect | null> {
+    const pkColumn = (this.table as any)[this.primaryKey] as PgColumn;
+    const result = await this.db
+      .update(this.table)
+      .set(data as any)
+      .where(eq(pkColumn, id as any))
+      .returning();
+    return (result[0] as TSelect) || null;
+  }
+
+  /**
+   * Hard delete a record by ID
+   */
+  async delete(id: string | number): Promise<boolean> {
+    const pkColumn = (this.table as any)[this.primaryKey] as PgColumn;
+    const result = await this.db
+      .delete(this.table)
+      .where(eq(pkColumn, id as any))
+      .returning();
+    return result.length > 0;
+  }
+
+  /**
+   * Soft delete a record (sets deletedAt timestamp)
+   */
+  async softDelete(id: string | number): Promise<TSelect | null> {
+    const pkColumn = (this.table as any)[this.primaryKey] as PgColumn;
+    const result = await this.db
+      .update(this.table)
+      .set({ deletedAt: new Date() } as any)
+      .where(eq(pkColumn, id as any))
+      .returning();
+    return (result[0] as TSelect) || null;
+  }
+
+  /**
+   * Bulk create records
+   */
+  async bulkCreate(data: TInsert[]): Promise<TSelect[]> {
+    if (data.length === 0) return [];
+    const result = await this.db
+      .insert(this.table)
+      .values(data as any[])
+      .returning();
+    return result as TSelect[];
+  }
+
+  /**
+   * Bulk update records by IDs
+   */
+  async bulkUpdate(ids: (string | number)[], data: Partial<TInsert>): Promise<TSelect[]> {
+    if (ids.length === 0) return [];
+    const pkColumn = (this.table as any)[this.primaryKey] as PgColumn;
+    
+    const result = await this.db
+      .update(this.table)
+      .set(data as any)
+      .where(sql`${pkColumn} = ANY(${ids})`)
+      .returning();
+    return result as TSelect[];
+  }
+
+  /**
+   * Paginated query with offset or cursor-based pagination
+   */
+  async paginate(options: PaginationOptions = {}): Promise<PaginatedResult<TSelect>> {
+    const {
+      page = 1,
+      limit = 10,
+      cursor,
+      cursorField = this.primaryKey as string,
+      orderBy = this.primaryKey as string,
+      orderDir = 'desc',
+    } = options;
+
+    const orderColumn = (this.table as any)[orderBy] as PgColumn;
+    const orderFn = orderDir === 'asc' ? asc : desc;
+
+    // Count total
+    const countResult = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(this.table);
+    const total = Number(countResult[0]?.count || 0);
+
+    // Build query
+    let query = this.db.select().from(this.table);
+
+    // Cursor-based pagination
+    if (cursor) {
+      const cursorColumn = (this.table as any)[cursorField] as PgColumn;
+      const cursorOp = orderDir === 'asc' ? sql`>` : sql`<`;
+      query = query.where(sql`${cursorColumn} ${cursorOp} ${cursor}`) as any;
+    }
+
+    const results = await query
+      .orderBy(orderFn(orderColumn))
+      .limit(limit)
+      .offset(cursor ? 0 : (page - 1) * limit);
+
+    const data = results as TSelect[];
+    const totalPages = Math.ceil(total / limit);
+    const nextCursor = data.length > 0 ? (data[data.length - 1] as any)[cursorField] : undefined;
+
+    return {
+      data,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNext: cursor ? data.length === limit : page < totalPages,
+        hasPrev: cursor ? !!cursor : page > 1,
+        nextCursor,
+      },
+    };
+  }
+
+  /**
+   * Build filter conditions
+   */
+  private buildConditions(filters: Filter<TSelect>[]): SQL[] {
+    return filters.map((filter) => {
+      const column = (this.table as any)[filter.field] as PgColumn;
+      switch (filter.operator) {
+        case 'eq':
+          return eq(column, filter.value as any);
+        case 'neq':
+          return sql`${column} != ${filter.value}`;
+        case 'gt':
+          return sql`${column} > ${filter.value}`;
+        case 'gte':
+          return sql`${column} >= ${filter.value}`;
+        case 'lt':
+          return sql`${column} < ${filter.value}`;
+        case 'lte':
+          return sql`${column} <= ${filter.value}`;
+        case 'like':
+          return sql`${column} LIKE ${filter.value}`;
+        case 'ilike':
+          return sql`${column} ILIKE ${filter.value}`;
+        default:
+          return eq(column, filter.value as any);
+      }
+    });
+  }
+}

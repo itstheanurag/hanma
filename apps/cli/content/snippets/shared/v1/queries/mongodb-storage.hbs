@@ -1,0 +1,163 @@
+---
+name: mongodb-storage
+description: Generic Storage class for MongoDB using native driver
+dependencies:
+  - mongodb
+files:
+  - name: libs/queries/mongodb-storage.ts
+---
+import { Db, Collection, ObjectId, Filter, UpdateFilter, Document, WithId } from 'mongodb';
+
+/**
+ * Generic Storage class for MongoDB (native driver)
+ * Handles ObjectId conversion and provides cursor-based pagination
+ * 
+ * @example
+ * import { db } from '@/libs/db/mongodb';
+ * 
+ * const userStorage = new MongoStorage(db, 'users');
+ * const user = await userStorage.create({ name: 'John', email: 'john@example.com' });
+ * const allUsers = await userStorage.findAll();
+ */
+
+export interface PaginationOptions<T> {
+  page?: number;
+  limit?: number;
+  cursor?: string;
+  cursorField?: keyof T;
+  orderBy?: keyof T;
+  orderDir?: 1 | -1;
+  filter?: Filter<T>;
+}
+
+export interface PaginatedResult<T> {
+  data: T[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+    nextCursor?: string;
+  };
+}
+
+export class MongoStorage<T extends Document> {
+  private collection: Collection<T>;
+
+  constructor(db: Db, collectionName: string) {
+    this.collection = db.collection<T>(collectionName);
+  }
+
+  private toObjectId(id: string | ObjectId): ObjectId {
+    return typeof id === 'string' ? new ObjectId(id) : id;
+  }
+
+  async create(data: Omit<T, '_id'>): Promise<WithId<T>> {
+    const doc = { ...data, createdAt: new Date(), updatedAt: new Date() } as any;
+    const result = await this.collection.insertOne(doc);
+    return { ...doc, _id: result.insertedId } as WithId<T>;
+  }
+
+  async findAll(filter: Filter<T> = {}): Promise<WithId<T>[]> {
+    return this.collection.find(filter).toArray();
+  }
+
+  async findById(id: string | ObjectId): Promise<WithId<T> | null> {
+    return this.collection.findOne({ _id: this.toObjectId(id) } as Filter<T>);
+  }
+
+  async findOne(filter: Filter<T>): Promise<WithId<T> | null> {
+    return this.collection.findOne(filter);
+  }
+
+  async update(id: string | ObjectId, data: Partial<T>): Promise<WithId<T> | null> {
+    const update: UpdateFilter<T> = { $set: { ...data, updatedAt: new Date() } as any };
+    await this.collection.updateOne({ _id: this.toObjectId(id) } as Filter<T>, update);
+    return this.findById(id);
+  }
+
+  async delete(id: string | ObjectId): Promise<boolean> {
+    const result = await this.collection.deleteOne({ _id: this.toObjectId(id) } as Filter<T>);
+    return result.deletedCount > 0;
+  }
+
+  async softDelete(id: string | ObjectId): Promise<WithId<T> | null> {
+    const update: UpdateFilter<T> = { $set: { deletedAt: new Date() } as any };
+    await this.collection.updateOne({ _id: this.toObjectId(id) } as Filter<T>, update);
+    return this.findById(id);
+  }
+
+  async restore(id: string | ObjectId): Promise<WithId<T> | null> {
+    const update: UpdateFilter<T> = { $unset: { deletedAt: '' } as any };
+    await this.collection.updateOne({ _id: this.toObjectId(id) } as Filter<T>, update);
+    return this.findById(id);
+  }
+
+  async bulkCreate(data: Omit<T, '_id'>[]): Promise<WithId<T>[]> {
+    if (!data.length) return [];
+    const now = new Date();
+    const docs = data.map(d => ({ ...d, createdAt: now, updatedAt: now })) as any[];
+    const result = await this.collection.insertMany(docs);
+    return docs.map((doc, i) => ({ ...doc, _id: result.insertedIds[i] })) as WithId<T>[];
+  }
+
+  async bulkUpdate(ids: (string | ObjectId)[], data: Partial<T>): Promise<number> {
+    if (!ids.length) return 0;
+    const objectIds = ids.map(id => this.toObjectId(id));
+    const update: UpdateFilter<T> = { $set: { ...data, updatedAt: new Date() } as any };
+    const result = await this.collection.updateMany({ _id: { $in: objectIds } } as Filter<T>, update);
+    return result.modifiedCount;
+  }
+
+  async bulkDelete(ids: (string | ObjectId)[]): Promise<number> {
+    if (!ids.length) return 0;
+    const objectIds = ids.map(id => this.toObjectId(id));
+    const result = await this.collection.deleteMany({ _id: { $in: objectIds } } as Filter<T>);
+    return result.deletedCount;
+  }
+
+  async paginate(opts: PaginationOptions<T> = {}): Promise<PaginatedResult<WithId<T>>> {
+    const { page = 1, limit = 10, cursor, cursorField = '_id' as keyof T, orderBy = '_id' as keyof T, orderDir = -1, filter = {} } = opts;
+
+    const total = await this.collection.countDocuments(filter);
+    
+    let query: Filter<T> = { ...filter };
+    if (cursor) {
+      const cursorOp = orderDir === 1 ? '$gt' : '$lt';
+      const cursorVal = cursorField === '_id' ? new ObjectId(cursor) : cursor;
+      query = { ...query, [cursorField]: { [cursorOp]: cursorVal } } as Filter<T>;
+    }
+
+    const skip = cursor ? 0 : (page - 1) * limit;
+    const data = await this.collection
+      .find(query)
+      .sort({ [orderBy]: orderDir } as any)
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+
+    const totalPages = Math.ceil(total / limit);
+    const lastDoc = data[data.length - 1];
+    const nextCursor = lastDoc ? String((lastDoc as any)[cursorField]) : undefined;
+
+    return {
+      data,
+      pagination: { total, page, limit, totalPages, hasNext: data.length === limit, hasPrev: page > 1, nextCursor }
+    };
+  }
+
+  async count(filter: Filter<T> = {}): Promise<number> {
+    return this.collection.countDocuments(filter);
+  }
+
+  async exists(filter: Filter<T>): Promise<boolean> {
+    const count = await this.collection.countDocuments(filter, { limit: 1 });
+    return count > 0;
+  }
+
+  async aggregate<R = Document>(pipeline: Document[]): Promise<R[]> {
+    return this.collection.aggregate<R>(pipeline).toArray();
+  }
+}

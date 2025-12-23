@@ -1,0 +1,192 @@
+---
+name: sqlite-storage
+description: Generic Storage class for SQLite using better-sqlite3
+dependencies:
+  - better-sqlite3
+devDependencies:
+  - "@types/better-sqlite3"
+files:
+  - name: libs/queries/sqlite-storage.ts
+---
+import { Database as DatabaseType } from 'better-sqlite3';
+
+/**
+ * Generic Storage class for SQLite (better-sqlite3)
+ * Synchronous API for maximum performance
+ * 
+ * @example
+ * import { db } from '@/libs/db/sqlite';
+ * 
+ * const userStorage = new SqliteStorage(db, 'users', 'id');
+ * const user = userStorage.create({ name: 'John', email: 'john@example.com' });
+ * const paginatedUsers = userStorage.paginate({ page: 1, limit: 10 });
+ */
+
+export interface PaginationOptions {
+  page?: number;
+  limit?: number;
+  cursor?: string | number;
+  cursorField?: string;
+  orderBy?: string;
+  orderDir?: 'ASC' | 'DESC';
+  where?: Record<string, unknown>;
+}
+
+export interface PaginatedResult<T> {
+  data: T[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+    nextCursor?: string | number;
+  };
+}
+
+export class SqliteStorage<T extends Record<string, unknown>> {
+  constructor(
+    private db: DatabaseType,
+    private tableName: string,
+    private primaryKey: string = 'id'
+  ) {}
+
+  private esc(id: string): string {
+    return `"${id.replace(/"/g, '""')}"`;
+  }
+
+  create(data: Partial<T>): T {
+    const keys = Object.keys(data);
+    const cols = keys.map(k => this.esc(k)).join(', ');
+    const ph = keys.map(() => '?').join(', ');
+    const stmt = this.db.prepare(
+      `INSERT INTO ${this.esc(this.tableName)} (${cols}) VALUES (${ph}) RETURNING *`
+    );
+    return stmt.get(...Object.values(data)) as T;
+  }
+
+  findAll(where?: Record<string, unknown>): T[] {
+    let q = `SELECT * FROM ${this.esc(this.tableName)}`;
+    const v: unknown[] = [];
+    if (where && Object.keys(where).length) {
+      const conds = Object.keys(where).map(k => `${this.esc(k)} = ?`);
+      q += ` WHERE ${conds.join(' AND ')}`;
+      v.push(...Object.values(where));
+    }
+    return this.db.prepare(q).all(...v) as T[];
+  }
+
+  findById(id: string | number): T | null {
+    const stmt = this.db.prepare(
+      `SELECT * FROM ${this.esc(this.tableName)} WHERE ${this.esc(this.primaryKey)} = ?`
+    );
+    return (stmt.get(id) as T) || null;
+  }
+
+  findOne(where: Record<string, unknown>): T | null {
+    const conds = Object.keys(where).map(k => `${this.esc(k)} = ?`);
+    const stmt = this.db.prepare(
+      `SELECT * FROM ${this.esc(this.tableName)} WHERE ${conds.join(' AND ')} LIMIT 1`
+    );
+    return (stmt.get(...Object.values(where)) as T) || null;
+  }
+
+  update(id: string | number, data: Partial<T>): T | null {
+    const keys = Object.keys(data);
+    if (!keys.length) return this.findById(id);
+    const set = keys.map(k => `${this.esc(k)} = ?`).join(', ');
+    const stmt = this.db.prepare(
+      `UPDATE ${this.esc(this.tableName)} SET ${set} WHERE ${this.esc(this.primaryKey)} = ? RETURNING *`
+    );
+    return (stmt.get(...Object.values(data), id) as T) || null;
+  }
+
+  delete(id: string | number): boolean {
+    const stmt = this.db.prepare(
+      `DELETE FROM ${this.esc(this.tableName)} WHERE ${this.esc(this.primaryKey)} = ?`
+    );
+    const info = stmt.run(id);
+    return info.changes > 0;
+  }
+
+  softDelete(id: string | number): T | null {
+    const stmt = this.db.prepare(
+      `UPDATE ${this.esc(this.tableName)} SET deleted_at = datetime('now') WHERE ${this.esc(this.primaryKey)} = ? RETURNING *`
+    );
+    return (stmt.get(id) as T) || null;
+  }
+
+  bulkCreate(data: Partial<T>[]): T[] {
+    if (!data.length) return [];
+    const keys = Object.keys(data[0]);
+    const cols = keys.map(k => this.esc(k)).join(', ');
+    const ph = keys.map(() => '?').join(', ');
+    const insert = this.db.prepare(
+      `INSERT INTO ${this.esc(this.tableName)} (${cols}) VALUES (${ph}) RETURNING *`
+    );
+    const insertMany = this.db.transaction((items: Partial<T>[]) => {
+      return items.map(item => insert.get(...keys.map(k => (item as any)[k])) as T);
+    });
+    return insertMany(data);
+  }
+
+  bulkUpdate(ids: (string | number)[], data: Partial<T>): number {
+    if (!ids.length) return 0;
+    const keys = Object.keys(data);
+    const set = keys.map(k => `${this.esc(k)} = ?`).join(', ');
+    const ph = ids.map(() => '?').join(', ');
+    const stmt = this.db.prepare(
+      `UPDATE ${this.esc(this.tableName)} SET ${set} WHERE ${this.esc(this.primaryKey)} IN (${ph})`
+    );
+    const info = stmt.run(...Object.values(data), ...ids);
+    return info.changes;
+  }
+
+  paginate(opts: PaginationOptions = {}): PaginatedResult<T> {
+    const { page = 1, limit = 10, cursor, cursorField = this.primaryKey, orderBy = this.primaryKey, orderDir = 'DESC', where = {} } = opts;
+    
+    const countStmt = this.db.prepare(`SELECT COUNT(*) as count FROM ${this.esc(this.tableName)}`);
+    const total = (countStmt.get() as any).count as number;
+
+    const params: unknown[] = [];
+    let q = `SELECT * FROM ${this.esc(this.tableName)}`;
+    const conds: string[] = [];
+
+    if (Object.keys(where).length) {
+      conds.push(...Object.keys(where).map(k => `${this.esc(k)} = ?`));
+      params.push(...Object.values(where));
+    }
+    if (cursor) {
+      conds.push(`${this.esc(cursorField)} ${orderDir === 'ASC' ? '>' : '<'} ?`);
+      params.push(cursor);
+    }
+    if (conds.length) q += ` WHERE ${conds.join(' AND ')}`;
+    q += ` ORDER BY ${this.esc(orderBy)} ${orderDir} LIMIT ?`;
+    params.push(limit);
+    if (!cursor) { q += ` OFFSET ?`; params.push((page - 1) * limit); }
+
+    const data = this.db.prepare(q).all(...params) as T[];
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data,
+      pagination: { total, page, limit, totalPages, hasNext: data.length === limit, hasPrev: page > 1, nextCursor: data.length ? (data[data.length - 1] as any)[cursorField] : undefined }
+    };
+  }
+
+  transaction<R>(fn: () => R): R {
+    return this.db.transaction(fn)();
+  }
+
+  count(where?: Record<string, unknown>): number {
+    let q = `SELECT COUNT(*) as count FROM ${this.esc(this.tableName)}`;
+    const v: unknown[] = [];
+    if (where && Object.keys(where).length) {
+      const conds = Object.keys(where).map(k => `${this.esc(k)} = ?`);
+      q += ` WHERE ${conds.join(' AND ')}`;
+      v.push(...Object.values(where));
+    }
+    return (this.db.prepare(q).get(...v) as any).count as number;
+  }
+}

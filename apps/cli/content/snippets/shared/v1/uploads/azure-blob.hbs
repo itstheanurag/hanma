@@ -1,0 +1,177 @@
+---
+name: azure-blob-upload
+description: Azure Blob Storage file upload with SAS URL generation
+dependencies:
+  - "@azure/storage-blob"
+files:
+  - name: libs/uploads/azure-blob.ts
+---
+import {
+  BlobServiceClient,
+  StorageSharedKeyCredential,
+  generateBlobSASQueryParameters,
+  BlobSASPermissions,
+  SASProtocol,
+} from '@azure/storage-blob';
+
+/**
+ * Azure Blob Storage configuration
+ */
+const accountName = process.env.AZURE_STORAGE_ACCOUNT || '';
+const accountKey = process.env.AZURE_STORAGE_KEY || '';
+const containerName = process.env.AZURE_STORAGE_CONTAINER || '';
+
+const sharedKeyCredential = new StorageSharedKeyCredential(accountName, accountKey);
+const blobServiceClient = new BlobServiceClient(
+  `https://${accountName}.blob.core.windows.net`,
+  sharedKeyCredential
+);
+const containerClient = blobServiceClient.getContainerClient(containerName);
+
+/**
+ * Generate a unique blob name with date-based organization
+ */
+const generateBlobName = (filename: string, folder = 'uploads'): string => {
+  const ext = filename.split('.').pop() || '';
+  const uniqueId = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+  const date = new Date().toISOString().split('T')[0];
+  return `${folder}/${date}/${uniqueId}.${ext}`;
+};
+
+/**
+ * Generate a SAS URL for direct upload
+ * 
+ * @example
+ * // Server: Generate SAS URL
+ * const { uploadUrl, blobName } = await getSasUploadUrl('image.png', 'image/png');
+ * 
+ * // Client: Upload file with PUT request
+ * await fetch(uploadUrl, { 
+ *   method: 'PUT', 
+ *   body: file, 
+ *   headers: { 
+ *     'x-ms-blob-type': 'BlockBlob',
+ *     'Content-Type': 'image/png' 
+ *   } 
+ * });
+ */
+export const getSasUploadUrl = async (
+  filename: string,
+  contentType: string,
+  options: {
+    expiresIn?: number; // minutes, default: 15
+    folder?: string;
+  } = {}
+): Promise<{ uploadUrl: string; blobName: string; publicUrl: string }> => {
+  const { expiresIn = 15, folder = 'uploads' } = options;
+  const blobName = generateBlobName(filename, folder);
+
+  const startsOn = new Date();
+  const expiresOn = new Date(startsOn.getTime() + expiresIn * 60 * 1000);
+
+  const sasToken = generateBlobSASQueryParameters(
+    {
+      containerName,
+      blobName,
+      permissions: BlobSASPermissions.parse('cw'), // create, write
+      startsOn,
+      expiresOn,
+      contentType,
+      protocol: SASProtocol.Https,
+    },
+    sharedKeyCredential
+  ).toString();
+
+  const blobUrl = `https://${accountName}.blob.core.windows.net/${containerName}/${blobName}`;
+  const uploadUrl = `${blobUrl}?${sasToken}`;
+
+  return { uploadUrl, blobName, publicUrl: blobUrl };
+};
+
+/**
+ * Generate a SAS URL for download/read access
+ */
+export const getSasDownloadUrl = async (
+  blobName: string,
+  expiresIn = 60 // minutes
+): Promise<string> => {
+  const startsOn = new Date();
+  const expiresOn = new Date(startsOn.getTime() + expiresIn * 60 * 1000);
+
+  const sasToken = generateBlobSASQueryParameters(
+    {
+      containerName,
+      blobName,
+      permissions: BlobSASPermissions.parse('r'), // read only
+      startsOn,
+      expiresOn,
+      protocol: SASProtocol.Https,
+    },
+    sharedKeyCredential
+  ).toString();
+
+  return `https://${accountName}.blob.core.windows.net/${containerName}/${blobName}?${sasToken}`;
+};
+
+/**
+ * Delete a blob
+ */
+export const deleteFile = async (blobName: string): Promise<void> => {
+  const blobClient = containerClient.getBlobClient(blobName);
+  await blobClient.delete();
+};
+
+/**
+ * Check if a blob exists
+ */
+export const fileExists = async (blobName: string): Promise<boolean> => {
+  const blobClient = containerClient.getBlobClient(blobName);
+  return blobClient.exists();
+};
+
+/**
+ * Get blob properties/metadata
+ */
+export const getFileMetadata = async (blobName: string) => {
+  const blobClient = containerClient.getBlobClient(blobName);
+  const properties = await blobClient.getProperties();
+
+  return {
+    contentType: properties.contentType,
+    contentLength: properties.contentLength,
+    lastModified: properties.lastModified,
+    etag: properties.etag,
+    metadata: properties.metadata,
+  };
+};
+
+/**
+ * Upload a file buffer directly (server-side upload)
+ */
+export const uploadFile = async (
+  buffer: Buffer,
+  filename: string,
+  contentType: string,
+  folder = 'uploads'
+): Promise<{ blobName: string; url: string }> => {
+  const blobName = generateBlobName(filename, folder);
+  const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+
+  await blockBlobClient.upload(buffer, buffer.length, {
+    blobHTTPHeaders: { blobContentType: contentType },
+  });
+
+  const url = `https://${accountName}.blob.core.windows.net/${containerName}/${blobName}`;
+  return { blobName, url };
+};
+
+/**
+ * Set blob access tier (Hot, Cool, Archive)
+ */
+export const setAccessTier = async (
+  blobName: string,
+  tier: 'Hot' | 'Cool' | 'Archive'
+): Promise<void> => {
+  const blobClient = containerClient.getBlobClient(blobName);
+  await blobClient.setAccessTier(tier);
+};

@@ -1,0 +1,407 @@
+---
+name: pg-storage
+description: Generic Storage class for raw PostgreSQL queries using pg Pool
+dependencies:
+  - pg
+devDependencies:
+  - "@types/pg"
+files:
+  - name: libs/queries/pg-storage.ts
+---
+import { Pool, PoolClient } from 'pg';
+
+/**
+ * Generic Storage class for raw PostgreSQL queries
+ * Uses parameterized queries to prevent SQL injection
+ * 
+ * @example
+ * import { pool } from '@/libs/db/postgres';
+ * 
+ * const userStorage = new PgStorage(pool, 'users', 'id');
+ * const user = await userStorage.create({ name: 'John', email: 'john@example.com' });
+ * const paginatedUsers = await userStorage.paginate({ page: 1, limit: 10 });
+ */
+
+export interface PaginationOptions {
+  page?: number;
+  limit?: number;
+  cursor?: string | number;
+  cursorField?: string;
+  orderBy?: string;
+  orderDir?: 'ASC' | 'DESC';
+  where?: Record<string, unknown>;
+}
+
+export interface PaginatedResult<T> {
+  data: T[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+    nextCursor?: string | number;
+  };
+}
+
+export class PgStorage<T extends Record<string, unknown>> {
+  constructor(
+    private pool: Pool,
+    private tableName: string,
+    private primaryKey: string = 'id'
+  ) {
+    // Validate table name to prevent SQL injection
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(tableName)) {
+      throw new Error('Invalid table name');
+    }
+  }
+
+  /**
+   * Create a single record
+   */
+  async create(data: Omit<T, 'id' | 'createdAt' | 'updatedAt'>): Promise<T> {
+    const keys = Object.keys(data);
+    const values = Object.values(data);
+    const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
+    const columns = keys.map(this.escapeIdentifier).join(', ');
+
+    const query = `
+      INSERT INTO ${this.escapeIdentifier(this.tableName)} (${columns})
+      VALUES (${placeholders})
+      RETURNING *
+    `;
+
+    const result = await this.pool.query<T>(query, values);
+    return result.rows[0];
+  }
+
+  /**
+   * Find all records with optional filters
+   */
+  async findAll(where?: Record<string, unknown>): Promise<T[]> {
+    let query = `SELECT * FROM ${this.escapeIdentifier(this.tableName)}`;
+    const values: unknown[] = [];
+
+    if (where && Object.keys(where).length > 0) {
+      const { whereClause, params } = this.buildWhereClause(where);
+      query += ` WHERE ${whereClause}`;
+      values.push(...params);
+    }
+
+    const result = await this.pool.query<T>(query, values);
+    return result.rows;
+  }
+
+  /**
+   * Find a record by ID
+   */
+  async findById(id: string | number): Promise<T | null> {
+    const query = `
+      SELECT * FROM ${this.escapeIdentifier(this.tableName)}
+      WHERE ${this.escapeIdentifier(this.primaryKey)} = $1
+      LIMIT 1
+    `;
+
+    const result = await this.pool.query<T>(query, [id]);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Find first record matching filters
+   */
+  async findOne(where: Record<string, unknown>): Promise<T | null> {
+    const { whereClause, params } = this.buildWhereClause(where);
+    const query = `
+      SELECT * FROM ${this.escapeIdentifier(this.tableName)}
+      WHERE ${whereClause}
+      LIMIT 1
+    `;
+
+    const result = await this.pool.query<T>(query, params);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Update a record by ID
+   */
+  async update(id: string | number, data: Partial<Omit<T, 'id'>>): Promise<T | null> {
+    const keys = Object.keys(data);
+    const values = Object.values(data);
+    
+    if (keys.length === 0) return this.findById(id);
+
+    const setClause = keys
+      .map((key, i) => `${this.escapeIdentifier(key)} = $${i + 1}`)
+      .join(', ');
+
+    const query = `
+      UPDATE ${this.escapeIdentifier(this.tableName)}
+      SET ${setClause}, updated_at = NOW()
+      WHERE ${this.escapeIdentifier(this.primaryKey)} = $${keys.length + 1}
+      RETURNING *
+    `;
+
+    const result = await this.pool.query<T>(query, [...values, id]);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Hard delete a record by ID
+   */
+  async delete(id: string | number): Promise<boolean> {
+    const query = `
+      DELETE FROM ${this.escapeIdentifier(this.tableName)}
+      WHERE ${this.escapeIdentifier(this.primaryKey)} = $1
+      RETURNING ${this.escapeIdentifier(this.primaryKey)}
+    `;
+
+    const result = await this.pool.query(query, [id]);
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  /**
+   * Soft delete a record (sets deleted_at timestamp)
+   */
+  async softDelete(id: string | number): Promise<T | null> {
+    const query = `
+      UPDATE ${this.escapeIdentifier(this.tableName)}
+      SET deleted_at = NOW()
+      WHERE ${this.escapeIdentifier(this.primaryKey)} = $1
+      RETURNING *
+    `;
+
+    const result = await this.pool.query<T>(query, [id]);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Restore a soft-deleted record
+   */
+  async restore(id: string | number): Promise<T | null> {
+    const query = `
+      UPDATE ${this.escapeIdentifier(this.tableName)}
+      SET deleted_at = NULL
+      WHERE ${this.escapeIdentifier(this.primaryKey)} = $1
+      RETURNING *
+    `;
+
+    const result = await this.pool.query<T>(query, [id]);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Bulk create records
+   */
+  async bulkCreate(data: Omit<T, 'id' | 'createdAt' | 'updatedAt'>[]): Promise<T[]> {
+    if (data.length === 0) return [];
+
+    const keys = Object.keys(data[0]);
+    const columns = keys.map(this.escapeIdentifier).join(', ');
+    
+    let paramIndex = 1;
+    const valueRows = data.map((row) => {
+      const placeholders = keys.map(() => `$${paramIndex++}`).join(', ');
+      return `(${placeholders})`;
+    });
+
+    const values = data.flatMap((row) => keys.map((key) => (row as any)[key]));
+
+    const query = `
+      INSERT INTO ${this.escapeIdentifier(this.tableName)} (${columns})
+      VALUES ${valueRows.join(', ')}
+      RETURNING *
+    `;
+
+    const result = await this.pool.query<T>(query, values);
+    return result.rows;
+  }
+
+  /**
+   * Bulk update records by IDs
+   */
+  async bulkUpdate(ids: (string | number)[], data: Partial<Omit<T, 'id'>>): Promise<T[]> {
+    if (ids.length === 0) return [];
+
+    const keys = Object.keys(data);
+    const values = Object.values(data);
+    
+    const setClause = keys
+      .map((key, i) => `${this.escapeIdentifier(key)} = $${i + 1}`)
+      .join(', ');
+
+    const query = `
+      UPDATE ${this.escapeIdentifier(this.tableName)}
+      SET ${setClause}, updated_at = NOW()
+      WHERE ${this.escapeIdentifier(this.primaryKey)} = ANY($${keys.length + 1})
+      RETURNING *
+    `;
+
+    const result = await this.pool.query<T>(query, [...values, ids]);
+    return result.rows;
+  }
+
+  /**
+   * Bulk delete records by IDs
+   */
+  async bulkDelete(ids: (string | number)[]): Promise<number> {
+    if (ids.length === 0) return 0;
+
+    const query = `
+      DELETE FROM ${this.escapeIdentifier(this.tableName)}
+      WHERE ${this.escapeIdentifier(this.primaryKey)} = ANY($1)
+    `;
+
+    const result = await this.pool.query(query, [ids]);
+    return result.rowCount || 0;
+  }
+
+  /**
+   * Paginated query with offset or cursor-based pagination
+   */
+  async paginate(options: PaginationOptions = {}): Promise<PaginatedResult<T>> {
+    const {
+      page = 1,
+      limit = 10,
+      cursor,
+      cursorField = this.primaryKey,
+      orderBy = this.primaryKey,
+      orderDir = 'DESC',
+      where = {},
+    } = options;
+
+    // Count total
+    let countQuery = `SELECT COUNT(*) FROM ${this.escapeIdentifier(this.tableName)}`;
+    const countParams: unknown[] = [];
+    
+    if (Object.keys(where).length > 0) {
+      const { whereClause, params } = this.buildWhereClause(where);
+      countQuery += ` WHERE ${whereClause}`;
+      countParams.push(...params);
+    }
+    
+    const countResult = await this.pool.query(countQuery, countParams);
+    const total = parseInt(countResult.rows[0].count, 10);
+
+    // Build data query
+    const params: unknown[] = [];
+    let dataQuery = `SELECT * FROM ${this.escapeIdentifier(this.tableName)}`;
+    
+    const conditions: string[] = [];
+    
+    if (Object.keys(where).length > 0) {
+      const { whereClause, params: whereParams } = this.buildWhereClause(where, params.length);
+      conditions.push(whereClause);
+      params.push(...whereParams);
+    }
+
+    if (cursor) {
+      const cursorOp = orderDir === 'ASC' ? '>' : '<';
+      params.push(cursor);
+      conditions.push(`${this.escapeIdentifier(cursorField)} ${cursorOp} $${params.length}`);
+    }
+
+    if (conditions.length > 0) {
+      dataQuery += ` WHERE ${conditions.join(' AND ')}`;
+    }
+
+    dataQuery += ` ORDER BY ${this.escapeIdentifier(orderBy)} ${orderDir}`;
+    
+    params.push(limit);
+    dataQuery += ` LIMIT $${params.length}`;
+    
+    if (!cursor) {
+      params.push((page - 1) * limit);
+      dataQuery += ` OFFSET $${params.length}`;
+    }
+
+    const dataResult = await this.pool.query<T>(dataQuery, params);
+    const data = dataResult.rows;
+
+    const totalPages = Math.ceil(total / limit);
+    const nextCursor = data.length > 0 ? (data[data.length - 1] as any)[cursorField] : undefined;
+
+    return {
+      data,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNext: cursor ? data.length === limit : page < totalPages,
+        hasPrev: cursor ? !!cursor : page > 1,
+        nextCursor,
+      },
+    };
+  }
+
+  /**
+   * Count records
+   */
+  async count(where?: Record<string, unknown>): Promise<number> {
+    let query = `SELECT COUNT(*) FROM ${this.escapeIdentifier(this.tableName)}`;
+    const params: unknown[] = [];
+
+    if (where && Object.keys(where).length > 0) {
+      const { whereClause, params: whereParams } = this.buildWhereClause(where);
+      query += ` WHERE ${whereClause}`;
+      params.push(...whereParams);
+    }
+
+    const result = await this.pool.query(query, params);
+    return parseInt(result.rows[0].count, 10);
+  }
+
+  /**
+   * Execute raw query
+   */
+  async raw<R>(query: string, params?: unknown[]): Promise<R[]> {
+    const result = await this.pool.query<R>(query, params);
+    return result.rows;
+  }
+
+  /**
+   * Execute operations in a transaction
+   */
+  async transaction<R>(fn: (client: PoolClient) => Promise<R>): Promise<R> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const result = await fn(client);
+      await client.query('COMMIT');
+      return result;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Build WHERE clause from object
+   */
+  private buildWhereClause(
+    where: Record<string, unknown>,
+    startIndex = 0
+  ): { whereClause: string; params: unknown[] } {
+    const keys = Object.keys(where);
+    const params = Object.values(where);
+    
+    const conditions = keys.map((key, i) => 
+      `${this.escapeIdentifier(key)} = $${startIndex + i + 1}`
+    );
+
+    return {
+      whereClause: conditions.join(' AND '),
+      params,
+    };
+  }
+
+  /**
+   * Escape identifier to prevent SQL injection
+   */
+  private escapeIdentifier(identifier: string): string {
+    return `"${identifier.replace(/"/g, '""')}"`;
+  }
+}

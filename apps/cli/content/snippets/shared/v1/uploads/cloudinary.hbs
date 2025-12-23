@@ -1,0 +1,235 @@
+---
+name: cloudinary-upload
+description: Cloudinary file upload with signed upload parameters for direct browser uploads
+dependencies:
+  - cloudinary
+files:
+  - name: libs/uploads/cloudinary.ts
+---
+import { v2 as cloudinary, UploadApiOptions, UploadApiResponse } from 'cloudinary';
+
+/**
+ * Cloudinary configuration
+ */
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || '',
+  api_key: process.env.CLOUDINARY_API_KEY || '',
+  api_secret: process.env.CLOUDINARY_API_SECRET || '',
+  secure: true,
+});
+
+/**
+ * Generate signed upload parameters for direct browser upload
+ * Uses Cloudinary's signature-based authentication
+ * 
+ * @example
+ * // Server: Generate signed params
+ * const params = getSignedUploadParams({ folder: 'avatars', maxFileSize: 5 * 1024 * 1024 });
+ * 
+ * // Client: Upload using fetch with FormData
+ * const formData = new FormData();
+ * formData.append('file', file);
+ * formData.append('api_key', params.apiKey);
+ * formData.append('timestamp', params.timestamp.toString());
+ * formData.append('signature', params.signature);
+ * formData.append('folder', params.folder);
+ * await fetch(params.uploadUrl, { method: 'POST', body: formData });
+ */
+export const getSignedUploadParams = (
+  options: {
+    folder?: string;
+    resourceType?: 'image' | 'video' | 'raw' | 'auto';
+    allowedFormats?: string[]; // e.g., ['jpg', 'png', 'webp']
+    maxFileSize?: number; // bytes
+    transformation?: string; // e.g., 'w_500,h_500,c_limit'
+    eager?: string; // Eager transformations
+    tags?: string[];
+    context?: Record<string, string>;
+  } = {}
+): {
+  uploadUrl: string;
+  apiKey: string;
+  timestamp: number;
+  signature: string;
+  folder: string;
+  cloudName: string;
+} => {
+  const {
+    folder = 'uploads',
+    resourceType = 'auto',
+    allowedFormats,
+    transformation,
+    eager,
+    tags,
+    context,
+  } = options;
+
+  const timestamp = Math.round(Date.now() / 1000);
+
+  // Build params object for signature
+  const params: Record<string, string | number> = {
+    timestamp,
+    folder,
+  };
+
+  if (allowedFormats) params.allowed_formats = allowedFormats.join(',');
+  if (transformation) params.transformation = transformation;
+  if (eager) params.eager = eager;
+  if (tags) params.tags = tags.join(',');
+  if (context) params.context = Object.entries(context).map(([k, v]) => `${k}=${v}`).join('|');
+
+  const signature = cloudinary.utils.api_sign_request(
+    params,
+    process.env.CLOUDINARY_API_SECRET || ''
+  );
+
+  return {
+    uploadUrl: `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`,
+    apiKey: process.env.CLOUDINARY_API_KEY || '',
+    timestamp,
+    signature,
+    folder,
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
+  };
+};
+
+/**
+ * Generate a signed upload URL (unsigned uploads must be enabled in Cloudinary settings)
+ * For direct URL-based uploads without form data
+ */
+export const getSignedUploadUrl = (
+  options: {
+    folder?: string;
+    publicId?: string;
+    resourceType?: 'image' | 'video' | 'raw' | 'auto';
+    expiresAt?: number; // Unix timestamp
+  } = {}
+): string => {
+  const { folder = 'uploads', publicId, resourceType = 'auto', expiresAt } = options;
+
+  const timestamp = Math.round(Date.now() / 1000);
+  const expires = expiresAt || timestamp + 3600; // 1 hour default
+
+  const params: Record<string, string | number> = {
+    timestamp,
+    folder,
+  };
+
+  if (publicId) params.public_id = publicId;
+
+  const signature = cloudinary.utils.api_sign_request(
+    { ...params, expires_at: expires },
+    process.env.CLOUDINARY_API_SECRET || ''
+  );
+
+  const queryParams = new URLSearchParams({
+    api_key: process.env.CLOUDINARY_API_KEY || '',
+    timestamp: timestamp.toString(),
+    signature,
+    folder,
+    ...(publicId && { public_id: publicId }),
+  });
+
+  return `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/${resourceType}/upload?${queryParams}`;
+};
+
+/**
+ * Upload a file from a URL (server-side)
+ */
+export const uploadFromUrl = async (
+  url: string,
+  options: UploadApiOptions = {}
+): Promise<UploadApiResponse> => {
+  return cloudinary.uploader.upload(url, {
+    folder: 'uploads',
+    resource_type: 'auto',
+    ...options,
+  });
+};
+
+/**
+ * Upload a buffer (server-side)
+ */
+export const uploadBuffer = async (
+  buffer: Buffer,
+  options: UploadApiOptions = {}
+): Promise<UploadApiResponse> => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: 'uploads',
+        resource_type: 'auto',
+        ...options,
+      },
+      (error, result) => {
+        if (error) reject(error);
+        else if (result) resolve(result);
+        else reject(new Error('Upload failed'));
+      }
+    );
+
+    uploadStream.end(buffer);
+  });
+};
+
+/**
+ * Delete a file by public_id
+ */
+export const deleteFile = async (
+  publicId: string,
+  resourceType: 'image' | 'video' | 'raw' = 'image'
+): Promise<{ result: string }> => {
+  return cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+};
+
+/**
+ * Generate a transformation URL
+ * 
+ * @example
+ * getTransformUrl('folder/image123', { width: 300, height: 300, crop: 'fill' })
+ * // Returns: https://res.cloudinary.com/cloud/image/upload/w_300,h_300,c_fill/folder/image123
+ */
+export const getTransformUrl = (
+  publicId: string,
+  transformations: {
+    width?: number;
+    height?: number;
+    crop?: 'fill' | 'fit' | 'scale' | 'thumb' | 'crop' | 'limit';
+    quality?: number | 'auto';
+    format?: 'auto' | 'webp' | 'jpg' | 'png' | 'avif';
+    blur?: number;
+    grayscale?: boolean;
+  }
+): string => {
+  const { width, height, crop, quality, format, blur, grayscale } = transformations;
+
+  return cloudinary.url(publicId, {
+    transformation: [
+      {
+        ...(width && { width }),
+        ...(height && { height }),
+        ...(crop && { crop }),
+        ...(quality && { quality }),
+        ...(format && { fetch_format: format }),
+        ...(blur && { effect: `blur:${blur}` }),
+        ...(grayscale && { effect: 'grayscale' }),
+      },
+    ],
+  });
+};
+
+/**
+ * Get optimized delivery URL with automatic format and quality
+ */
+export const getOptimizedUrl = (publicId: string, options: { width?: number; height?: number } = {}): string => {
+  return cloudinary.url(publicId, {
+    transformation: [
+      {
+        fetch_format: 'auto',
+        quality: 'auto',
+        ...(options.width && { width: options.width }),
+        ...(options.height && { height: options.height }),
+      },
+    ],
+  });
+};

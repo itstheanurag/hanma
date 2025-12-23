@@ -1,0 +1,24 @@
+---
+name: elysia-swagger
+description: Swagger documentation plugin for Elysia
+dependencies:
+  - elysia
+  - "@elysiajs/swagger"
+files:
+  - name: src/plugins/swagger.ts
+---
+import { Elysia } from "elysia";
+import { swagger } from "@elysiajs/swagger";
+
+export const setupSwagger = (app: Elysia) => {
+  return app.use(
+    swagger({
+      documentation: {
+        info: {
+          title: "Hanma Documentation",
+          version: "1.0.0",
+        },
+      },
+    })
+  );
+};

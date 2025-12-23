@@ -1,0 +1,67 @@
+---
+name: elysia-basic
+description: Production-ready Elysia server with Bun-native graceful shutdown, structured errors, and Swagger
+dependencies:
+  - elysia
+  - "@elysiajs/swagger"
+devDependencies:
+  - "@types/node"
+files:
+  - name: src/index.ts
+---
+import { Elysia, t } from "elysia";
+import { swagger } from "@elysiajs/swagger";
+
+const app = new Elysia()
+  .use(swagger({
+    documentation: {
+      info: {
+        title: "Elysia Production API",
+        version: "1.0.0",
+      }
+    }
+  }))
+  // Global error handling
+  .error({
+    BAD_REQUEST: 400,
+    UNAUTHORIZED: 401,
+    FORBIDDEN: 403,
+    NOT_FOUND: 404,
+    INTERNAL_SERVER_ERROR: 500
+  })
+  .onError(({ code, error, set }) => {
+    console.error(`[${code}] ${error.message}`);
+    
+    return {
+      success: false,
+      code,
+      message: process.env.NODE_ENV === "production" && code === "INTERNAL_SERVER_ERROR"
+        ? "Internal Server Error"
+        : error.message,
+    };
+  })
+  // Health check
+  .get("/health", () => ({
+    status: "ok",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  }))
+  .get("/", () => ({ message: "Hello Elysia" }))
+  .listen(process.env.PORT || 3000);
+
+console.log(
+  `Elysia is running at ${app.server?.hostname}:${app.server?.port}`
+);
+
+// Graceful shutdown (Bun native)
+process.on("SIGTERM", () => {
+  console.log("SIGTERM received. Cleaning up...");
+  app.stop();
+  process.exit(0);
+});
+
+process.on("SIGINT", () => {
+  console.log("SIGINT received. Cleaning up...");
+  app.stop();
+  process.exit(0);
+});

@@ -1,0 +1,50 @@
+---
+name: elysia-http-client
+description: Fetch-based HTTP client wrapper for Elysia/Bun with retry logic
+dependencies:
+  - elysia
+files:
+  - name: src/libs/http-client.ts
+---
+/**
+ * Simple Fetch-based HTTP client with retry logic
+ */
+export async function httpClient<T>(
+  url: string,
+  options: RequestInit & { retries?: number; backoff?: number } = {}
+): Promise<T> {
+  const { retries = 3, backoff = 1000, ...fetchOptions } = options;
+
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url, {
+        ...fetchOptions,
+        headers: {
+          "Content-Type": "application/json",
+          ...fetchOptions.headers,
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status >= 500 && attempt < retries) {
+          throw new Error(`Server error: ${response.status}`);
+        }
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      return (await response.json()) as T;
+    } catch (error: any) {
+      lastError = error;
+      if (attempt < retries) {
+        const delay = backoff * Math.pow(2, attempt - 1);
+        console.warn(`[HTTP] Attempt ${attempt} failed, retrying in ${delay}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  throw lastError || new Error("Request failed");
+}

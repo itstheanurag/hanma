@@ -1,0 +1,20 @@
+---
+name: elysia-jwt
+description: JWT plugin for Elysia
+dependencies:
+  - elysia
+  - "@elysiajs/jwt"
+files:
+  - name: src/plugins/jwt.ts
+---
+import { Elysia } from "elysia";
+import { jwt } from "@elysiajs/jwt";
+
+export const setupJwt = (app: Elysia) => {
+  return app.use(
+    jwt({
+      name: "jwt",
+      secret: process.env.JWT_SECRET || "elysia-is-awesome",
+    })
+  );
+};

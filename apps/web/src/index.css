@@ -6,7 +6,7 @@
   --color-surface: var(--surface);
   --color-surface-hover: var(--surface-hover);
   --color-border: var(--border);
-  --color-primary: oklch(0.88 0.1 320);
+  --color-primary: oklch(0.75 0.15 85);
   --color-secondary: oklch(0.95 0.05 60);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);

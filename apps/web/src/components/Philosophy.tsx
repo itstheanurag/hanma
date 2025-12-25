@@ -1,5 +1,5 @@
 import { LuCopy, LuTerminal, LuSparkles } from "react-icons/lu";
-import { painPoints } from "../data/philosophy.data";
+import { painPoints } from "@/data/philosophy.data";
 
 const Philosophy = () => {
   return (

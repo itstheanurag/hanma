@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { BiMinus, BiPlus } from "react-icons/bi";
-import { faqs } from "../data/faq.data";
-import { useUIStore } from "../stores";
+import { faqs } from "@/data/faq.data";
+import { useUIStore } from "@/stores";
 
 const FAQComponent = () => {
   const { openFaqIndex, toggleFaq } = useUIStore();

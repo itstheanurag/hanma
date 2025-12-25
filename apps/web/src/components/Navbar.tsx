@@ -3,7 +3,7 @@ import { LuGithub, LuMoon, LuSun } from "react-icons/lu";
 import Logo from "./Logo";
 import { useTheme } from "./theme/ThemeContext";
 import { Link } from "react-router-dom";
-import { useGithubStore } from "../stores";
+import { useGithubStore } from "@/stores";
 
 const NavbarComponent = () => {
   const { theme, toggleTheme } = useTheme();

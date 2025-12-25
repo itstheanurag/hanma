@@ -2,7 +2,7 @@ import {
   LuArrowRight,
   LuLayers,
 } from "react-icons/lu";
-import { frameworks } from "../data/frameworks.data";
+import { frameworks } from "@/data/frameworks.data";
 
 const SupportedFrameworks = () => {
   return (

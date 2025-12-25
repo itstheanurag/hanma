@@ -1,7 +1,7 @@
 import { useEffect, memo } from "react";
 import { motion, useSpring, useTransform } from "motion/react";
-import { baseStats } from "../data/stats.data";
-import { useGithubStore } from "../stores";
+import { baseStats } from "@/data/stats.data";
+import { useGithubStore } from "@/stores";
 
 function Counter({ value }: { value: number }) {
   const spring = useSpring(0, { mass: 0.8, stiffness: 75, damping: 15 });

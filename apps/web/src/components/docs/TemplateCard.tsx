@@ -1,5 +1,5 @@
 import { memo } from "react";
-import type { Template } from "../../types/docs";
+import type { Template } from "@/types/docs";
 import { CodeBlock } from "./CodeBlock";
 
 interface TemplateCardProps {

@@ -1,16 +1,17 @@
 import { BiFolder } from "react-icons/bi";
 import { CgChevronRight } from "react-icons/cg";
-import type { SnippetFramework } from "../../types/docs";
+import type { SnippetFramework, FrameworkType } from "@/types/docs";
 import { SnippetCard } from "./SnippetCard";
 import { CodeBlock } from "./CodeBlock";
 
 interface SnippetsViewProps {
   data: SnippetFramework;
   activeCategory: string;
+  activeFramework: FrameworkType;
 }
 
-export const SnippetsView = ({ data, activeCategory }: SnippetsViewProps) => {
-  const showIntro = activeCategory === "libs"; // Show intro on first category
+export const SnippetsView = ({ data, activeCategory, activeFramework }: SnippetsViewProps) => {
+  const showIntro = activeCategory === "libs"; 
 
   return (
     <div>
@@ -84,7 +85,7 @@ export const SnippetsView = ({ data, activeCategory }: SnippetsViewProps) => {
 
                 <div className="space-y-4">
                   {subcat.snippets.map((snippet) => (
-                    <SnippetCard key={snippet.id} snippet={snippet} />
+                    <SnippetCard key={snippet.id} snippet={snippet} framework={activeFramework} />
                   ))}
                 </div>
               </div>

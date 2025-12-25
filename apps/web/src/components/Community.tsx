@@ -1,4 +1,4 @@
-import { communityMeta, communityActions, communityMessages } from "../data/community.data";
+import { communityMeta, communityActions, communityMessages } from "@/data/community.data";
 
 const Community = () => {
   return (

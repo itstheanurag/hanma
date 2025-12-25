@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { TemplatesData, Template } from "../../types/docs";
+import type { TemplatesData, Template } from "@/types/docs";
 import { TemplateCard } from "./TemplateCard";
 import { CodeBlock } from "./CodeBlock";
 

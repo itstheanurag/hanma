@@ -1,5 +1,5 @@
 import { BiPackage } from "react-icons/bi";
-import type { ModulesData } from "../../types/docs";
+import type { ModulesData } from "@/types/docs";
 import { CodeBlock } from "./CodeBlock";
 
 interface ModulesViewProps {

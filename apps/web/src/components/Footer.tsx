@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import Logo from "./Logo";
-import { footerMeta, footerLinks, footerSocials } from "../data/footer.data";
+import { footerMeta, footerLinks, footerSocials } from "@/data/footer.data";
 
 const Footer = () => {
   return (

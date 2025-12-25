@@ -9,7 +9,9 @@
     "check-types": "turbo run check-types",
     "build:registry": "tsx scripts/build-registry.ts",
     "build:modules": "tsx scripts/build-modules.ts",
-    "build:templates": "tsx scripts/build-templates.ts"
+    "build:templates": "tsx scripts/build-templates.ts",
+    "build:snippets": "tsx scripts/extract-snippets.ts",
+    "build:scripts": "pnpm build:registry && pnpm build:modules && pnpm build:templates && pnpm build:snippets"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",

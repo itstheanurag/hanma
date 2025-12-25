@@ -1,12 +1,12 @@
 import { memo, useCallback, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useDocsStore } from "../stores/docsStore";
+import { useDocsStore } from "@/stores/docsStore";
 import {
   DocsSidebar,
   SnippetsView,
   TemplatesView,
   ModulesView,
-} from "../components/docs";
+} from "@/components/docs";
 
 // Memoized sidebar to prevent re-renders when only content changes
 const MemoizedSidebar = memo(DocsSidebar);
@@ -111,7 +111,7 @@ const Docs = () => {
             <>
               {/* Snippets View */}
               {activeTab === "snippets" && snippetsData && (
-                <SnippetsView data={snippetsData} activeCategory={activeCategory} />
+                <SnippetsView data={snippetsData} activeCategory={activeCategory} activeFramework={activeFramework} />
               )}
 
               {/* Templates View */}

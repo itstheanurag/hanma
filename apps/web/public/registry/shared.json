@@ -1,5 +1,33 @@
 [
   {
+    "name": "config",
+    "version": "biome",
+    "framework": "shared",
+    "type": "snippet",
+    "files": []
+  },
+  {
+    "name": "express",
+    "version": "eslint",
+    "framework": "shared",
+    "type": "snippet",
+    "files": []
+  },
+  {
+    "name": "config",
+    "version": "prettier",
+    "framework": "shared",
+    "type": "snippet",
+    "files": []
+  },
+  {
+    "name": "express",
+    "version": "tsconfig",
+    "framework": "shared",
+    "type": "snippet",
+    "files": []
+  },
+  {
     "name": "drizzle-client",
     "description": "Drizzle ORM client setup with PostgreSQL",
     "dependencies": [

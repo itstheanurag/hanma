@@ -23,15 +23,13 @@ const SupportedFrameworks = () => {
       </div>
 
       {/* Data-driven grid */}
-      <div className="grid md:grid-cols-3 gap-px bg-border border border-border rounded-2xl overflow-hidden">
+      <div className="grid md:grid-cols-3 gap-px bg-border border border-border rounded-xl overflow-hidden mb-16">
         {frameworks.map((fw) => (
           <div
             key={fw.id}
-            className="bg-background p-8 group hover:bg-surface-hover transition-colors relative"
+            className="bg-surface p-8 group hover:bg-surface-hover transition-colors relative"
           >
-            <div
-              className={`absolute top-0 right-0 w-32 h-32 bg-${fw.accent}-500/5 rounded-bl-full -mr-8 -mt-8 transition-all group-hover:bg-${fw.accent}-500/10`}
-            />
+            <div className="absolute top-2 right-2 w-32 h-32 transition-all group-hover:bg-background/10" />
 
             <div className="relative z-10">
               <div
@@ -48,7 +46,7 @@ const SupportedFrameworks = () => {
                 {fw.description}
               </p>
 
-              <div className="flex items-center gap-2 text-xs text-muted font-mono border-t border-border pt-4">
+              <div className="flex items-center gap-2 text-xs text-muted font-mono border-t border-border/50 pt-4">
                 <span className={fw.command.prefixColor}>$</span>
                 {fw.command.text}
               </div>
@@ -56,6 +54,7 @@ const SupportedFrameworks = () => {
           </div>
         ))}
       </div>
+
 
       <div className="mt-8 text-center">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface border border-border text-xs font-medium text-muted">

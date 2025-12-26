@@ -1,14 +1,11 @@
 import { communityMeta, communityActions, communityMessages } from "@/data/community.data";
+import { Link } from "react-router-dom";
 
 const Community = () => {
   return (
     <section className="py-24 px-6 border-border bg-background">
       <div className="max-w-7xl mx-auto">
         <div className="bg-surface border border-border rounded-2xl p-8 md:p-12 relative overflow-hidden">
-          {/* Decorative blobs */}
-          <div className="absolute top-0 right-0 p-40 bg-purple-500/5 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2" />
-          <div className="absolute bottom-0 left-0 p-32 bg-secondary/5 blur-3xl rounded-full -translate-x-1/2 translate-y-1/2" />
-
           <div className="relative z-10 grid md:grid-cols-2 gap-12 items-center">
             {/* Left content */}
             <div>
@@ -29,15 +26,30 @@ const Community = () => {
               </p>
 
               <div className="flex flex-wrap gap-4">
-                {communityActions.map((action) => (
-                  <button
-                    key={action.id}
-                    className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors ${action.className}`}
-                  >
-                    <action.icon size={18} />
-                    <span>{action.label}</span>
-                  </button>
-                ))}
+                {communityActions.map((action) => {
+                  const Wrapper = ({ children, className, ...props }: React.PropsWithChildren<{ className?: string }>) => 
+                     // @ts-ignore
+                    action.path ? (
+                       // @ts-ignore
+                      <Link to={action.path} className={className} {...props}>
+                        {children}
+                      </Link>
+                    ) : (
+                      <button className={className} {...props}>
+                         {children}
+                      </button>
+                    );
+
+                  return (
+                    <Wrapper
+                      key={action.id}
+                      className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors ${action.className}`}
+                    >
+                      <action.icon size={18} />
+                      <span>{action.label}</span>
+                    </Wrapper>
+                  );
+                })}
               </div>
             </div>
 
@@ -71,7 +83,7 @@ const Community = () => {
                           {msg.reactions.map((reaction, i) => (
                             <span
                               key={i}
-                              className="text-[10px] bg-surface border border-border px-1.5 py-0.5 rounded text-foreground"
+                              className="text-[12px] bg-surface border border-border px-1.5 py-0.5 rounded text-foreground"
                             >
                               {reaction.label} · {reaction.count}
                             </span>
@@ -82,11 +94,12 @@ const Community = () => {
                   </div>
                 ))}
 
-                <div className="flex gap-2 items-center text-muted text-xs pt-2">
-                  <span className="w-full h-px bg-border" />
-                  <span>New messages</span>
-                  <span className="w-full h-px bg-border" />
-                </div>
+               <div className="flex items-center gap-2 text-muted text-xs pt-2">
+  <span className="flex-1 h-px bg-border" />
+  <span className="whitespace-nowrap">New messages</span>
+  <span className="flex-1 h-px bg-border" />
+</div>
+
               </div>
             </div>
           </div>

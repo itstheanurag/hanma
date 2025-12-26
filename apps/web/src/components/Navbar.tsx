@@ -21,37 +21,45 @@ const NavbarComponent = () => {
           className="flex items-center gap-2 hover:opacity-80 transition-opacity"
         >
           <Logo className="text-foreground" size={32} />
-          <span className="text-xl font-bold tracking-tight text-foreground">
-            Hanma
-          </span>
+          <div className="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-[10px] font-medium text-purple-600 dark:text-purple-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
+            Beta
+          </div>
         </Link>
 
         <div className="flex items-center gap-4">
-          <a
-            href="https://github.com/itstheanurag/hanma"
-            target="_blank"
-            rel="noreferrer"
-            className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface border border-border text-xs font-medium text-muted hover:text-foreground transition-colors"
-          >
-            <LuGithub size={14} />
-            <span>{stars} Stars</span>
-          </a>
 
+          {/* Theme toggle */}
           <button
             onClick={toggleTheme}
-            className="p-2 hover:text-foreground transition-colors rounded-md hover:bg-surface"
+            className="p-2 rounded-md hover:bg-surface hover:text-foreground transition-colors"
             aria-label="Toggle theme"
           >
             {theme === "dark" ? <LuSun size={18} /> : <LuMoon size={18} />}
           </button>
+          {/* Project actions */}
+          <div className="hidden md:flex items-center gap-1 p-1 rounded-full border border-border bg-surface">
+            <a
+              href="https://github.com/itstheanurag/hanma"
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium text-muted hover:text-foreground transition-colors"
+            >
+              <LuGithub size={14} />
+              <span>{stars} Stars</span>
+            </a>
 
-          <Link
-            to="/docs"
-            className="bg-secondary hover:brightness-90 text-black font-semibold text-sm px-4 py-2 rounded-md transition-all"
-          >
-            Docs
-          </Link>
+            <Link
+              to="/docs"
+              className="px-4 py-1.5 rounded-full bg-background text-foreground font-semibold text-xs hover:brightness-90 transition-all"
+            >
+              Docs
+            </Link>
+          </div>
+
+
         </div>
+
       </div>
     </nav>
   );

@@ -51,6 +51,9 @@ export const LINKS = {
 
   /** NPM package */
   NPM: "https://www.npmjs.com/package/hanma",
+
+  /** Templates Registry */
+  TEMPLATES_REGISTRY: "/templates/index.json",
 } as const;
 
 // =============================================================================

@@ -11,4 +11,17 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split vendor chunks
+          "react-vendor": ["react", "react-dom"],
+          router: ["react-router-dom"],
+          "ui-vendor": ["motion", "react-icons"],
+          shiki: ["shiki"],
+        },
+      },
+    },
+  },
 });

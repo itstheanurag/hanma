@@ -2,6 +2,7 @@
   "name": "hanma",
   "version": "0.0.1",
   "description": "CLI to download backend snippets",
+  "type": "module",
   "main": "./dist/index.js",
   "bin": {
     "hanma": "./dist/index.js"

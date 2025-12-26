@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Link } from "react-router-dom";
 import Logo from "./Logo";
 import { footerMeta, footerLinks, footerSocials } from "@/data/footer.data";
@@ -76,6 +77,6 @@ const Footer = () => {
       </div>
     </footer>
   );
-};
+}
 
-export default Footer;
+export default memo(Footer);

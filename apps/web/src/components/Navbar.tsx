@@ -51,6 +51,13 @@ const NavbarComponent = () => {
             </a>
 
             <Link
+              to="/builder"
+              className="px-4 py-1.5 rounded-full text-xs font-medium text-muted hover:text-foreground transition-colors"
+            >
+              Builder
+            </Link>
+
+            <Link
               to="/docs"
               className="px-4 py-1.5 rounded-full bg-background text-foreground font-semibold text-xs hover:brightness-90 transition-all"
             >

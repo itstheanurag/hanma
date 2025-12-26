@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import Navbar from "../components/Navbar";
 import { LuGithub } from "react-icons/lu";
 import { useGithubStore } from "@/stores";
+import { GITHUB } from "@/constants";
 
 const Contributors = () => {
   const { contributorsList, fetchStats, loading } = useGithubStore();
@@ -76,7 +77,7 @@ const Contributors = () => {
 
           <div className="mt-16 text-center">
              <a
-               href="https://github.com/itstheanurag/hanma"
+               href={GITHUB.REPO_URL}
                target="_blank"
                rel="noreferrer"
                className="inline-flex items-center gap-2 bg-foreground text-background px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-opacity"

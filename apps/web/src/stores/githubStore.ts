@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { GITHUB } from "../constants";
 
 interface Contributor {
   login: string;
@@ -38,10 +39,8 @@ export const useGithubStore = create<GithubState & GithubActions>(
 
       try {
         const [repoRes, contributorsRes] = await Promise.all([
-          fetch("https://api.github.com/repos/itstheanurag/hanma"),
-          fetch(
-            "https://api.github.com/repos/itstheanurag/hanma/contributors?per_page=100",
-          ),
+          fetch(GITHUB.API_URL),
+          fetch(GITHUB.CONTRIBUTORS_URL),
         ]);
 
         if (repoRes.ok) {

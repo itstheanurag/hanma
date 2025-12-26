@@ -1,9 +1,8 @@
 import { Registry, registrySchema } from "../schema";
-
-const REGISTRY_BASE_URL = "http://localhost:5173/registry";
+import { REGISTRY_URL } from "../constants";
 
 export async function fetchFrameworks(): Promise<string[]> {
-  const res = await fetch(`${REGISTRY_BASE_URL}/index.json`);
+  const res = await fetch(`${REGISTRY_URL}/index.json`);
   if (!res.ok) {
     throw new Error(`Failed to fetch frameworks index: ${res.statusText}`);
   }
@@ -11,7 +10,7 @@ export async function fetchFrameworks(): Promise<string[]> {
 }
 
 export async function fetchRegistry(framework: string): Promise<Registry> {
-  const res = await fetch(`${REGISTRY_BASE_URL}/${framework}.json`);
+  const res = await fetch(`${REGISTRY_URL}/${framework}.json`);
   if (!res.ok) {
     throw new Error(
       `Failed to fetch registry for ${framework}: ${res.statusText}`,

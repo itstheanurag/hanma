@@ -11,15 +11,14 @@ import {
 } from "../utils/prompts";
 import { collectBlockData, writeProjectFiles } from "../utils/command-helpers";
 import path from "path";
-
-const TEMPLATES_BASE_URL = "http://localhost:5173/templates";
+import { TEMPLATES_URL } from "../constants";
 
 // ============================================================================
 // Template Registry
 // ============================================================================
 
 async function fetchTemplateRegistry(): Promise<TemplateRegistry> {
-  const res = await fetch(`${TEMPLATES_BASE_URL}/index.json`);
+  const res = await fetch(`${TEMPLATES_URL}/index.json`);
   if (!res.ok) {
     throw new Error(`Failed to fetch template registry: ${res.statusText}`);
   }

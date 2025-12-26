@@ -4,6 +4,7 @@ import Logo from "./Logo";
 import { useTheme } from "./theme/ThemeContext";
 import { Link } from "react-router-dom";
 import { useGithubStore } from "@/stores";
+import { GITHUB } from "@/constants";
 
 const NavbarComponent = () => {
   const { theme, toggleTheme } = useTheme();
@@ -40,7 +41,7 @@ const NavbarComponent = () => {
           {/* Project actions */}
           <div className="hidden md:flex items-center gap-1 p-1 rounded-full border border-border bg-surface">
             <a
-              href="https://github.com/itstheanurag/hanma"
+              href={GITHUB.REPO_URL}
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium text-muted hover:text-foreground transition-colors"

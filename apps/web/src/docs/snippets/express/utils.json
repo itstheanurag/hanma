@@ -1,0 +1,140 @@
+{
+  "id": "utils",
+  "title": "Utilities",
+  "description": "Standalone utility functions",
+  "subcategories": [
+    {
+      "id": "general",
+      "title": "General",
+      "description": "Common utilities",
+      "snippets": [
+        {
+          "id": "crypto",
+          "name": "crypto",
+          "displayName": "Encryption Utilities",
+          "description": "AES-256-GCM encryption/decryption",
+          "purpose": "Encrypt and decrypt sensitive data. Use for storing secrets, tokens, or PII.",
+          "features": [
+            "AES-256-GCM encryption",
+            "Automatic IV generation",
+            "Authentication tag verification",
+            "Base64 output format"
+          ],
+          "usage": "import { encrypt, decrypt } from './utils/crypto';\n\nconst encrypted = encrypt('secret data', key);\nconst decrypted = decrypt(encrypted, key);",
+          "output": "utils/crypto.ts",
+          "dependencies": [],
+          "command": "npx hanma add crypto"
+        },
+        {
+          "id": "pagination",
+          "name": "pagination",
+          "displayName": "Pagination Helpers",
+          "description": "Offset and cursor-based pagination",
+          "purpose": "Standardize pagination across your API. Supports both offset and cursor-based approaches.",
+          "features": [
+            "Offset pagination",
+            "Cursor-based pagination",
+            "Page info calculation",
+            "Type-safe helpers"
+          ],
+          "usage": "import { paginate, cursorPaginate } from './utils/pagination';\n\nconst { data, pageInfo } = paginate(items, { page: 1, limit: 10 });\nconst { edges, pageInfo } = cursorPaginate(items, { first: 10, after: cursor });",
+          "output": "utils/pagination.ts",
+          "dependencies": [],
+          "command": "npx hanma add pagination"
+        },
+        {
+          "id": "slug",
+          "name": "slug",
+          "displayName": "Slug Generator",
+          "description": "URL-safe slug generation",
+          "purpose": "Generate URL-safe slugs from strings. Use for blog posts, product URLs, etc.",
+          "features": [
+            "Unicode normalization",
+            "Special character removal",
+            "Configurable separator",
+            "Unique slug generation"
+          ],
+          "usage": "import { generateSlug, uniqueSlug } from './utils/slug';\n\nconst slug = generateSlug('Hello World!'); // 'hello-world'\nconst unique = await uniqueSlug('Post Title', existingCheck);",
+          "output": "utils/slug.ts",
+          "dependencies": [],
+          "command": "npx hanma add slug"
+        }
+      ]
+    },
+     {
+      "id": "utilities",
+      "title": "Utilities",
+      "description": "Common library utilities",
+      "snippets": [
+        {
+          "id": "cors",
+          "name": "cors",
+          "displayName": "CORS Configuration",
+          "description": "Cross-origin resource sharing setup",
+          "purpose": "Configure CORS for your API. Essential for frontend applications on different domains.",
+          "features": [
+            "Origin whitelist",
+            "Credentials support",
+            "Preflight caching",
+            "Custom headers"
+          ],
+          "usage": "import { corsMiddleware } from './libs/cors';\n\napp.use(corsMiddleware);",
+          "output": "libs/cors.ts",
+          "dependencies": ["cors"],
+          "command": "npx hanma add cors"
+        },
+        {
+          "id": "env-validation",
+          "name": "env-validation",
+          "displayName": "Environment Validation",
+          "description": "Zod-based environment variable validation",
+          "purpose": "Validate environment variables at startup. Fail fast if required config is missing.",
+          "features": [
+            "Zod schema validation",
+            "Type-safe env access",
+            "Default values",
+            "Required field checks"
+          ],
+          "usage": "import { env } from './libs/env-validation';\n\nconsole.log(env.DATABASE_URL); // Type-safe!",
+          "output": "libs/env-validation.ts",
+          "dependencies": ["zod"],
+          "command": "npx hanma add env-validation"
+        },
+        {
+          "id": "http-client",
+          "name": "http-client",
+          "displayName": "HTTP Client",
+          "description": "Axios-based HTTP client with retries",
+          "purpose": "Make HTTP requests with automatic retries and error handling. Use for external API calls.",
+          "features": [
+            "Automatic retries",
+            "Request/response interceptors",
+            "Timeout handling",
+            "Error transformation"
+          ],
+          "usage": "import { httpClient } from './libs/http-client';\n\nconst data = await httpClient.get('/api/users');",
+          "output": "libs/http-client.ts",
+          "dependencies": ["axios"],
+          "command": "npx hanma add http-client"
+        },
+        {
+          "id": "sentry",
+          "name": "sentry",
+          "displayName": "Sentry Integration",
+          "description": "Error monitoring with Sentry",
+          "purpose": "Track errors and performance in production. Essential for debugging production issues.",
+          "features": [
+            "Error tracking",
+            "Performance monitoring",
+            "Release tracking",
+            "User context"
+          ],
+          "usage": "import { initSentry, captureError } from './libs/sentry';\n\ninitSentry();\n\ntry { ... } catch (e) {\n  captureError(e);\n}",
+          "output": "libs/sentry.ts",
+          "dependencies": ["@sentry/node"],
+          "command": "npx hanma add sentry"
+        }
+      ]
+    }
+  ]
+}

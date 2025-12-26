@@ -151,47 +151,6 @@
           "command": "npx hanma add hono-lambda --framework hono"
         }
       ]
-    },
-    {
-      "id": "utilities",
-      "title": "Utilities",
-      "description": "Common utilities for Hono applications",
-      "snippets": [
-        {
-          "id": "hono-http-client",
-          "name": "hono-http-client",
-          "displayName": "HTTP Client",
-          "description": "Fetch-based HTTP client with retry logic and timeout",
-          "purpose": "Make HTTP requests with automatic retries, exponential backoff, and request timeout.",
-          "features": [
-            "Automatic retries with exponential backoff",
-            "Request timeout handling",
-            "JSON helpers",
-            "Error wrapping"
-          ],
-          "usage": "import { httpClient } from './libs/http-client';\n\nconst data = await httpClient.get('/api/users');",
-          "output": "src/libs/http-client.ts",
-          "dependencies": [],
-          "command": "npx hanma add hono-http-client --framework hono"
-        },
-        {
-          "id": "hono-env",
-          "name": "hono-env",
-          "displayName": "Environment Validation",
-          "description": "Type-safe environment variable validation using Zod",
-          "purpose": "Validate environment variables at startup with detailed error reporting.",
-          "features": [
-            "Zod schema validation",
-            "Type-safe env access",
-            "Detailed error messages",
-            "Default value support"
-          ],
-          "usage": "import { env } from './config/env';\n\nconsole.log(env.DATABASE_URL);",
-          "output": "src/config/env.ts",
-          "dependencies": ["zod", "dotenv"],
-          "command": "npx hanma add hono-env --framework hono"
-        }
-      ]
     }
   ]
 }

@@ -1,0 +1,41 @@
+{
+  "id": "base",
+  "title": "Base Templates",
+  "description": "Bun-native starters for Elysia applications with end-to-end type safety",
+  "templates": [
+    {
+      "id": "elysia",
+      "name": "Elysia API",
+      "description": "Production-ready Elysia server for Bun runtime with TypeScript and Swagger",
+      "purpose": "The fastest way to build type-safe APIs. Best for Bun-first projects requiring end-to-end type safety.",
+      "features": [
+        "Elysia v1 with TypeScript",
+        "Auto-generated Swagger documentation",
+        "Built-in CORS plugin",
+        "Structured error handling",
+        "Type-safe request/response",
+        "Health check endpoint",
+        "Graceful shutdown handling"
+      ],
+      "includes": ["elysia-basic server", "elysia-swagger plugin", "elysia-cors plugin"],
+      "command": "hanma create my-api --framework elysia --pm bun",
+      "structure": [
+        "src/index.ts - Entry point with shutdown handlers",
+        "src/libs/server.ts - Elysia server configuration",
+        ".env.example - Environment template"
+      ],
+      "dependencies": ["elysia", "@elysiajs/swagger", "@elysiajs/cors", "zod"],
+      "devDependencies": ["bun-types"],
+      "scripts": {
+        "dev": "bun run --watch src/index.ts",
+        "build": "bun build src/index.ts --outdir dist --target bun",
+        "start": "bun run dist/index.js"
+      },
+      "envVars": [
+        { "name": "PORT", "default": "3000" },
+        { "name": "NODE_ENV", "default": "development" }
+      ],
+      "recommended": true
+    }
+  ]
+}

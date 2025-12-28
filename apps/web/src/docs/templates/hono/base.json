@@ -1,0 +1,164 @@
+{
+  "id": "base",
+  "title": "Base Templates",
+  "description": "Runtime-specific starters that define the core project structure for Hono applications",
+  "templates": [
+    {
+      "id": "hono",
+      "name": "Hono Node.js",
+      "description": "Production-ready Hono server for Node.js with TypeScript",
+      "purpose": "Standard Node.js deployment. Best for traditional server environments and when you need Node.js-specific packages.",
+      "features": [
+        "Hono v4 with TypeScript",
+        "Security headers via secureHeaders()",
+        "Built-in CORS middleware",
+        "Request ID tracking",
+        "Structured JSON logging",
+        "Health check endpoints (/health, /ready, /live)",
+        "Graceful shutdown handling"
+      ],
+      "includes": ["hono-basic server"],
+      "command": "hanma create my-api --framework hono --pm pnpm",
+      "structure": [
+        "src/index.ts - Entry point with shutdown handlers",
+        "src/libs/server.ts - Hono server configuration",
+        ".env.example - Environment template"
+      ],
+      "dependencies": ["hono", "@hono/node-server", "zod"],
+      "devDependencies": ["typescript", "@types/node", "tsx"],
+      "scripts": {
+        "dev": "tsx watch src/index.ts",
+        "build": "tsc",
+        "start": "node dist/index.js"
+      },
+      "envVars": [
+        { "name": "PORT", "default": "3000" },
+        { "name": "NODE_ENV", "default": "development" },
+        { "name": "CORS_ORIGINS", "default": "http://localhost:3000" }
+      ],
+      "recommended": true
+    },
+    {
+      "id": "hono-bun",
+      "name": "Hono Bun",
+      "description": "Production-ready Hono server optimized for Bun runtime",
+      "purpose": "Maximum performance with Bun's native APIs. Best for new projects where Bun ecosystem compatibility is acceptable.",
+      "features": [
+        "Hono v4 with Bun-native APIs",
+        "Bun.serve() for optimal performance",
+        "Security headers and CORS",
+        "Request timing and logging",
+        "Health check endpoints",
+        "Graceful shutdown"
+      ],
+      "includes": ["hono-bun server"],
+      "command": "hanma create my-api --framework hono-bun --pm bun",
+      "dependencies": ["hono", "zod"],
+      "devDependencies": ["bun-types"],
+      "scripts": {
+        "dev": "bun run --watch src/index.ts",
+        "build": "bun build src/index.ts --outdir dist --target bun",
+        "start": "bun run dist/index.js"
+      },
+      "envVars": [
+        { "name": "PORT", "default": "3000" },
+        { "name": "NODE_ENV", "default": "development" }
+      ]
+    },
+    {
+      "id": "hono-cloudflare",
+      "name": "Hono Cloudflare Workers",
+      "description": "Production-ready Hono server for Cloudflare Workers with edge capabilities",
+      "purpose": "Deploy globally at the edge. Best for low-latency APIs and when using Cloudflare's ecosystem (KV, D1, R2).",
+      "features": [
+        "Hono v4 for Cloudflare Workers",
+        "Wrangler CLI integration",
+        "Edge-compatible middleware",
+        "D1 and KV bindings ready",
+        "Global deployment"
+      ],
+      "includes": ["hono-cloudflare-workers server"],
+      "command": "hanma create my-worker --framework hono-cloudflare --pm pnpm",
+      "dependencies": ["hono", "zod"],
+      "devDependencies": ["wrangler", "@cloudflare/workers-types"],
+      "scripts": {
+        "dev": "wrangler dev",
+        "deploy": "wrangler deploy"
+      },
+      "envVars": [
+        { "name": "NODE_ENV", "default": "development" }
+      ]
+    },
+    {
+      "id": "hono-deno",
+      "name": "Hono Deno",
+      "description": "Production-ready Hono server for Deno runtime",
+      "purpose": "Native TypeScript with Deno's security model. Best for projects requiring fine-grained permissions.",
+      "features": [
+        "Hono v4 for Deno",
+        "Native TypeScript support",
+        "Permission-based security",
+        "Deno.serve() integration",
+        "Import maps via deno.json"
+      ],
+      "includes": ["hono-deno server"],
+      "command": "hanma create my-api --framework hono-deno",
+      "scripts": {
+        "dev": "deno run --allow-net --allow-env --watch src/index.ts",
+        "start": "deno run --allow-net --allow-env src/index.ts"
+      },
+      "envVars": [
+        { "name": "PORT", "default": "3000" },
+        { "name": "NODE_ENV", "default": "development" }
+      ]
+    },
+    {
+      "id": "hono-lambda",
+      "name": "Hono AWS Lambda",
+      "description": "Production-ready Hono server for AWS Lambda with API Gateway support",
+      "purpose": "Serverless deployment on AWS. Best for event-driven architectures and AWS ecosystem integration.",
+      "features": [
+        "Hono v4 with AWS Lambda adapter",
+        "API Gateway compatible",
+        "ESBuild for bundling",
+        "Structured error handling",
+        "Cold start optimized"
+      ],
+      "includes": ["hono-lambda server"],
+      "command": "hanma create my-lambda --framework hono-lambda --pm pnpm",
+      "dependencies": ["hono", "@hono/aws-lambda", "zod"],
+      "devDependencies": ["typescript", "@types/node", "@types/aws-lambda", "esbuild", "tsx"],
+      "scripts": {
+        "build": "esbuild src/index.ts --bundle --platform=node --outfile=dist/index.js --format=esm --minify",
+        "dev": "tsx watch src/index.ts"
+      },
+      "envVars": [
+        { "name": "NODE_ENV", "default": "development" }
+      ]
+    },
+    {
+      "id": "hono-vercel",
+      "name": "Hono Vercel Edge",
+      "description": "Production-ready Hono server for Vercel Edge Functions",
+      "purpose": "Edge deployment with Vercel. Best for Next.js adjacent APIs and Vercel ecosystem users.",
+      "features": [
+        "Hono v4 with Vercel adapter",
+        "Edge runtime optimized",
+        "Automatic deployments",
+        "Vercel CLI integration",
+        "Zero-config setup"
+      ],
+      "includes": ["hono-vercel server"],
+      "command": "hanma create my-edge-api --framework hono-vercel --pm pnpm",
+      "dependencies": ["hono", "@hono/vercel", "zod"],
+      "devDependencies": ["typescript", "@types/node", "vercel"],
+      "scripts": {
+        "dev": "vercel dev",
+        "deploy": "vercel"
+      },
+      "envVars": [
+        { "name": "NODE_ENV", "default": "development" }
+      ]
+    }
+  ]
+}

@@ -1,10 +1,9 @@
 import { Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./components/theme/ThemeContext";
-
 import LandingPage from "./components/LandingPage";
 import Docs from "./pages/Docs";
-import TemplateBuilder from "./pages/TemplateBuilder";
 import Contributors from "./pages/Contributors";
+import NotFound from "./pages/NotFound";
 import DocsLayout from "./layout/DocLayout";
 import AppLayout from "./layout/AppLayout";
 
@@ -16,11 +15,16 @@ function App() {
           <Route element={<AppLayout />}>
             <Route path="/" element={<LandingPage />} />
             <Route path="/contributors" element={<Contributors />} />
-            <Route path="/builder" element={<TemplateBuilder />} />
+            {/* <Route path="/builder" element={<TemplateBuilder />} /> */}
           </Route>
 
           <Route element={<DocsLayout />}>
             <Route path="/docs/*" element={<Docs />} />
+          </Route>
+
+          {/* 404 Catch-all */}
+          <Route element={<AppLayout />}>
+            <Route path="*" element={<NotFound />} />
           </Route>
 
         </Routes>

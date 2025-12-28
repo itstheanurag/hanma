@@ -1,0 +1,30 @@
+{
+  "title": "Add-ons",
+  "description": "Optional add-ons that work with any framework template. Add database, authentication, features, and security presets.",
+  "categoryFiles": [
+    {
+      "id": "database",
+      "file": "database.json",
+      "title": "Database",
+      "description": "ORM and database driver configurations"
+    },
+    {
+      "id": "auth",
+      "file": "auth.json",
+      "title": "Authentication",
+      "description": "Authentication provider configurations"
+    },
+    {
+      "id": "features",
+      "file": "features.json",
+      "title": "Features",
+      "description": "Optional add-on features (can select multiple)"
+    },
+    {
+      "id": "presets",
+      "file": "presets.json",
+      "title": "Security Presets",
+      "description": "Pre-configured security middleware bundles"
+    }
+  ]
+}

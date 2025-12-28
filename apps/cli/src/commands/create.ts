@@ -12,6 +12,7 @@ import {
 import { collectBlockData, writeProjectFiles } from "../utils/command-helpers";
 import path from "path";
 import { TEMPLATES_URL } from "../constants";
+import { createConfig } from "../utils/config";
 
 // ============================================================================
 // Template Registry
@@ -299,6 +300,18 @@ export const create = new Command()
       blockData.envVars,
     );
     writeSpinner.succeed("Files written");
+
+    // 11. Initialize hanma.json
+    const framework = selectedBase.name.split("-")[0]; // Simplistic mapping, e.g., express-minimal -> express
+    await fs.writeJSON(
+      path.join(projectPath, "hanma.json"),
+      {
+        componentsPath: "src",
+        utilsPath: "src/utils",
+        framework: framework,
+      },
+      { spaces: 2 },
+    );
 
     // 11. Install dependencies
     if (!options.skipInstall) {

@@ -13,6 +13,7 @@ import {
   findItemsByName,
   promptCategory,
   installRegistryItems,
+  createConfig,
 } from "../utils";
 
 /**
@@ -78,25 +79,30 @@ export const add = new Command()
       }
     }
 
-    // 2. Fetch and select framework
-    const frameworksSpinner = ora("Fetching frameworks...").start();
-    let frameworks: string[] = [];
-    try {
-      frameworks = await fetchFrameworks();
-      frameworksSpinner.succeed("Frameworks fetched");
-    } catch (error) {
-      frameworksSpinner.fail("Failed to fetch frameworks");
-      console.error(error);
-      process.exit(1);
-    }
+    let selectedFramework = options.framework || config.framework;
 
-    const selectedFramework = await promptFramework(
-      frameworks,
-      options.framework,
-    );
     if (!selectedFramework) {
-      console.log("Operation cancelled.");
-      process.exit(0);
+      // 2. Fetch and select framework
+      const frameworksSpinner = ora("Fetching frameworks...").start();
+      let frameworks: string[] = [];
+      try {
+        frameworks = await fetchFrameworks();
+        frameworksSpinner.succeed("Frameworks fetched");
+      } catch (error) {
+        frameworksSpinner.fail("Failed to fetch frameworks");
+        console.error(error);
+        process.exit(1);
+      }
+
+      selectedFramework = (await promptFramework(frameworks)) || undefined;
+      if (!selectedFramework) {
+        console.log("Operation cancelled.");
+        process.exit(0);
+      }
+
+      // Update config with the selected framework
+      config.framework = selectedFramework;
+      await createConfig(config);
     }
 
     // 3. Fetch registry
@@ -152,10 +158,18 @@ export const add = new Command()
     } else if (snippetNames.length > 0) {
       const { found, notFound } = findItemsByName(snippetNames, snippets);
       if (notFound.length > 0) {
-        console.log(chalk.yellow(`Snippets not found: ${notFound.join(", ")}`));
+        console.log(
+          chalk.yellow(
+            `Snippets not found in framework '${selectedFramework}': ${notFound.join(", ")}`,
+          ),
+        );
       }
       if (found.length === 0) {
-        console.log(chalk.red("No valid snippets to install."));
+        console.log(
+          chalk.red(
+            `No valid snippets to install for framework '${selectedFramework}'.`,
+          ),
+        );
         process.exit(1);
       }
       selectedSnippets = found;

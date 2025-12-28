@@ -5,6 +5,7 @@ const CONFIG_FILE = "hanma.json";
 export interface HanmaConfig {
   componentsPath: string;
   utilsPath: string; // Generic utils
+  framework: string;
 }
 
 export async function getConfig(): Promise<HanmaConfig | null> {

@@ -1,6 +1,8 @@
 import prompts from "prompts";
 import chalk from "chalk";
 import { createConfig, HanmaConfig } from "./config";
+import { fetchFrameworks, promptFramework } from "../utils";
+import ora from "ora";
 
 /**
  * Common initialization logic for Hanma config
@@ -28,9 +30,27 @@ export async function initHanmaConfig(): Promise<HanmaConfig | null> {
     return null;
   }
 
+  // Fetch and select framework
+  const frameworksSpinner = ora("Fetching frameworks...").start();
+  let frameworks: string[] = [];
+  try {
+    frameworks = await fetchFrameworks();
+    frameworksSpinner.succeed("Frameworks fetched");
+  } catch (error) {
+    frameworksSpinner.fail("Failed to fetch frameworks");
+    console.error(error);
+    process.exit(1);
+  }
+
+  const framework = await promptFramework(frameworks);
+  if (!framework) {
+    return null;
+  }
+
   const config: HanmaConfig = {
     componentsPath: response.componentsPath,
     utilsPath: response.utilsPath,
+    framework: framework,
   };
 
   await createConfig(config);

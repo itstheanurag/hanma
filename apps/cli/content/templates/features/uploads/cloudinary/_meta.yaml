@@ -5,7 +5,7 @@ description: Cloudinary file uploads with transformations
 framework: express
 
 includes:
-  - snippet: express/v5/libs/uploads/cloudinary.hbs
+  - snippet: shared/v1/uploads/cloudinary.hbs
     path: src/libs/upload.ts
 
 dependencies:

@@ -4,7 +4,7 @@ description: Prisma ORM with PostgreSQL setup
 framework: express
 
 includes:
-  - snippet: express/v5/libs/db/prisma-client.hbs
+  - snippet: shared/v1/db/prisma-client.hbs
     path: src/libs/db/prisma.ts
 
 dependencies:

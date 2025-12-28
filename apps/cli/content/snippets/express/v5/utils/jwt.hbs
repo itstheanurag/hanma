@@ -1,0 +1,56 @@
+---
+name: jwt-utils
+description: JWT utility functions for signing and verifying tokens
+dependencies:
+  - jsonwebtoken
+devDependencies:
+  - "@types/jsonwebtoken"
+files:
+  - name: utils/jwt.ts
+---
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'changeme-in-production';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
+const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
+
+/**
+ * Payload interface for JWT tokens
+ */
+export interface JwtPayload {
+  id: string;
+  email: string;
+  role?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Sign a new access token
+ * @param payload - Data to encode in the token
+ * @returns Signed JWT token string
+ */
+export const signToken = (payload: JwtPayload): string => {
+  return jwt.sign(payload, JWT_SECRET, {
+    expiresIn: JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'],
+  });
+};
+
+/**
+ * Sign a new refresh token
+ * @param payload - Data to encode in the token
+ * @returns Signed JWT token string
+ */
+export const signRefreshToken = (payload: JwtPayload): string => {
+  return jwt.sign(payload, JWT_SECRET, {
+    expiresIn: JWT_REFRESH_EXPIRES_IN as jwt.SignOptions['expiresIn'],
+  });
+};
+
+/**
+ * Verify a JWT token
+ * @param token - Token string to verify
+ * @returns Decoded payload or throws error
+ */
+export const verifyToken = (token: string): JwtPayload => {
+  return jwt.verify(token, JWT_SECRET) as JwtPayload;
+};

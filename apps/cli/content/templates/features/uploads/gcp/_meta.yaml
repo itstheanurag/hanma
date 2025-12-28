@@ -5,7 +5,7 @@ description: Google Cloud Storage uploads with signed URLs
 framework: express
 
 includes:
-  - snippet: express/v5/libs/uploads/gcp-storage.hbs
+  - snippet: shared/v1/uploads/gcp-storage.hbs
     path: src/libs/upload.ts
 
 dependencies:

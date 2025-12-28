@@ -203,6 +203,55 @@
           "envVars": ["SENTRY_DSN"]
         }
       ]
+    },
+    {
+      "id": "tooling",
+      "title": "Developer Tooling",
+      "description": "Code formatting and linting configurations",
+      "templates": [
+        {
+          "id": "tooling-biome",
+          "name": "Biome",
+          "description": "Fast all-in-one linter and formatter",
+          "purpose": "Single tool for linting and formatting. Best for speed and simplicity.",
+          "features": [
+            "Lightning-fast performance",
+            "Linting and formatting combined",
+            "Zero configuration",
+            "IDE integration"
+          ],
+          "command": "--tooling biome",
+          "devDependencies": ["@biomejs/biome"]
+        },
+        {
+          "id": "tooling-eslint",
+          "name": "ESLint",
+          "description": "Configurable JavaScript/TypeScript linter",
+          "purpose": "Industry-standard linter with extensive plugin ecosystem. Best for custom rule requirements.",
+          "features": [
+            "Extensive plugin ecosystem",
+            "Custom rule configuration",
+            "TypeScript support",
+            "Auto-fix capabilities"
+          ],
+          "command": "--tooling eslint",
+          "devDependencies": ["eslint", "@typescript-eslint/eslint-plugin", "@typescript-eslint/parser"]
+        },
+        {
+          "id": "tooling-prettier",
+          "name": "Prettier",
+          "description": "Opinionated code formatter",
+          "purpose": "Consistent code formatting across your team. Best for enforcing a unified style.",
+          "features": [
+            "Consistent formatting",
+            "Multi-language support",
+            "Editor integration",
+            "Git hooks integration"
+          ],
+          "command": "--tooling prettier",
+          "devDependencies": ["prettier"]
+        }
+      ]
     }
   ]
 }

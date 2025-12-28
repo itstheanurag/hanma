@@ -1,8 +1,22 @@
 import { useMemo, memo } from "react";
-import { LuBookOpen, LuSearch, LuServer, LuFlame, LuZap, LuPackage, LuChevronDown, LuChevronRight } from "react-icons/lu";
+import {
+  LuBookOpen,
+  LuSearch,
+  LuServer,
+  LuFlame,
+  LuZap,
+  LuPackage,
+  LuChevronDown,
+  LuChevronRight,
+} from "react-icons/lu";
 import { CgChevronRight } from "react-icons/cg";
-import type { TabType, SnippetFramework, TemplatesData, FrameworkType } from "../../types/docs";
-import { useUIStore } from "../../stores";
+import type {
+  TabType,
+  SnippetFramework,
+  TemplatesData,
+  FrameworkType,
+} from "@/types/docs";
+import { useUIStore } from "@/stores";
 import { ThemeToggle } from "../theme/Toggle";
 
 interface DocsSidebarProps {
@@ -23,6 +37,13 @@ const frameworks = [
   { id: "shared" as FrameworkType, label: "Shared", icon: LuPackage },
 ];
 
+// Template frameworks (no "shared" for templates)
+const templateFrameworks = [
+  { id: "express" as FrameworkType, label: "Express", icon: LuServer },
+  { id: "hono" as FrameworkType, label: "Hono", icon: LuFlame },
+  { id: "elysia" as FrameworkType, label: "Elysia", icon: LuZap },
+];
+
 const DocsSidebarComponent = ({
   activeTab,
   activeCategory,
@@ -34,7 +55,12 @@ const DocsSidebarComponent = ({
   templatesData,
 }: DocsSidebarProps) => {
   // Use Zustand store for UI state
-  const { searchQuery, setSearchQuery, expandedFramework, setExpandedFramework } = useUIStore();
+  const {
+    searchQuery,
+    setSearchQuery,
+    expandedFramework,
+    setExpandedFramework,
+  } = useUIStore();
 
   // Filter categories based on search
   const filteredCategories = useMemo(() => {
@@ -45,7 +71,7 @@ const DocsSidebarComponent = ({
     return snippetsData.categories.filter(
       (cat) =>
         cat.title.toLowerCase().includes(query) ||
-        cat.id.toLowerCase().includes(query)
+        cat.id.toLowerCase().includes(query),
     );
   }, [snippetsData?.categories, searchQuery]);
 
@@ -53,28 +79,20 @@ const DocsSidebarComponent = ({
   const handleFrameworkClick = (fw: FrameworkType) => {
     // Switch to snippets tab when clicking a framework
     onTabChange("snippets");
-    if (expandedFramework === fw) {
-      // Already expanded, just ensure framework is active
-      onFrameworkChange(fw);
-    } else {
-      // Expand and activate this framework
-      setExpandedFramework(fw);
-      onFrameworkChange(fw);
-    }
+    // Always expand and activate this framework
+    setExpandedFramework(fw);
+    onFrameworkChange(fw);
   };
 
   // Handle clicking on a framework category
   const handleCategoryClick = (categoryId: string) => {
-    // Ensure we're on snippets tab when clicking a framework category
-    onTabChange("snippets");
     onCategoryChange(categoryId);
   };
 
-  // Handle clicking on Resources tabs (Templates/Modules)
-  const handleResourceTabChange = (tab: TabType) => {
-    // Clear expanded framework when switching to resources
-    setExpandedFramework(null);
-    onTabChange(tab);
+  // Handle clicking on a template framework
+  const handleTemplateFrameworkClick = (fw: FrameworkType) => {
+    onTabChange("templates");
+    onFrameworkChange(fw);
   };
 
   return (
@@ -88,7 +106,10 @@ const DocsSidebarComponent = ({
 
         {/* Search Bar */}
         <div className="relative mb-4">
-          <LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
+          <LuSearch
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+            size={16}
+          />
           <input
             type="text"
             placeholder="Search docs..."
@@ -107,8 +128,10 @@ const DocsSidebarComponent = ({
           {frameworks.map((fw) => {
             const Icon = fw.icon;
             // Only show as expanded if activeTab is snippets AND this framework is expanded
-            const isExpanded = activeTab === "snippets" && expandedFramework === fw.id;
-            const isActive = activeTab === "snippets" && activeFramework === fw.id;
+            const isExpanded =
+              activeTab === "snippets" && expandedFramework === fw.id;
+            const isActive =
+              activeTab === "snippets" && activeFramework === fw.id;
 
             return (
               <div key={fw.id} className="mb-1">
@@ -152,49 +175,93 @@ const DocsSidebarComponent = ({
           })}
         </div>
 
-        {/* Resources Section */}
+        {/* Templates Section */}
         <div className="mb-2 mt-4">
           <div className="text-xs font-semibold text-muted uppercase tracking-wider mb-2 px-2">
-            Resources
+            Templates
           </div>
-          <div className="mb-1">
-            <button
-              onClick={() => handleResourceTabChange("templates")}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors ${
-                activeTab === "templates"
-                  ? "bg-primary/10 text-primary font-medium"
-                  : "text-muted hover:text-foreground hover:bg-surface-hover"
-              }`}
-            >
-              Templates
-            </button>
-            {/* Templates Categories */}
-            {activeTab === "templates" && templatesData && (
-              <div className="ml-4 mt-1 space-y-0.5 border-l border-border pl-2">
-                {templatesData.categories.map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => onCategoryChange(cat.id)}
-                    className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${
-                      activeCategory === cat.id
-                        ? "bg-secondary text-black font-medium"
-                        : "text-muted hover:text-foreground hover:bg-surface-hover"
-                    }`}
-                  >
-                    {cat.title}
-                  </button>
-                ))}
+
+          {templateFrameworks.map((fw) => {
+            const Icon = fw.icon;
+            const isExpanded =
+              activeTab === "templates" && activeFramework === fw.id;
+            const isActive =
+              activeTab === "templates" && activeFramework === fw.id;
+
+            return (
+              <div key={`template-${fw.id}`} className="mb-1">
+                <button
+                  onClick={() => handleTemplateFrameworkClick(fw.id)}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors ${
+                    isActive
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "text-muted hover:text-foreground hover:bg-surface-hover"
+                  }`}
+                >
+                  <Icon size={16} />
+                  <span className="flex-1">{fw.label}</span>
+                  {isExpanded ? (
+                    <LuChevronDown size={14} className="text-muted" />
+                  ) : (
+                    <LuChevronRight size={14} className="text-muted" />
+                  )}
+                </button>
+
+                {/* Expanded Template Categories */}
+                {isExpanded && templatesData && (
+                  <div className="ml-4 mt-1 space-y-0.5 border-l border-border pl-2">
+                    {templatesData.categories.map((cat) => (
+                      <button
+                        key={cat.id}
+                        onClick={() => handleCategoryClick(cat.id)}
+                        className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${
+                          activeCategory === cat.id
+                            ? "bg-secondary text-black font-medium"
+                            : "text-muted hover:text-foreground hover:bg-surface-hover"
+                        }`}
+                      >
+                        {cat.title}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
+            );
+          })}
+        </div>
+
+        {/* Add-ons Section */}
+        <div className="mb-2 mt-4">
+          <div className="text-xs font-semibold text-muted uppercase tracking-wider mb-2 px-2">
+            Add-ons
           </div>
           <button
-            onClick={() => handleResourceTabChange("modules")}
+            onClick={() => onTabChange("addons")}
+            className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors ${
+              activeTab === "addons"
+                ? "bg-primary/10 text-primary font-medium"
+                : "text-muted hover:text-foreground hover:bg-surface-hover"
+            }`}
+          >
+            <LuPackage size={16} />
+            Database, Auth & More
+          </button>
+        </div>
+
+        {/* Modules Section */}
+        <div className="mb-2 mt-4">
+          <div className="text-xs font-semibold text-muted uppercase tracking-wider mb-2 px-2">
+            Other
+          </div>
+          <button
+            onClick={() => onTabChange("modules")}
             className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors ${
               activeTab === "modules"
                 ? "bg-primary/10 text-primary font-medium"
                 : "text-muted hover:text-foreground hover:bg-surface-hover"
             }`}
           >
+            <LuPackage size={16} />
             Modules
           </button>
         </div>

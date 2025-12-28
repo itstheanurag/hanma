@@ -1,8 +1,8 @@
-import Hero from "./Hero";
+import { Hero } from "./hero";
 import Philosophy from "./Philosophy";
 import Features from "./Features";
 import SupportedFrameworks from "./SupportedFrameworks";
-import TerminalSection from "./TerminalSection";
+import { TerminalSection } from "./terminal";
 import FAQ from "./FAQ";
 import Community from "./Community";
 

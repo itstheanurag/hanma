@@ -10,7 +10,7 @@
       "snippets": [
         {
           "id": "crypto",
-          "name": "crypto",
+          "name": "crypto-utils",
           "displayName": "Encryption Utilities",
           "description": "AES-256-GCM encryption/decryption",
           "purpose": "Encrypt and decrypt sensitive data. Use for storing secrets, tokens, or PII.",
@@ -20,7 +20,7 @@
             "Authentication tag verification",
             "Base64 output format"
           ],
-          "usage": "import { encrypt, decrypt } from './utils/crypto';\n\nconst encrypted = encrypt('secret data', key);\nconst decrypted = decrypt(encrypted, key);",
+          "usage": "import { encrypt, decrypt } from './utils/crypto';\n\nconst encrypted = encrypt('secret data');\nconst decrypted = decrypt(encrypted);",
           "output": "utils/crypto.ts",
           "dependencies": [],
           "command": "npx hanma add crypto"
@@ -44,7 +44,7 @@
         },
         {
           "id": "slug",
-          "name": "slug",
+          "name": "slug-generator",
           "displayName": "Slug Generator",
           "description": "URL-safe slug generation",
           "purpose": "Generate URL-safe slugs from strings. Use for blog posts, product URLs, etc.",
@@ -54,10 +54,44 @@
             "Configurable separator",
             "Unique slug generation"
           ],
-          "usage": "import { generateSlug, uniqueSlug } from './utils/slug';\n\nconst slug = generateSlug('Hello World!'); // 'hello-world'\nconst unique = await uniqueSlug('Post Title', existingCheck);",
+          "usage": "import { generateSlug, uniqueSlug } from './utils/slug';\n\nconst slug = generateSlug('Hello World!'); // 'hello-world'",
           "output": "utils/slug.ts",
-          "dependencies": [],
+          "dependencies": ["slugify"],
           "command": "npx hanma add slug"
+        },
+        {
+          "id": "jwt-utils",
+          "name": "jwt-utils",
+          "displayName": "JWT Utilities",
+          "description": "JSON Web Token signing and verification",
+          "purpose": "Utility functions for handling JWT operations outside of middleware.",
+          "features": [
+            "Token signing",
+            "Token verification",
+            "Refresh token support",
+            "Type-safe payload"
+          ],
+          "usage": "import { signToken, verifyToken } from './utils/jwt';\n\nconst token = signToken({ id: '123', email: 'user@example.com' });",
+          "output": "utils/jwt.ts",
+          "dependencies": ["jsonwebtoken"],
+          "command": "npx hanma add jwt"
+        },
+        {
+          "id": "otp",
+          "name": "otp-generator",
+          "displayName": "OTP Utilities",
+          "description": "TOTP and QR code generation",
+          "purpose": "Implement Two-Factor Authentication (2FA) with standard TOTP algorithms.",
+          "features": [
+            "TOTP generation/verification",
+            "QR code generation",
+            "Backup code support",
+            "Compatible with Google Authenticator"
+          ],
+          "usage": "import { generateSecret, verifyToken } from './utils/otp';\n\nconst { secret, uri } = generateSecret('user@example.com');",
+          "output": "utils/otp.ts",
+          "dependencies": ["otpauth", "qrcode"],
+          "command": "npx hanma add otp"
         }
       ]
     },
@@ -82,40 +116,6 @@
           "output": "libs/cors.ts",
           "dependencies": ["cors"],
           "command": "npx hanma add cors"
-        },
-        {
-          "id": "env-validation",
-          "name": "env-validation",
-          "displayName": "Environment Validation",
-          "description": "Zod-based environment variable validation",
-          "purpose": "Validate environment variables at startup. Fail fast if required config is missing.",
-          "features": [
-            "Zod schema validation",
-            "Type-safe env access",
-            "Default values",
-            "Required field checks"
-          ],
-          "usage": "import { env } from './libs/env-validation';\n\nconsole.log(env.DATABASE_URL); // Type-safe!",
-          "output": "libs/env-validation.ts",
-          "dependencies": ["zod"],
-          "command": "npx hanma add env-validation"
-        },
-        {
-          "id": "http-client",
-          "name": "http-client",
-          "displayName": "HTTP Client",
-          "description": "Axios-based HTTP client with retries",
-          "purpose": "Make HTTP requests with automatic retries and error handling. Use for external API calls.",
-          "features": [
-            "Automatic retries",
-            "Request/response interceptors",
-            "Timeout handling",
-            "Error transformation"
-          ],
-          "usage": "import { httpClient } from './libs/http-client';\n\nconst data = await httpClient.get('/api/users');",
-          "output": "libs/http-client.ts",
-          "dependencies": ["axios"],
-          "command": "npx hanma add http-client"
         },
         {
           "id": "sentry",

@@ -1,0 +1,27 @@
+name: hono-bun
+category: base
+description: Production-ready Hono server optimized for Bun runtime
+framework: hono
+version: "4"
+
+# Include snippets from packages/snippets
+includes:
+  - snippet: hono/v4/libs/servers/hono-bun.hbs
+    path: src/libs/server.ts
+    
+dependencies:
+  - hono
+  - zod
+
+devDependencies:
+  - bun-types
+
+scripts:
+  dev: "bun run --watch src/index.ts"
+  build: "bun build src/index.ts --outdir dist --target bun"
+  start: "bun run dist/index.js"
+
+envVars:
+  - PORT=3000
+  - NODE_ENV=development
+  - CORS_ORIGINS=http://localhost:3000

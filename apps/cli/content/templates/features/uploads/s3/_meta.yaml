@@ -5,7 +5,7 @@ description: AWS S3 file uploads with presigned URLs
 framework: express
 
 includes:
-  - snippet: express/v5/libs/uploads/aws-s3.hbs
+  - snippet: shared/v1/uploads/aws-s3.hbs
     path: src/libs/upload.ts
 
 dependencies:

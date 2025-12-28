@@ -1,0 +1,24 @@
+{
+  "title": "Templates",
+  "description": "Project scaffolding templates for Elysia applications. Built for Bun with end-to-end type safety.",
+  "categoryFiles": [
+    {
+      "id": "base",
+      "file": "base.json",
+      "title": "Base Templates",
+      "description": "Bun-native starters that define the core project structure"
+    }
+  ],
+  "examples": [
+    {
+      "title": "Elysia API",
+      "description": "Start with Elysia on Bun",
+      "command": "hanma create my-api --framework elysia --pm bun"
+    },
+    {
+      "title": "Elysia with Swagger",
+      "description": "API with auto-generated documentation",
+      "command": "hanma create my-api --framework elysia --pm bun"
+    }
+  ]
+}

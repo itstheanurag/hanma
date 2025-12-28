@@ -1,0 +1,19 @@
+name: hono-deno
+category: base
+description: Production-ready Hono server for Deno runtime
+framework: hono
+version: "4"
+
+# Include snippets from packages/snippets
+includes:
+  - snippet: hono/v4/libs/servers/hono-deno.hbs
+    path: src/index.ts
+
+scripts:
+  dev: "deno run --allow-net --allow-env --watch src/index.ts"
+  start: "deno run --allow-net --allow-env src/index.ts"
+
+envVars:
+  - PORT=3000
+  - NODE_ENV=development
+  - CORS_ORIGINS=http://localhost:3000

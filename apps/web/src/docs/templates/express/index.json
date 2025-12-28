@@ -1,36 +1,12 @@
 {
-  "title": "Templates",
-  "description": "Project scaffolding templates for quick project setup. Combine base templates with database, auth, features, and security presets.",
+  "title": "Express Templates",
+  "description": "Project scaffolding templates for Express.js applications. Choose a base template and enhance with add-ons.",
   "categoryFiles": [
     {
       "id": "base",
       "file": "base.json",
       "title": "Base Templates",
       "description": "Framework starters that define the core project structure"
-    },
-    {
-      "id": "database",
-      "file": "database.json",
-      "title": "Database Templates",
-      "description": "ORM and database driver configurations"
-    },
-    {
-      "id": "auth",
-      "file": "auth.json",
-      "title": "Authentication Templates",
-      "description": "Authentication provider configurations"
-    },
-    {
-      "id": "features",
-      "file": "features.json",
-      "title": "Feature Templates",
-      "description": "Optional add-on features (can select multiple)"
-    },
-    {
-      "id": "presets",
-      "file": "presets.json",
-      "title": "Security Presets",
-      "description": "Pre-configured security middleware bundles"
     }
   ],
   "examples": [
@@ -56,3 +32,4 @@
     }
   ]
 }
+

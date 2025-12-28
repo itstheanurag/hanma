@@ -31,22 +31,33 @@ import sharedQueries from "@/docs/snippets/shared/queries.json";
 import sharedUploads from "@/docs/snippets/shared/uploads.json";
 import sharedUtils from "@/docs/snippets/shared/utils.json";
 
-// Templates
+// Templates - Express
 import templatesExpressIndex from "@/docs/templates/express/index.json";
-import templatesExpressAuth from "@/docs/templates/express/auth.json";
 import templatesExpressBase from "@/docs/templates/express/base.json";
-import templatesExpressDatabase from "@/docs/templates/express/database.json";
-import templatesExpressFeatures from "@/docs/templates/express/features.json";
-import templatesExpressPresets from "@/docs/templates/express/presets.json";
+
+// Templates - Hono
+import templatesHonoIndex from "@/docs/templates/hono/index.json";
+import templatesHonoBase from "@/docs/templates/hono/base.json";
+
+// Templates - Elysia
+import templatesElysiaIndex from "@/docs/templates/elysia/index.json";
+import templatesElysiaBase from "@/docs/templates/elysia/base.json";
+
+// Add-ons (shared across all frameworks)
+import addonsIndex from "@/docs/templates/shared/index.json";
+import addonsDatabase from "@/docs/templates/shared/database.json";
+import addonsAuth from "@/docs/templates/shared/auth.json";
+import addonsFeatures from "@/docs/templates/shared/features.json";
+import addonsPresets from "@/docs/templates/shared/presets.json";
 
 // Modules
 import modulesIndex from "@/docs/modules/index.json";
 
 // Snippets Sources
-import expressSourcesJson from "@/docs/snippets-source/express/sources.json";
-import honoSourcesJson from "@/docs/snippets-source/hono/sources.json";
-import elysiaSourcesJson from "@/docs/snippets-source/elysia/sources.json";
-import sharedSourcesJson from "@/docs/snippets-source/shared/sources.json";
+import expressSourcesJson from "@/docs/sources/express/sources.json";
+import honoSourcesJson from "@/docs/sources/hono/sources.json";
+import elysiaSourcesJson from "@/docs/sources/elysia/sources.json";
+import sharedSourcesJson from "@/docs/sources/shared/sources.json";
 
 import type { FrameworkType } from "@/types/docs";
 
@@ -105,20 +116,55 @@ export function loadSnippetCategory(
   return categories?.[fileName] || null;
 }
 
-// Template index loader
-export const templatesIndex: any = templatesExpressIndex;
-
-// Template category loaders
-const templatesExpressCategories: Record<string, any> = {
-  "auth.json": templatesExpressAuth,
-  "base.json": templatesExpressBase,
-  "database.json": templatesExpressDatabase,
-  "features.json": templatesExpressFeatures,
-  "presets.json": templatesExpressPresets,
+// Template index loaders by framework
+export const templatesIndexes: Record<string, any> = {
+  express: templatesExpressIndex,
+  hono: templatesHonoIndex,
+  elysia: templatesElysiaIndex,
 };
 
-export function loadTemplateCategory(fileName: string): any | null {
-  return templatesExpressCategories[fileName] || null;
+// For backwards compatibility
+export const templatesIndex: any = templatesExpressIndex;
+
+// Template category loaders by framework
+const templatesExpressCategories: Record<string, any> = {
+  "base.json": templatesExpressBase,
+};
+
+const templatesHonoCategories: Record<string, any> = {
+  "base.json": templatesHonoBase,
+};
+
+const templatesElysiaCategories: Record<string, any> = {
+  "base.json": templatesElysiaBase,
+};
+
+const allTemplatesCategories: Record<string, Record<string, any>> = {
+  express: templatesExpressCategories,
+  hono: templatesHonoCategories,
+  elysia: templatesElysiaCategories,
+};
+
+// Add-ons loader
+export const addonsIndexData: any = addonsIndex;
+
+const addonsCategories: Record<string, any> = {
+  "database.json": addonsDatabase,
+  "auth.json": addonsAuth,
+  "features.json": addonsFeatures,
+  "presets.json": addonsPresets,
+};
+
+export function loadAddonCategory(fileName: string): any | null {
+  return addonsCategories[fileName] || null;
+}
+
+export function loadTemplateCategory(
+  fileName: string,
+  framework: string = "express",
+): any | null {
+  const categories = allTemplatesCategories[framework];
+  return categories?.[fileName] || null;
 }
 
 // Modules loader

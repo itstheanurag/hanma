@@ -1,0 +1,15 @@
+{
+  "name": "{{projectName}}",
+  "version": "1.0.0",
+  "tasks": {
+    "dev": "deno run --allow-net --allow-env --watch src/index.ts",
+    "start": "deno run --allow-net --allow-env src/index.ts"
+  },
+  "imports": {
+    "hono": "npm:hono@^4.6.0",
+    "zod": "npm:zod@^3.22.4"
+  },
+  "compilerOptions": {
+    "lib": ["deno.ns", "deno.unstable"]
+  }
+}

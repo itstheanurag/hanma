@@ -1,0 +1,28 @@
+name: hono-lambda
+category: base
+description: Production-ready Hono server for AWS Lambda with API Gateway support
+framework: hono
+version: "4"
+
+# Include snippets from packages/snippets
+includes:
+  - snippet: hono/v4/libs/servers/hono-lambda.hbs
+    path: src/index.ts
+    
+dependencies:
+  - hono
+  - "@hono/aws-lambda"
+  - zod
+
+devDependencies:
+  - typescript
+  - "@types/node"
+  - "@types/aws-lambda"
+  - esbuild
+
+scripts:
+  build: "esbuild src/index.ts --bundle --platform=node --outfile=dist/index.js --format=esm --minify"
+  dev: "tsx watch src/index.ts"
+
+envVars:
+  - NODE_ENV=development

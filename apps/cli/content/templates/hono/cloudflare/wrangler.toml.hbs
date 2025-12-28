@@ -1,0 +1,17 @@
+name = "{{projectName}}"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[vars]
+NODE_ENV = "development"
+
+# Uncomment to enable Workers KV
+# [[kv_namespaces]]
+# binding = "MY_KV"
+# id = "your-kv-namespace-id"
+
+# Uncomment to enable D1 Database
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "your-database"
+# database_id = "your-database-id"

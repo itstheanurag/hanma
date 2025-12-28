@@ -1,0 +1,28 @@
+name: elysia
+category: base
+description: Production-ready Elysia server for Bun runtime with TypeScript and Swagger
+framework: elysia
+version: "1"
+
+# Include snippets from packages/snippets
+includes:
+  - snippet: elysia/v1/libs/servers/elysia-basic.hbs
+    path: src/libs/server.ts
+    
+dependencies:
+  - elysia
+  - "@elysiajs/swagger"
+  - "@elysiajs/cors"
+  - zod
+
+devDependencies:
+  - bun-types
+
+scripts:
+  dev: "bun run --watch src/index.ts"
+  build: "bun build src/index.ts --outdir dist --target bun"
+  start: "bun run dist/index.js"
+
+envVars:
+  - PORT=3000
+  - NODE_ENV=development

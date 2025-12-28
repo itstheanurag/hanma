@@ -135,7 +135,7 @@ export interface ModulesData {
   upcomingModules: UpcomingModule[];
 }
 
-export type TabType = "snippets" | "templates" | "modules";
+export type TabType = "snippets" | "templates" | "addons" | "modules";
 export type FrameworkType = "express" | "hono" | "elysia" | "shared";
 
 export interface DocsState {

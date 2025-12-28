@@ -1,0 +1,27 @@
+name: hono-vercel
+category: base
+description: Production-ready Hono server for Vercel Edge Functions
+framework: hono
+version: "4"
+
+# Include snippets from packages/snippets
+includes:
+  - snippet: hono/v4/libs/servers/hono-vercel.hbs
+    path: api/index.ts
+    
+dependencies:
+  - hono
+  - "@hono/vercel"
+  - zod
+
+devDependencies:
+  - typescript
+  - "@types/node"
+  - vercel
+
+scripts:
+  dev: "vercel dev"
+  deploy: "vercel"
+
+envVars:
+  - NODE_ENV=development

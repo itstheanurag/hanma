@@ -5,7 +5,7 @@ description: Email sending with SendGrid API
 framework: express
 
 includes:
-  - snippet: express/v5/libs/mailers/sendgrid.hbs
+  - snippet: shared/v1/mailers/sendgrid.hbs
     path: src/libs/mailer.ts
 
 dependencies:

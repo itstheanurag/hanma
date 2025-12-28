@@ -1,0 +1,34 @@
+{
+  "title": "Templates",
+  "description": "Project scaffolding templates for Hono applications across multiple runtimes. Deploy to Node.js, Bun, Cloudflare Workers, Deno, AWS Lambda, or Vercel Edge.",
+  "categoryFiles": [
+    {
+      "id": "base",
+      "file": "base.json",
+      "title": "Base Templates",
+      "description": "Runtime-specific starters that define the core project structure"
+    }
+  ],
+  "examples": [
+    {
+      "title": "Hono for Node.js",
+      "description": "Start with Hono on Node.js",
+      "command": "hanma create my-api --framework hono --pm pnpm"
+    },
+    {
+      "title": "Hono for Bun",
+      "description": "Fast Bun-native Hono server",
+      "command": "hanma create my-api --framework hono-bun --pm bun"
+    },
+    {
+      "title": "Hono for Cloudflare Workers",
+      "description": "Deploy to the edge with Cloudflare",
+      "command": "hanma create my-worker --framework hono-cloudflare --pm pnpm"
+    },
+    {
+      "title": "Hono for Vercel Edge",
+      "description": "Deploy to Vercel Edge Functions",
+      "command": "hanma create my-edge-api --framework hono-vercel --pm pnpm"
+    }
+  ]
+}

@@ -2,7 +2,7 @@ import fs from "fs-extra";
 import path from "path";
 import {
   SNIPPETS_DIR,
-  DOCS_SNIPPETS_SOURCE_DIR,
+  DOCS_SOURCES_DIR,
   parseSnippetFile,
   findFiles,
   ensureDir,
@@ -13,7 +13,7 @@ const FRAMEWORKS = ["express", "hono", "elysia", "shared"];
 async function main() {
   console.log("Extracting snippet source code...");
 
-  await ensureDir(DOCS_SNIPPETS_SOURCE_DIR);
+  await ensureDir(DOCS_SOURCES_DIR);
 
   let totalSnippets = 0;
 
@@ -36,7 +36,7 @@ async function main() {
 
     const count = Object.keys(sources).length;
     if (count > 0) {
-      const outputDir = path.join(DOCS_SNIPPETS_SOURCE_DIR, framework);
+      const outputDir = path.join(DOCS_SOURCES_DIR, framework);
       await ensureDir(outputDir);
       await fs.writeJSON(path.join(outputDir, "sources.json"), sources, {
         spaces: 2,
@@ -49,7 +49,7 @@ async function main() {
   }
 
   console.log(
-    `\nExtracted ${totalSnippets} total snippets to ${DOCS_SNIPPETS_SOURCE_DIR}`,
+    `\nExtracted ${totalSnippets} total snippets to ${DOCS_SOURCES_DIR}`,
   );
 }
 

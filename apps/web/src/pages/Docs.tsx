@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect } from "react";
+import { memo, useCallback, useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useDocsStore } from "@/stores/docsStore";
 import {
@@ -7,104 +7,99 @@ import {
   TemplatesView,
   ModulesView,
 } from "@/components/docs";
+import type { FrameworkType, TabType } from "@/types/docs";
+import ContentLoader from "@/components/loaders/ContentLoader";
+import { parseDocsPath, buildDocsPath } from "@/utils/docsUrl";
 
 // Memoized sidebar to prevent re-renders when only content changes
 const MemoizedSidebar = memo(DocsSidebar);
 
-// Loading spinner for content area only
-const ContentLoading = () => (
-  <div className="flex items-center justify-center py-20">
-    <div className="flex flex-col items-center gap-4">
-      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      <p className="text-muted">Loading...</p>
-    </div>
-  </div>
-);
-
-// Derive tab purely from URL (single source of truth)
-const getTabFromPath = (pathname: string) => {
-  if (pathname.startsWith("/docs/templates")) return "templates";
-  if (pathname.startsWith("/docs/modules")) return "modules";
-  return "snippets";
-};
 
 const Docs = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const activeTab = getTabFromPath(location.pathname);
+  // Parse URL to get current state
+  const urlState = useMemo(() => parseDocsPath(location.pathname), [location.pathname]);
 
   const {
-    activeCategory,
-    activeFramework,
     snippetsData,
     templatesData,
+    addonsData,
     modulesData,
     loading,
     setActiveCategory,
     setActiveFramework,
     fetchSnippetsData,
     fetchTemplatesData,
+    fetchAddonsData,
     fetchModulesData,
   } = useDocsStore();
 
-  // Fetch data based on active tab
+  // Sync URL state to Zustand store
   useEffect(() => {
-    if (activeTab === "snippets") {
-      fetchSnippetsData(activeFramework);
+    setActiveFramework(urlState.framework);
+    if (urlState.category) {
+      setActiveCategory(urlState.category);
+    }
+  }, [urlState.framework, urlState.category, setActiveFramework, setActiveCategory]);
+
+  // Fetch data based on URL state
+  useEffect(() => {
+    if (urlState.tab === "snippets") {
+      fetchSnippetsData(urlState.framework);
     }
 
-    if (activeTab === "templates") {
-      fetchTemplatesData();
+    if (urlState.tab === "templates") {
+      fetchTemplatesData(urlState.framework);
     }
 
-    if (activeTab === "modules") {
+    if (urlState.tab === "addons") {
+      fetchAddonsData();
+    }
+
+    if (urlState.tab === "modules") {
       fetchModulesData();
     }
-  }, [
-    activeTab,
-    activeFramework,
-    fetchSnippetsData,
-    fetchTemplatesData,
-    fetchModulesData,
-  ]);
+  }, [urlState.tab, urlState.framework, fetchSnippetsData, fetchTemplatesData, fetchAddonsData, fetchModulesData]);
 
-
-  useEffect(() => {
-    setActiveCategory("");
-  }, [activeTab, setActiveCategory]);
+  // Note: Removed auto-navigation to first category
+  // Users can now stay on framework overview pages (e.g., /docs/snippets/express)
+  // without being redirected to /docs/snippets/express/libs
 
   const handleTabChange = useCallback(
-    (tab: "snippets" | "templates" | "modules") => {
-      navigate(tab === "snippets" ? "/docs" : `/docs/${tab}`);
+    (tab: TabType) => {
+      // Navigate to new tab, keeping framework if applicable
+      if (tab === "modules") {
+        navigate("/docs/modules");
+      } else if (tab === "addons") {
+        navigate("/docs/addons");
+      } else {
+        navigate(buildDocsPath(tab, urlState.framework, ""));
+      }
+    },
+    [navigate, urlState.framework]
+  );
+
+
+
+  const handleNavigate = useCallback(
+    (tab: TabType, framework: FrameworkType, category: string = "") => {
+      navigate(buildDocsPath(tab, framework, category));
     },
     [navigate]
-  );
-
-  const handleFrameworkChange = useCallback(
-    (framework: "express" | "hono" | "elysia" | "shared") => {
-      setActiveFramework(framework);
-    },
-    [setActiveFramework]
-  );
-
-  const handleCategoryChange = useCallback(
-    (category: string) => {
-      setActiveCategory(category);
-    },
-    [setActiveCategory]
   );
 
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row">
       {/* Sidebar */}
       <MemoizedSidebar
-        activeTab={activeTab}
-        activeCategory={activeCategory}
-        activeFramework={activeFramework}
+        activeTab={urlState.tab}
+        activeCategory={urlState.category}
+        activeFramework={urlState.framework}
         onTabChange={handleTabChange}
-        onCategoryChange={handleCategoryChange}
-        onFrameworkChange={handleFrameworkChange}
+
+        onNavigate={handleNavigate}
         snippetsData={snippetsData}
         templatesData={templatesData}
       />
@@ -113,25 +108,32 @@ const Docs = () => {
       <main className="flex-1 p-6 md:p-12 overflow-y-auto">
         <div className="max-w-4xl mx-auto">
           {loading ? (
-            <ContentLoading />
+            <ContentLoader />
           ) : (
             <>
-              {activeTab === "snippets" && snippetsData && (
+              {urlState.tab === "snippets" && snippetsData && (
                 <SnippetsView
                   data={snippetsData}
-                  activeCategory={activeCategory}
-                  activeFramework={activeFramework}
+                  activeCategory={urlState.category}
+                  activeFramework={urlState.framework}
                 />
               )}
 
-              {activeTab === "templates" && templatesData && (
+              {urlState.tab === "templates" && templatesData && (
                 <TemplatesView
                   data={templatesData}
-                  activeCategory={activeCategory}
+                  activeCategory={urlState.category}
                 />
               )}
 
-              {activeTab === "modules" && modulesData && (
+              {urlState.tab === "addons" && addonsData && (
+                <TemplatesView
+                  data={addonsData}
+                  activeCategory={urlState.category}
+                />
+              )}
+
+              {urlState.tab === "modules" && modulesData && (
                 <ModulesView data={modulesData} />
               )}
             </>
@@ -143,3 +145,4 @@ const Docs = () => {
 };
 
 export default Docs;
+

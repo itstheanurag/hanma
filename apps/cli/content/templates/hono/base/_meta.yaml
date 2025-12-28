@@ -1,0 +1,32 @@
+name: hono
+category: base
+description: Production-ready Hono server for Node.js with TypeScript
+framework: hono
+version: "4"
+
+# Include snippets from packages/snippets
+includes:
+  - snippet: hono/v4/libs/servers/hono-basic.hbs
+    path: src/libs/server.ts
+  - snippet: shared/tsconfig/express.hbs
+    path: tsconfig.json
+    
+dependencies:
+  - hono
+  - "@hono/node-server"
+  - zod
+
+devDependencies:
+  - typescript
+  - "@types/node"
+  - tsx
+
+scripts:
+  dev: "tsx watch src/index.ts"
+  build: "tsc"
+  start: "node dist/index.js"
+
+envVars:
+  - PORT=3000
+  - NODE_ENV=development
+  - CORS_ORIGINS=http://localhost:3000

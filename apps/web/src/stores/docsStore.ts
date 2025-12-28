@@ -1,4 +1,5 @@
 import { create } from "zustand";
+
 import type {
   SnippetFramework,
   SnippetCategory,
@@ -8,11 +9,15 @@ import type {
   TabType,
   FrameworkType,
 } from "../types/docs";
+
 import {
   snippetIndexes,
   loadSnippetCategory,
   templatesIndex,
+  templatesIndexes,
   loadTemplateCategory,
+  addonsIndexData,
+  loadAddonCategory,
   modulesData as modulesDataImport,
 } from "@/utils/docsLoader";
 
@@ -25,6 +30,7 @@ interface DocsState {
   // Data
   snippetsData: SnippetFramework | null;
   templatesData: TemplatesData | null;
+  addonsData: TemplatesData | null;
   modulesData: ModulesData | null;
 
   // Loading state
@@ -32,6 +38,7 @@ interface DocsState {
 
   // Cache for framework data
   frameworkCache: Map<FrameworkType, SnippetFramework>;
+  templatesCache: Map<string, TemplatesData>;
 }
 
 interface DocsActions {
@@ -43,7 +50,8 @@ interface DocsActions {
 
   // Data fetching
   fetchSnippetsData: (framework: FrameworkType) => Promise<void>;
-  fetchTemplatesData: () => Promise<void>;
+  fetchTemplatesData: (framework?: string) => Promise<void>;
+  fetchAddonsData: () => Promise<void>;
   fetchModulesData: () => Promise<void>;
 
   // Reset
@@ -56,9 +64,11 @@ const initialState: DocsState = {
   activeCategory: "",
   snippetsData: null,
   templatesData: null,
+  addonsData: null,
   modulesData: null,
   loading: false,
   frameworkCache: new Map(),
+  templatesCache: new Map(),
 };
 
 export const useDocsStore = create<DocsState & DocsActions>((set, get) => ({
@@ -125,23 +135,33 @@ export const useDocsStore = create<DocsState & DocsActions>((set, get) => ({
     }
   },
 
-  fetchTemplatesData: async () => {
-    const { templatesData } = get();
-    if (templatesData) return;
+  fetchTemplatesData: async (framework: string = "express") => {
+    const { templatesCache } = get();
+
+    // Check cache first
+    const cached = templatesCache.get(framework);
+    if (cached) {
+      set({
+        templatesData: cached,
+        loading: false,
+        activeCategory: cached.categories?.[0]?.id || "",
+      });
+      return;
+    }
 
     set({ loading: true });
 
     try {
       // Use static imports instead of fetch
-      const indexData = templatesIndex;
+      const indexData = templatesIndexes[framework] || templatesIndex;
       if (!indexData) {
-        throw new Error("No templates index found");
+        throw new Error(`No templates index found for framework: ${framework}`);
       }
 
       const categories: TemplateCategory[] = indexData.categoryFiles
         .map(
           (catFile: { id: string; file: string }) =>
-            loadTemplateCategory(catFile.file) as TemplateCategory,
+            loadTemplateCategory(catFile.file, framework) as TemplateCategory,
         )
         .filter((cat: unknown): cat is TemplateCategory => cat !== null);
 
@@ -152,13 +172,54 @@ export const useDocsStore = create<DocsState & DocsActions>((set, get) => ({
         examples: indexData.examples,
       };
 
+      // Update cache
+      const newCache = new Map(templatesCache);
+      newCache.set(framework, mergedData);
+
       set({
         templatesData: mergedData,
+        templatesCache: newCache,
         loading: false,
         activeCategory: categories?.[0]?.id || "",
       });
     } catch (err) {
       console.error("Failed to load templates:", err);
+      set({ loading: false });
+    }
+  },
+
+  fetchAddonsData: async () => {
+    const { addonsData } = get();
+    if (addonsData) return;
+
+    set({ loading: true });
+
+    try {
+      const indexData = addonsIndexData;
+      if (!indexData) {
+        throw new Error("No add-ons index found");
+      }
+
+      const categories: TemplateCategory[] = indexData.categoryFiles
+        .map(
+          (catFile: { id: string; file: string }) =>
+            loadAddonCategory(catFile.file) as TemplateCategory,
+        )
+        .filter((cat: unknown): cat is TemplateCategory => cat !== null);
+
+      const mergedData: TemplatesData = {
+        title: indexData.title || "",
+        description: indexData.description || "",
+        categories,
+      };
+
+      set({
+        addonsData: mergedData,
+        loading: false,
+        activeCategory: categories?.[0]?.id || "",
+      });
+    } catch (err) {
+      console.error("Failed to load add-ons:", err);
       set({ loading: false });
     }
   },

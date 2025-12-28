@@ -1,0 +1,24 @@
+name: hono-cloudflare
+category: base
+description: Production-ready Hono server for Cloudflare Workers with edge capabilities
+framework: hono
+version: "4"
+
+includes:
+  - snippet: hono/v4/libs/servers/hono-cloudflare-workers.hbs
+    path: src/index.ts
+    
+dependencies:
+  - hono
+  - zod
+
+devDependencies:
+  - wrangler
+  - "@cloudflare/workers-types"
+
+scripts:
+  dev: "wrangler dev"
+  deploy: "wrangler deploy"
+
+envVars:
+  - NODE_ENV=development

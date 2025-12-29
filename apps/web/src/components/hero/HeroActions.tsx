@@ -1,5 +1,5 @@
 import { GITHUB } from "@/constants";
-import { LuGithub, LuSparkles } from "react-icons/lu";
+import { LuGithub } from "react-icons/lu";
 import {Link } from "react-router-dom";
 
 const HeroActions = () => {
@@ -17,14 +17,6 @@ const HeroActions = () => {
         <LuGithub size={18} />
         Star on GitHub
       </button>
-
-      <Link
-        to="/builder"
-        className="flex items-center gap-2 bg-primary/10 text-primary border border-primary/20 px-6 py-3 rounded-lg font-medium hover:bg-primary/20 transition-all shadow-sm shadow-primary/5"
-      >
-        <LuSparkles size={18} />
-        Template Builder
-      </Link>
     </div>
   );
 };

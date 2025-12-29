@@ -6,8 +6,10 @@
   --color-surface: var(--surface);
   --color-surface-hover: var(--surface-hover);
   --color-border: var(--border);
-  --color-primary: oklch(0.75 0.15 85);
-  --color-secondary: oklch(0.95 0.05 60);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
 }
@@ -20,6 +22,12 @@
     --border: oklch(0.92 0 0);
     --foreground: oklch(0.145 0.02 285);
     --muted: oklch(0.55 0.03 260);
+    
+    --primary: oklch(0.75 0.15 85);
+    --primary-foreground: oklch(0.985 0 0);
+    
+    --secondary: oklch(0.96 0.01 285);
+    --secondary-foreground: oklch(0.145 0.02 285);
   }
 
   .dark {
@@ -29,6 +37,12 @@
     --border: oklch(0.26 0.02 285);
     --foreground: oklch(0.985 0 0);
     --muted: oklch(0.7 0.02 260);
+    
+    --primary: oklch(0.75 0.15 85); /* Keep primary constant or adjust if needed */
+    --primary-foreground: oklch(0.145 0.02 285);
+
+    --secondary: oklch(0.25 0.02 285);
+    --secondary-foreground: oklch(0.985 0 0);
   }
 
   body {

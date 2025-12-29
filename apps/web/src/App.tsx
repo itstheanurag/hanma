@@ -3,6 +3,7 @@ import { Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./components/theme/ThemeContext";
 import DocsLayout from "./layout/DocLayout";
 import AppLayout from "./layout/AppLayout";
+import TemplateBuilder from "./pages/TemplateBuilder";
 
 // Lazy load pages
 const LandingPage = lazy(() => import("./components/LandingPage"));
@@ -26,7 +27,7 @@ function App() {
             <Route element={<AppLayout />}>
               <Route path="/" element={<LandingPage />} />
               <Route path="/contributors" element={<Contributors />} />
-              {/* <Route path="/builder" element={<TemplateBuilder />} /> */}
+              <Route path="/builder" element={<TemplateBuilder />} />
             </Route>
 
             <Route element={<DocsLayout />}>

@@ -10,6 +10,7 @@ interface TemplateBuilderState {
 
   // selections
   projectName: string;
+  selectedFramework: string;
   selectedBase: string;
   selectedDatabase: string;
   selectedAuth: string;
@@ -24,6 +25,7 @@ interface TemplateBuilderState {
   reset: () => void;
 
   setProjectName: (name: string) => void;
+  setSelectedFramework: (v: string) => void;
   setSelectedBase: (v: string) => void;
   setSelectedDatabase: (v: string) => void;
   setSelectedAuth: (v: string) => void;
@@ -42,6 +44,7 @@ export const useTemplateBuilderStore = create<TemplateBuilderState>(
     error: null,
 
     projectName: "my-app",
+    selectedFramework: "",
     selectedBase: "",
     selectedDatabase: "",
     selectedAuth: "",
@@ -63,9 +66,11 @@ export const useTemplateBuilderStore = create<TemplateBuilderState>(
 
         const data: TemplateRegistry = await res.json();
 
+        const firstBase = data.base?.[0];
         set({
           registry: data,
-          selectedBase: data.base?.[0]?.name ?? "",
+          selectedFramework: firstBase?.framework ?? "",
+          selectedBase: firstBase?.name ?? "",
           loading: false,
         });
       } catch (err: any) {
@@ -78,6 +83,12 @@ export const useTemplateBuilderStore = create<TemplateBuilderState>(
 
     // setters
     setProjectName: (projectName) => set({ projectName }),
+    setSelectedFramework: (selectedFramework) =>
+      set({
+        selectedFramework,
+        // Reset dependent selections
+        selectedBase: "",
+      }),
     setSelectedBase: (selectedBase) => set({ selectedBase }),
     setSelectedDatabase: (selectedDatabase) => set({ selectedDatabase }),
     setSelectedAuth: (selectedAuth) => set({ selectedAuth }),
@@ -91,9 +102,11 @@ export const useTemplateBuilderStore = create<TemplateBuilderState>(
     // reset
     reset: () => {
       const { registry } = get();
+      const firstBase = registry?.base?.[0];
 
       set({
-        selectedBase: registry?.base?.[0]?.name ?? "",
+        selectedFramework: firstBase?.framework ?? "",
+        selectedBase: firstBase?.name ?? "",
         selectedDatabase: "",
         selectedAuth: "",
         selectedPreset: "",

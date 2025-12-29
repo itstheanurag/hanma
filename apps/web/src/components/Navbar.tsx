@@ -49,13 +49,13 @@ const NavbarComponent = () => {
               <LuGithub size={14} />
               <span>{stars} Stars</span>
             </a>
-{/* 
+
             <Link
               to="/builder"
               className="px-4 py-1.5 rounded-full text-xs font-medium text-muted hover:text-foreground transition-colors"
             >
               Builder
-            </Link> */}
+            </Link>
 
             <Link
               to="/docs"

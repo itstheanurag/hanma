@@ -1,14 +1,13 @@
 import { useEffect } from "react";
 import { useTemplateBuilderStore } from "@/stores/builderStore";
-import { useBuilderSections } from "@/hooks/useBuilderSections";
-
-// Components
 import LoadingState from "@/components/templates/Loading";
 import ErrorState from "@/components/templates/ErrorState";
-import { CategoryCard } from "@/components/templates/CategoryCard";
-import { OptionItem } from "@/components/templates/OptionItem";
 import TerminalDock from "@/components/templates/TerminalDock";
-import { LuRefreshCw } from "react-icons/lu";
+import { ProjectDetails } from "@/components/templates/ProjectDetails";
+import { FrameworkSelector } from "@/components/templates/FrameworkSelector";
+import { FeatureSection } from "@/components/templates/FeatureSection";
+import { BuilderSidebar } from "@/components/templates/BuilderSidebar";
+import type { TemplateBlock } from "@/types/builder";
 
 export default function TemplateBuilder() {
   const {
@@ -16,10 +15,10 @@ export default function TemplateBuilder() {
     loading,
     error,
     registry,
+    
+  // Selections
     projectName,
-    setProjectName,
-
-    // Selectors for dock
+    selectedFramework,
     selectedBase,
     selectedDatabase,
     selectedAuth,
@@ -29,10 +28,17 @@ export default function TemplateBuilder() {
     selectedTooling,
     selectedOtherFeatures,
 
-    reset,
+    // Setters
+    setProjectName,
+    setSelectedFramework,
+    setSelectedBase,
+    setSelectedDatabase,
+    setSelectedAuth,
+    setSelectedMailer,
+    setSelectedUpload,
+    setSelectedTooling,
+    setSelectedOtherFeatures,
   } = useTemplateBuilderStore();
-
-  const sections = useBuilderSections();
 
   useEffect(() => {
     fetchRegistry();
@@ -42,68 +48,186 @@ export default function TemplateBuilder() {
   if (error) return <ErrorState message={error} />;
   if (!registry) return null;
 
+  // 1. Extract unique frameworks
+  const frameworks: TemplateBlock[] = [];
+  const seenFrameworks = new Set<string>();
+  
+  registry.base?.forEach((item) => {
+    if (item.framework && !seenFrameworks.has(item.framework)) {
+      seenFrameworks.add(item.framework);
+      // Create a synthetic block for the framework selection
+      frameworks.push({
+        ...item,
+        name: item.framework, // e.g. "express"
+        description: `Build using ${item.framework.charAt(0).toUpperCase() + item.framework.slice(1)} framework`,
+        category: "framework"
+      });
+    }
+  });
+
+  // 2. Filter Base Templates (Starters) based on selected framework
+  const availableStarters = registry.base?.filter(
+    (item) => item.framework === selectedFramework
+  ) || [];
+
+  // 3. Filter other features based on selected FRAMEWORK (not the specific template)
+  const filterByFramework = (items: TemplateBlock[] = []) => {
+    return items.filter(
+      (item) => !item.framework || item.framework === selectedFramework
+    );
+  };
+
+  const databases = filterByFramework(registry.database);
+  const authProviders = filterByFramework(registry.auth);
+  
+  const allFeatures = filterByFramework(registry.features);
+
+  const mailers = allFeatures.filter((f) => f.category === "mailer" || f.featureType === "mailer");
+  const uploaders = allFeatures.filter((f) => f.category === "upload" || f.category === "storage" || f.featureType === "upload");
+  const tooling = allFeatures.filter((f) => f.category === "tooling" || f.featureType === "tooling");
+  
+  const otherFeatures = allFeatures.filter(
+    (f) => 
+      !["mailer", "upload", "tooling", "storage"].includes(f.category) && 
+      !["mailer", "upload", "tooling"].includes(f.featureType || "")
+  );
+
+  // Helper for multi-select toggle
+  const toggleFeature = (value: string) => {
+    if (selectedOtherFeatures.includes(value)) {
+      setSelectedOtherFeatures(selectedOtherFeatures.filter((f) => f !== value));
+    } else {
+      setSelectedOtherFeatures([...selectedOtherFeatures, value]);
+    }
+  };
+
+  // Helper for radio toggle (deselect if already selected)
+  const toggleSelection = (
+    currentValue: string,
+    newValue: string,
+    setter: (val: string) => void
+  ) => {
+    if (currentValue === newValue) {
+      setter("");
+    } else {
+      setter(newValue);
+    }
+  };
+
   return (
-    <div className="flex-1 flex flex-col min-h-screen mt-24 relative">
-      {/* Top Controls */}
-      <div className="px-6 py-8 md:px-12 flex flex-col md:flex-row md:items-center justify-between gap-4 max-w-7xl mx-auto w-full">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            Configure your stack
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Select the components for your new project.
-          </p>
-        </div>
+    <div className="flex-1 flex flex-col min-h-screen mt-24 relative bg-background text-foreground">
+      
+      {/* Header */}
+      <div className="px-6 py-8 md:px-12 max-w-7xl mx-auto w-full">
+        <h1 className="text-3xl font-bold mb-2">Configure your stack</h1>
+        <p className="text-muted-foreground">
+          Select the best tools for your next big project.
+        </p>
+      </div>
 
-        <div className="flex items-center gap-4">
-          <input
-            type="text"
-            value={projectName}
-            onChange={(e) => setProjectName(e.target.value)}
-            className="bg-surface border border-border rounded-lg px-3 py-1.5 text-sm w-48 focus:outline-none focus:border-primary transition-colors placeholder:text-muted-foreground/50"
-            placeholder="project-name"
+      {/* Main Grid */}
+      <div className="flex-1 px-6 pb-24 md:px-12 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* Left Column (Configuration) */}
+        <div className="lg:col-span-2 space-y-12">
+          
+          <FrameworkSelector 
+            items={frameworks}
+            selected={selectedFramework}
+            onSelect={setSelectedFramework}
           />
-          <button
-            onClick={reset}
-            className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-surface border border-transparent hover:border-border transition-all"
-          >
-            <LuRefreshCw className="w-3.5 h-3.5" />
-            Reset
-          </button>
+          
+          {/* Starter Template Selection */}
+          <FeatureSection
+            number={3}
+            title="Starter Template"
+            items={availableStarters}
+            selected={selectedBase}
+            onSelect={(val) => toggleSelection(selectedBase, val, setSelectedBase)}
+            type="radio"
+          />
+
+          <FeatureSection
+            number={4}
+            title="Database"
+            items={databases}
+            selected={selectedDatabase}
+            onSelect={(val) => toggleSelection(selectedDatabase, val, setSelectedDatabase)}
+            type="radio"
+          />
+
+          <FeatureSection
+            number={5}
+            title="Authentication"
+            items={authProviders}
+            selected={selectedAuth}
+            onSelect={(val) => toggleSelection(selectedAuth, val, setSelectedAuth)}
+            type="radio"
+          />
+
+           <FeatureSection
+            number={6}
+            title="Mailers"
+            items={mailers}
+            selected={selectedMailer}
+            onSelect={(val) => toggleSelection(selectedMailer, val, setSelectedMailer)}
+            type="radio"
+          />
+
+           <FeatureSection
+            number={7}
+            title="Upload Provders"
+            items={uploaders}
+            selected={selectedUpload}
+            onSelect={(val) => toggleSelection(selectedUpload, val, setSelectedUpload)}
+            type="radio"
+          />
+
+           <FeatureSection
+            number={8}
+            title="Tooling"
+            items={tooling}
+            selected={selectedTooling}
+            onSelect={(val) => toggleSelection(selectedTooling, val, setSelectedTooling)}
+            type="radio"
+          />
+
+           <FeatureSection
+            number={9}
+            title="Additional Features"
+            items={otherFeatures}
+            selectedList={selectedOtherFeatures}
+            onSelect={toggleFeature}
+            type="checkbox"
+          />
+
         </div>
+
+        {/* Right Column (Sidebar) */}
+        <div className="lg:col-span-1">
+          <div className="sticky top-24 space-y-6">
+             <ProjectDetails 
+                value={projectName} 
+                onChange={setProjectName} 
+             />
+
+             <BuilderSidebar 
+                selectedFramework={selectedBase}
+                selectedFeatures={[
+                    selectedDatabase, 
+                    selectedAuth, 
+                    selectedMailer,
+                    selectedUpload,
+                    selectedTooling,
+                    ...selectedOtherFeatures
+                ].filter(Boolean)}
+             />
+          </div>
+        </div>
+
       </div>
 
-      {/* Main Grid - Dynamic Rendering */}
-      <div className="flex-1 px-6 pb-20 md:px-12 max-w-7xl mx-auto w-full">
-        <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
-          {sections.map((section) => (
-            <div key={section.id} className="break-inside-avoid">
-              <CategoryCard
-                icon={section.icon}
-                title={section.title}
-                description={section.description}
-              >
-                {section.items.map((item: any) => (
-                  <OptionItem
-                    key={item.value || "none"}
-                    label={item.label}
-                    description={item.description}
-                    type={section.type}
-                    isSelected={
-                      section.type === "radio"
-                        ? section.selectedValue === item.value
-                        : section.selectedValues?.includes(item.value)
-                    }
-                    onClick={() => section.onSelect(item.value)}
-                  />
-                ))}
-              </CategoryCard>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Bottom Terminal Dock */}
+      {/* Terminal Dock */}
       <TerminalDock
         projectName={projectName}
         selectedBase={selectedBase}
@@ -115,6 +239,7 @@ export default function TemplateBuilder() {
         selectedTooling={selectedTooling}
         selectedOtherFeatures={selectedOtherFeatures}
       />
+
     </div>
   );
 }

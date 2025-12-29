@@ -21,7 +21,7 @@ export const generateCommand = ({
   selectedTooling,
   selectedOtherFeatures,
 }: any) => {
-  let cmd = `npx hanma init ${projectName}`;
+  let cmd = `npx hanma create ${projectName}`;
 
   if (selectedBase) cmd += ` --server ${selectedBase}`;
   if (selectedDatabase) cmd += ` --db ${selectedDatabase}`;

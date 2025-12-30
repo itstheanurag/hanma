@@ -1,18 +1,12 @@
-import { useEffect, memo } from "react";
-import { LuGithub, LuMoon, LuSun } from "react-icons/lu";
+import { memo } from "react";
+import { LuMoon, LuSun } from "react-icons/lu";
 import Logo from "./Logo";
 import { useTheme } from "./theme/ThemeContext";
 import { Link } from "react-router-dom";
-import { useGithubStore } from "@/stores";
-import { GITHUB } from "@/constants";
+import { GITHUB, LINKS } from "@/constants";
 
 const NavbarComponent = () => {
   const { theme, toggleTheme } = useTheme();
-  const { stars, fetchStats } = useGithubStore();
-
-  useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
@@ -28,8 +22,7 @@ const NavbarComponent = () => {
           </div>
         </Link>
 
-        <div className="flex items-center gap-4">
-
+        <div className="flex items-center gap-2">
           {/* Theme toggle */}
           <button
             onClick={toggleTheme}
@@ -39,35 +32,45 @@ const NavbarComponent = () => {
             {theme === "dark" ? <LuSun size={18} /> : <LuMoon size={18} />}
           </button>
           {/* Project actions */}
-          <div className="hidden md:flex items-center gap-1 p-1 rounded-full border border-border bg-surface">
+          <div className="hidden md:flex items-center gap-1 p-1 rounded-md border border-border bg-surface text-xs">
+            {/* GitHub */}
             <a
               href={GITHUB.REPO_URL}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium text-muted hover:text-foreground transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full font-medium text-muted hover:text-foreground transition-colors"
             >
-              <LuGithub size={14} />
-              <span>{stars} Stars</span>
+              GitHub
             </a>
 
+            {/* npm */}
+            <a
+              href={LINKS.NPM}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-center px-2.5 py-1.5 rounded-full text-muted hover:text-foreground transition-colors"
+              aria-label="npm"
+            >
+              Npm
+            </a>
+
+            {/* Builder */}
             <Link
               to="/builder"
-              className="px-4 py-1.5 rounded-full text-xs font-medium text-muted hover:text-foreground transition-colors"
+              className="px-4 py-1.5 rounded-full font-medium text-muted hover:text-foreground transition-colors"
             >
               Builder
             </Link>
 
+            {/* Docs */}
             <Link
               to="/docs"
-              className="px-4 py-1.5 rounded-full bg-background text-foreground font-semibold text-xs hover:brightness-90 transition-all"
+              className="px-4 py-1.5 rounded-md bg-background text-foreground font-semibold hover:brightness-90 transition-all"
             >
               Docs
             </Link>
           </div>
-
-
         </div>
-
       </div>
     </nav>
   );

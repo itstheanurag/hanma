@@ -13,6 +13,8 @@ interface GithubState {
   stars: number;
   contributors: number;
   contributorsList: Contributor[];
+  npmDownloads: number;
+  npmSize: string;
   loading: boolean;
 }
 
@@ -28,6 +30,8 @@ export const useGithubStore = create<GithubState & GithubActions>(
     stars: DEFAULT_STARS,
     contributors: DEFAULT_CONTRIBUTORS,
     contributorsList: [],
+    npmDownloads: 0,
+    npmSize: "0 KB",
     loading: false,
 
     fetchStats: async () => {
@@ -38,10 +42,13 @@ export const useGithubStore = create<GithubState & GithubActions>(
       set({ loading: true });
 
       try {
-        const [repoRes, contributorsRes] = await Promise.all([
-          fetch(GITHUB.API_URL),
-          fetch(GITHUB.CONTRIBUTORS_URL),
-        ]);
+        const [repoRes, contributorsRes, npmDownloadsRes, npmSizeRes] =
+          await Promise.all([
+            fetch(GITHUB.API_URL),
+            fetch(GITHUB.CONTRIBUTORS_URL),
+            fetch("https://api.npmjs.org/downloads/point/last-month/hanma"),
+            fetch("https://registry.npmjs.org/hanma/latest"),
+          ]);
 
         if (repoRes.ok) {
           const repoData = await repoRes.json();
@@ -59,8 +66,20 @@ export const useGithubStore = create<GithubState & GithubActions>(
             contributorsList: validContributors,
           });
         }
+
+        if (npmDownloadsRes.ok) {
+          const data = await npmDownloadsRes.json();
+          set({ npmDownloads: data.downloads || 0 });
+        }
+
+        if (npmSizeRes.ok) {
+          const data = await npmSizeRes.json();
+          const sizeInBytes = data.dist?.unpackedSize || 0;
+          const sizeInKB = (sizeInBytes / 1024).toFixed(1) + " KB";
+          set({ npmSize: sizeInKB });
+        }
       } catch (error) {
-        console.error("Failed to fetch GitHub stats:", error);
+        console.error("Failed to fetch stats:", error);
       } finally {
         set({ loading: false });
       }

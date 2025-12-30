@@ -24,7 +24,7 @@ dist-ssr
 *.sw?
 
 
-public/sources/*
 public/modules/*
 public/registry/*
 public/templates/*
+src/docs/sources/*

@@ -5,14 +5,16 @@ import SupportedFrameworks from "./SupportedFrameworks";
 import { TerminalSection } from "./terminal";
 import FAQ from "./FAQ";
 import Community from "./Community";
+// import { Stats } from "./Stats";
 
 const LandingPage = () => {
   return (
     <>
       <Hero />
       <div className="w-full h-px bg-border" />
+      {/* <Stats />
+      <div className="w-full h-px bg-border" /> */}
       <Philosophy />
-      <div className="w-full h-px bg-border" />
       <TerminalSection />
       <div className="w-full h-px bg-border" />
       <Features />

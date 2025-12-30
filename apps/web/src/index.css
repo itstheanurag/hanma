@@ -23,7 +23,7 @@
     --foreground: oklch(0.145 0.02 285);
     --muted: oklch(0.55 0.03 260);
     
-    --primary: oklch(0.75 0.15 85);
+    --primary: oklch(0.205 0 0);
     --primary-foreground: oklch(0.985 0 0);
     
     --secondary: oklch(0.96 0.01 285);
@@ -38,7 +38,7 @@
     --foreground: oklch(0.985 0 0);
     --muted: oklch(0.7 0.02 260);
     
-    --primary: oklch(0.75 0.15 85); /* Keep primary constant or adjust if needed */
+    --primary: oklch(0.985 0 0); /* Keep primary constant or adjust if needed */
     --primary-foreground: oklch(0.145 0.02 285);
 
     --secondary: oklch(0.25 0.02 285);

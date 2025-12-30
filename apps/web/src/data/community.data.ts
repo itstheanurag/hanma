@@ -1,6 +1,5 @@
 import { BiHeart, BiUser } from "react-icons/bi";
 import { FiMessageCircle } from "react-icons/fi";
-// import { FiMessageCircle } from "react-icons/fi";
 
 export const communityMeta = {
   badge: {

@@ -1,5 +1,3 @@
-// footer.data.ts
-
 import { LuGithub, LuTwitter, LuDisc } from "react-icons/lu";
 
 export const footerMeta = {

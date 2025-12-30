@@ -61,11 +61,11 @@ import addonsPresets from "@/docs/templates/shared/presets.json";
 import modulesIndex from "@/docs/modules/index.json";
 
 // Snippets Sources ( stay in public cause they can be generated from scripts )
-import expressSourcesJson from "@public/sources/express/sources.json";
-import honoSourcesJson from "@public/sources/hono/sources.json";
-import elysiaSourcesJson from "@public/sources/elysia/sources.json";
-import fastifySourcesJson from "@public/sources/fastify/sources.json";
-import sharedSourcesJson from "@public/sources/shared/sources.json";
+import expressSourcesJson from "@/docs/sources/express/sources.json";
+import honoSourcesJson from "@/docs/sources/hono/sources.json";
+import elysiaSourcesJson from "@/docs/sources/elysia/sources.json";
+import fastifySourcesJson from "@/docs/sources/fastify/sources.json";
+import sharedSourcesJson from "@/docs/sources/shared/sources.json";
 
 import type { FrameworkType } from "@/types/docs";
 

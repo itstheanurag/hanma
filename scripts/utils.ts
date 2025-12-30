@@ -12,8 +12,9 @@ export const SNIPPETS_DIR = path.join(CLI_CONTENT_DIR, "snippets");
 export const TEMPLATES_DIR = path.join(CLI_CONTENT_DIR, "templates");
 export const MODULES_DIR = path.join(CLI_CONTENT_DIR, "modules");
 export const PUBLIC_DIR = path.join(ROOT_DIR, "apps/web/public");
+export const WEB_SRC_DIR = path.join(ROOT_DIR, "apps/web/src");
 export const DOCS_REGISTRY_DIR = path.join(PUBLIC_DIR, "registry");
-export const DOCS_SOURCES_DIR = path.join(PUBLIC_DIR, "sources");
+export const DOCS_SOURCES_DIR = path.join(WEB_SRC_DIR, "docs/sources");
 
 export interface SnippetMeta {
   name: string;

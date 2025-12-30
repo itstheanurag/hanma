@@ -1,0 +1,186 @@
+{
+  "id": "middleware",
+  "title": "Middleware",
+  "description": "Reusable Fastify middleware and hooks",
+  "subcategories": [
+    {
+      "id": "auth",
+      "title": "Authentication",
+      "description": "Auth and authorization middleware",
+      "snippets": [
+        {
+          "id": "fastify-jwt",
+          "name": "fastify-jwt",
+          "displayName": "JWT Authentication",
+          "description": "JWT middleware with role-based access control",
+          "purpose": "Protect routes with JWT authentication using @fastify/jwt. Supports role-based access control and token refresh.",
+          "features": [
+            "JWT verification via @fastify/jwt",
+            "Role-based access control",
+            "Token generation helpers",
+            "Refresh token support",
+            "Customizable error responses"
+          ],
+          "usage": "import { registerJwtAuth, authenticate, authorize } from './middleware/jwt-auth';\n\nawait registerJwtAuth(app);\napp.get('/admin', { preHandler: [authorize(['admin'])] }, handler);",
+          "output": "src/middleware/jwt-auth.ts",
+          "dependencies": ["fastify", "@fastify/jwt"],
+          "command": "npx hanma add fastify-jwt --framework fastify"
+        },
+        {
+          "id": "fastify-api-key",
+          "name": "fastify-api-key",
+          "displayName": "API Key Authentication",
+          "description": "API key auth for service-to-service communication",
+          "purpose": "Simple API key authentication with timing-safe comparison. Best for internal services or third-party integrations.",
+          "features": [
+            "Header-based API key",
+            "Multiple key support",
+            "Timing-safe validation",
+            "Key generation helpers",
+            "No external dependencies"
+          ],
+          "usage": "import { apiKeyAuth, generateApiKey } from './middleware/api-key-auth';\n\napp.addHook('preHandler', apiKeyAuth());\n// Or per-route:\napp.get('/api/data', { preHandler: [apiKeyAuth()] }, handler);",
+          "output": "src/middleware/api-key-auth.ts",
+          "dependencies": ["fastify"],
+          "command": "npx hanma add fastify-api-key --framework fastify"
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "title": "Security",
+      "description": "Security headers and protection middleware",
+      "snippets": [
+        {
+          "id": "fastify-cors",
+          "name": "fastify-cors",
+          "displayName": "CORS Configuration",
+          "description": "Cross-origin resource sharing with environment config",
+          "purpose": "Configure CORS for your API using @fastify/cors. Environment-driven with sensible defaults.",
+          "features": [
+            "Environment variable configuration",
+            "Origin whitelist support",
+            "Credentials handling",
+            "Preflight caching",
+            "Dev/prod mode switching"
+          ],
+          "usage": "import { registerCors } from './middleware/cors';\n\nawait registerCors(app);",
+          "output": "src/middleware/cors.ts",
+          "dependencies": ["fastify", "@fastify/cors"],
+          "command": "npx hanma add fastify-cors --framework fastify"
+        },
+        {
+          "id": "fastify-helmet",
+          "name": "fastify-helmet",
+          "displayName": "Helmet Security",
+          "description": "Security headers via @fastify/helmet",
+          "purpose": "Add comprehensive security headers using @fastify/helmet. Includes CSP, HSTS, and XSS protection.",
+          "features": [
+            "Content Security Policy",
+            "HSTS with preload",
+            "XSS protection",
+            "Environment-aware configs",
+            "API-specific preset"
+          ],
+          "usage": "import { registerHelmet } from './middleware/helmet';\n\nawait registerHelmet(app);",
+          "output": "src/middleware/helmet.ts",
+          "dependencies": ["fastify", "@fastify/helmet"],
+          "command": "npx hanma add fastify-helmet --framework fastify"
+        },
+        {
+          "id": "fastify-rate-limiter",
+          "name": "fastify-rate-limiter",
+          "displayName": "Rate Limiter",
+          "description": "Rate limiting with @fastify/rate-limit",
+          "purpose": "Protect your API from abuse with rate limiting. Includes presets for auth, standard, and relaxed limits.",
+          "features": [
+            "Configurable limits",
+            "Route-specific rate limits",
+            "Presets for common use cases",
+            "Ban support for repeat offenders",
+            "Redis support (optional)"
+          ],
+          "usage": "import { registerRateLimit, rateLimitPresets } from './middleware/rate-limiter';\n\nawait registerRateLimit(app);\n// Per-route:\napp.post('/auth/login', { ...rateLimitPresets.auth }, handler);",
+          "output": "src/middleware/rate-limiter.ts",
+          "dependencies": ["fastify", "@fastify/rate-limit"],
+          "command": "npx hanma add fastify-rate-limiter --framework fastify"
+        }
+      ]
+    },
+    {
+      "id": "logging",
+      "title": "Logging",
+      "description": "Request and application logging",
+      "snippets": [
+        {
+          "id": "fastify-logger",
+          "name": "fastify-logger",
+          "displayName": "Pino Logger",
+          "description": "Structured logging with Pino",
+          "purpose": "Production-grade logging using Fastify's built-in Pino. Includes request logging, redaction, and audit logging.",
+          "features": [
+            "Multiple log levels",
+            "Sensitive field redaction",
+            "Pretty print in development",
+            "Audit event logging",
+            "Custom serializers"
+          ],
+          "usage": "import { createLoggerConfig, registerRequestLogger, log } from './middleware/logger';\n\nconst app = Fastify({ logger: createLoggerConfig() });\nregisterRequestLogger(app);\n\nlog.info('Application started', { port: 3000 });",
+          "output": "src/middleware/logger.ts",
+          "dependencies": ["fastify", "pino-pretty"],
+          "command": "npx hanma add fastify-logger --framework fastify"
+        }
+      ]
+    },
+    {
+      "id": "validation",
+      "title": "Validation",
+      "description": "Request validation middleware",
+      "snippets": [
+        {
+          "id": "fastify-zod",
+          "name": "fastify-zod",
+          "displayName": "Zod Validation",
+          "description": "Request validation with Zod schemas",
+          "purpose": "Validate request body, params, and query with Zod. Automatically generates OpenAPI schemas.",
+          "features": [
+            "Body validation",
+            "Query and params validation",
+            "Type inference",
+            "OpenAPI schema generation",
+            "Custom error formatting"
+          ],
+          "usage": "import { validateBody, createFastifySchema } from './middleware/validation';\nimport { z } from 'zod';\n\nconst schema = z.object({ email: z.string().email() });\napp.post('/user', { preHandler: [validateBody(schema)] }, handler);",
+          "output": "src/middleware/validation.ts",
+          "dependencies": ["fastify", "zod", "zod-to-json-schema"],
+          "command": "npx hanma add fastify-zod --framework fastify"
+        }
+      ]
+    },
+    {
+      "id": "error-handling",
+      "title": "Error Handling",
+      "description": "Error handling and custom error classes",
+      "snippets": [
+        {
+          "id": "fastify-error-handler",
+          "name": "fastify-error-handler",
+          "displayName": "Error Handler",
+          "description": "Global error handling with custom error classes",
+          "purpose": "Centralized error handling for your Fastify app. Includes custom error classes for common HTTP errors.",
+          "features": [
+            "Global error catching",
+            "Custom error classes",
+            "Environment-aware responses",
+            "Request ID inclusion",
+            "Not found handler"
+          ],
+          "usage": "import { registerErrorHandler, NotFoundError, ValidationError } from './middleware/error-handler';\n\nregisterErrorHandler(app);\n\n// Throw custom errors\nthrow new NotFoundError('User');\nthrow new ValidationError('Email is required', { field: 'email' });",
+          "output": "src/middleware/error-handler.ts",
+          "dependencies": ["fastify"],
+          "command": "npx hanma add fastify-error-handler --framework fastify"
+        }
+      ]
+    }
+  ]
+}

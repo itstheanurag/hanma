@@ -1,0 +1,75 @@
+{
+  "id": "utils",
+  "title": "Utilities",
+  "description": "Standalone utility functions for Fastify applications",
+  "subcategories": [
+    {
+      "id": "request-response",
+      "title": "Request & Response",
+      "description": "Request and response handling utilities",
+      "snippets": [
+        {
+          "id": "fastify-request-id",
+          "name": "fastify-request-id",
+          "displayName": "Request ID",
+          "description": "Unique ID for request tracing",
+          "purpose": "Add unique IDs to each request for distributed tracing. Propagates IDs to downstream services.",
+          "features": [
+            "UUID generation",
+            "Header propagation",
+            "Correlation context creation",
+            "Incoming ID respect",
+            "X-Request-Id and X-Correlation-Id headers"
+          ],
+          "usage": "import { registerRequestId, getRequestId, createCorrelationHeaders } from './utils/request-id';\n\nregisterRequestId(app);\n\n// In handlers:\nconst requestId = getRequestId(request);\n\n// For downstream calls:\nfetch(url, { headers: createCorrelationHeaders(request) });",
+          "output": "src/utils/request-id.ts",
+          "dependencies": ["fastify"],
+          "command": "npx hanma add fastify-request-id --framework fastify"
+        },
+        {
+          "id": "fastify-response-time",
+          "name": "fastify-response-time",
+          "displayName": "Response Time",
+          "description": "Add X-Response-Time header and metrics",
+          "purpose": "Track response times for performance monitoring. Logs slow requests and optionally exposes metrics endpoint.",
+          "features": [
+            "Millisecond precision",
+            "X-Response-Time header",
+            "Slow request logging",
+            "Response time metrics",
+            "Histogram tracking"
+          ],
+          "usage": "import { registerResponseTime, createResponseTimeMetrics } from './utils/response-time';\n\nregisterResponseTime(app);\ncreateResponseTimeMetrics(app); // Optional: adds /metrics/response-time",
+          "output": "src/utils/response-time.ts",
+          "dependencies": ["fastify"],
+          "command": "npx hanma add fastify-response-time --framework fastify"
+        }
+      ]
+    },
+    {
+      "id": "performance",
+      "title": "Performance",
+      "description": "Performance optimization utilities",
+      "snippets": [
+        {
+          "id": "fastify-compression",
+          "name": "fastify-compression",
+          "displayName": "Compression",
+          "description": "Response compression with @fastify/compress",
+          "purpose": "Compress responses with gzip/brotli to reduce bandwidth. Includes presets for static, API, and real-time use cases.",
+          "features": [
+            "Brotli compression (preferred)",
+            "Gzip fallback",
+            "Threshold configuration",
+            "Per-route presets",
+            "Disable for specific routes"
+          ],
+          "usage": "import { registerCompression, compressionPresets, noCompression } from './utils/compression';\n\nawait registerCompression(app);\n\n// Per-route:\napp.get('/static/*', { ...compressionPresets.static }, handler);\napp.get('/stream', { ...noCompression }, streamHandler);",
+          "output": "src/utils/compression.ts",
+          "dependencies": ["fastify", "@fastify/compress"],
+          "command": "npx hanma add fastify-compression --framework fastify"
+        }
+      ]
+    }
+  ]
+}

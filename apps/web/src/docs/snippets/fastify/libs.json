@@ -1,0 +1,68 @@
+{
+  "id": "libs",
+  "title": "Libraries",
+  "description": "Server implementations for Fastify applications",
+  "subcategories": [
+    {
+      "id": "servers",
+      "title": "Servers",
+      "description": "Production-ready server implementations",
+      "snippets": [
+        {
+          "id": "fastify-server",
+          "name": "fastify-server",
+          "displayName": "Fastify Server",
+          "description": "Production-ready Fastify HTTP server with graceful shutdown",
+          "purpose": "Start a Fastify server with proper production configuration. Includes health checks, CORS, Helmet, and graceful shutdown.",
+          "features": [
+            "Graceful shutdown on SIGTERM/SIGINT",
+            "CORS and Helmet pre-configured",
+            "Health, ready, and live endpoints for k8s",
+            "Environment-based configuration",
+            "Pino structured logging"
+          ],
+          "usage": "import { createServer, startServer } from './server';\n\nconst app = await createServer();\nawait startServer(app);",
+          "output": "src/server.ts",
+          "dependencies": ["fastify", "@fastify/cors", "@fastify/helmet"],
+          "command": "npx hanma add fastify-server --framework fastify"
+        },
+        {
+          "id": "fastify-socket-server",
+          "name": "fastify-socket-server",
+          "displayName": "WebSocket Server",
+          "description": "Real-time WebSocket server with connection management",
+          "purpose": "Add real-time capabilities to your app using @fastify/websocket. Perfect for chat, live updates, and collaborative features.",
+          "features": [
+            "WebSocket integration with Fastify",
+            "Client connection tracking",
+            "Message type handling",
+            "Broadcast functionality",
+            "Connection metadata"
+          ],
+          "usage": "import { createSocketServer } from './socket-server';\n\nconst app = await createSocketServer();\nawait app.listen({ port: 3000 });",
+          "output": "src/socket-server.ts",
+          "dependencies": ["fastify", "@fastify/websocket"],
+          "command": "npx hanma add fastify-socket-server --framework fastify"
+        },
+        {
+          "id": "fastify-graphql-server",
+          "name": "fastify-graphql-server",
+          "displayName": "GraphQL Server (Mercurius)",
+          "description": "GraphQL API with Mercurius adapter",
+          "purpose": "Build a GraphQL API with Mercurius, Fastify's official GraphQL adapter. Supports subscriptions out of the box.",
+          "features": [
+            "Mercurius integration",
+            "GraphQL subscriptions support",
+            "GraphiQL playground in development",
+            "Context for authentication",
+            "Error handler integration"
+          ],
+          "usage": "import { createGraphQLServer } from './graphql-server';\n\nconst app = await createGraphQLServer();\nawait app.listen({ port: 4000 });",
+          "output": "src/graphql-server.ts",
+          "dependencies": ["fastify", "mercurius", "graphql"],
+          "command": "npx hanma add fastify-graphql-server --framework fastify"
+        }
+      ]
+    }
+  ]
+}

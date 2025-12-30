@@ -1,0 +1,32 @@
+{
+  "id": "docs",
+  "title": "Documentation",
+  "description": "API documentation and OpenAPI tools",
+  "subcategories": [
+    {
+      "id": "api-docs",
+      "title": "API Documentation",
+      "description": "Tools for generating and serving API specifications",
+      "snippets": [
+        {
+          "id": "fastify-swagger",
+          "name": "fastify-swagger",
+          "displayName": "Swagger/OpenAPI",
+          "description": "OpenAPI documentation with Swagger UI",
+          "purpose": "Generate OpenAPI 3.1 documentation automatically from your route schemas. Includes interactive Swagger UI.",
+          "features": [
+            "OpenAPI 3.1.0 specification",
+            "Interactive Swagger UI at /docs",
+            "JSON specification at /docs.json",
+            "Bearer and API Key auth schemes",
+            "Custom theme and configuration"
+          ],
+          "usage": "import { registerSwagger, withBearerAuth } from './docs/swagger';\n\nawait registerSwagger(app, {\n  title: 'My API',\n  version: '1.0.0',\n  tags: [{ name: 'users', description: 'User operations' }],\n});\n\n// Route with docs:\napp.get('/users', {\n  schema: {\n    tags: ['users'],\n    summary: 'Get all users',\n    ...withBearerAuth(),\n  },\n}, handler);",
+          "output": "src/docs/swagger.ts",
+          "dependencies": ["fastify", "@fastify/swagger", "@fastify/swagger-ui"],
+          "command": "npx hanma add fastify-swagger --framework fastify"
+        }
+      ]
+    }
+  ]
+}

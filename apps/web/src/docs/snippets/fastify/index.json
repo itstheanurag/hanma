@@ -1,0 +1,48 @@
+{
+  "framework": "fastify",
+  "version": "v5",
+  "title": "Fastify v5 Snippets",
+  "description": "Production-ready code snippets for Fastify v5 applications. High-performance Node.js web framework with built-in TypeScript support.",
+  "installNote": "Install snippets with: npx hanma add <snippet-name> --framework fastify",
+  "concept": {
+    "whatIsASnippet": "A snippet is a single, self-contained code file that provides a specific utility, middleware, or integration. Snippets are designed to be dropped into your project and customized as needed.",
+    "whenToUseSnippets": [
+      "When you need a specific utility or middleware",
+      "When you want copy-paste code you own and can modify",
+      "When you prefer composition over packages"
+    ],
+    "snippetsVsPackages": {
+      "snippets": "Code you own - copy, paste, modify freely",
+      "packages": "External dependencies - updates managed by maintainers",
+      "benefit": "Snippets give you full control and no dependency bloat"
+    }
+  },
+  "examples": [
+    {
+      "title": "Add a single snippet",
+      "description": "Add the Fastify server to your project",
+      "command": "npx hanma add fastify-server --framework fastify"
+    },
+    {
+      "title": "Add multiple snippets",
+      "description": "Add several related snippets at once",
+      "command": "npx hanma add fastify-cors fastify-helmet fastify-jwt --framework fastify"
+    },
+    {
+      "title": "Add all middleware",
+      "description": "Add all snippets in a category",
+      "command": "npx hanma add --all --category middleware --framework fastify"
+    },
+    {
+      "title": "Interactive selection",
+      "description": "Use multi-select to choose snippets",
+      "command": "npx hanma add --framework fastify"
+    }
+  ],
+  "categoryFiles": [
+    { "id": "libs", "file": "libs.json", "title": "Libraries", "description": "Server implementations and core libraries" },
+    { "id": "middleware", "file": "middleware.json", "title": "Middleware", "description": "Reusable Fastify middleware and hooks" },
+    { "id": "utils", "file": "utils.json", "title": "Utilities", "description": "Standalone utility functions" },
+    { "id": "docs", "file": "docs.json", "title": "Documentation", "description": "API documentation and OpenAPI tools" }
+  ]
+}

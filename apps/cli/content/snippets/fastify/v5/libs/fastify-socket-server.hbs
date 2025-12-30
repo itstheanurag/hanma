@@ -1,0 +1,143 @@
+---
+name: fastify-socket-server
+description: WebSocket server using @fastify/websocket with connection management
+dependencies:
+  - fastify
+  - "@fastify/websocket"
+devDependencies:
+  - "@types/node"
+  - "@types/ws"
+files:
+  - name: src/socket-server.ts
+---
+import Fastify, { FastifyInstance } from "fastify";
+import websocket, { WebSocket } from "@fastify/websocket";
+
+interface Client {
+  id: string;
+  socket: WebSocket;
+  metadata?: Record<string, unknown>;
+}
+
+const clients = new Map<string, Client>();
+
+function generateClientId(): string {
+  return `client_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+}
+
+export async function createSocketServer(): Promise<FastifyInstance> {
+  const app = Fastify({
+    logger: {
+      level: process.env.LOG_LEVEL ?? "info",
+    },
+  });
+
+  await app.register(websocket, {
+    options: {
+      maxPayload: 1048576, // 1MB
+      clientTracking: true,
+    },
+  });
+
+  // WebSocket route
+  app.get("/ws", { websocket: true }, (socket, request) => {
+    const clientId = generateClientId();
+    
+    const client: Client = {
+      id: clientId,
+      socket,
+      metadata: {
+        ip: request.ip,
+        userAgent: request.headers["user-agent"],
+        connectedAt: new Date().toISOString(),
+      },
+    };
+    
+    clients.set(clientId, client);
+    app.log.info({ clientId }, "Client connected");
+
+    // Send welcome message
+    socket.send(JSON.stringify({
+      type: "connected",
+      clientId,
+      timestamp: new Date().toISOString(),
+    }));
+
+    socket.on("message", (rawMessage) => {
+      try {
+        const message = JSON.parse(rawMessage.toString());
+        app.log.debug({ clientId, message }, "Message received");
+        
+        // Handle different message types
+        switch (message.type) {
+          case "ping":
+            socket.send(JSON.stringify({ type: "pong", timestamp: Date.now() }));
+            break;
+          case "broadcast":
+            broadcast(message.data, clientId);
+            break;
+          default:
+            socket.send(JSON.stringify({ 
+              type: "echo", 
+              data: message,
+              timestamp: new Date().toISOString(),
+            }));
+        }
+      } catch (err) {
+        app.log.error({ clientId, error: err }, "Error processing message");
+        socket.send(JSON.stringify({ 
+          type: "error", 
+          message: "Invalid message format" 
+        }));
+      }
+    });
+
+    socket.on("close", () => {
+      clients.delete(clientId);
+      app.log.info({ clientId }, "Client disconnected");
+    });
+
+    socket.on("error", (err) => {
+      app.log.error({ clientId, error: err }, "WebSocket error");
+      clients.delete(clientId);
+    });
+  });
+
+  // Health check with connection count
+  app.get("/health", async () => ({
+    status: "healthy",
+    connections: clients.size,
+    timestamp: new Date().toISOString(),
+  }));
+
+  return app;
+}
+
+// Broadcast to all clients except sender
+function broadcast(data: unknown, senderId?: string): void {
+  const message = JSON.stringify({ type: "broadcast", data, from: senderId });
+  clients.forEach((client) => {
+    if (client.id !== senderId && client.socket.readyState === 1) {
+      client.socket.send(message);
+    }
+  });
+}
+
+// Get all connected clients
+export function getClients(): Client[] {
+  return Array.from(clients.values());
+}
+
+// Send to specific client
+export function sendToClient(clientId: string, data: unknown): boolean {
+  const client = clients.get(clientId);
+  if (client && client.socket.readyState === 1) {
+    client.socket.send(JSON.stringify(data));
+    return true;
+  }
+  return false;
+}
+
+// Usage:
+// const app = await createSocketServer();
+// await app.listen({ port: 3000 });

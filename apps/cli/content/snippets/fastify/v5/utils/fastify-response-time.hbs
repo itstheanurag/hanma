@@ -1,0 +1,140 @@
+---
+name: fastify-response-time
+description: Response time tracking with X-Response-Time header
+dependencies:
+  - fastify
+files:
+  - name: src/utils/response-time.ts
+---
+import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
+
+/**
+ * Response time configuration
+ */
+interface ResponseTimeConfig {
+  headerName?: string;
+  precision?: number;
+  logSlowRequests?: boolean;
+  slowThreshold?: number; // in milliseconds
+}
+
+const defaultConfig: ResponseTimeConfig = {
+  headerName: "x-response-time",
+  precision: 2,
+  logSlowRequests: true,
+  slowThreshold: 1000, // 1 second
+};
+
+/**
+ * Register response time tracking
+ * - Measures time from request start to response
+ * - Adds X-Response-Time header
+ * - Logs slow requests
+ */
+export function registerResponseTime(
+  app: FastifyInstance,
+  config?: ResponseTimeConfig
+): void {
+  const { headerName, precision, logSlowRequests, slowThreshold } = {
+    ...defaultConfig,
+    ...config,
+  };
+
+  app.addHook("onRequest", async (request: FastifyRequest) => {
+    (request as any).startTime = process.hrtime.bigint();
+  });
+
+  app.addHook("onSend", async (request: FastifyRequest, reply: FastifyReply) => {
+    const startTime = (request as any).startTime as bigint;
+    if (!startTime) return;
+
+    const endTime = process.hrtime.bigint();
+    const durationNs = endTime - startTime;
+    const durationMs = Number(durationNs) / 1_000_000;
+
+    // Add header with formatted duration
+    const formattedDuration = `${durationMs.toFixed(precision)}ms`;
+    reply.header(headerName!, formattedDuration);
+
+    // Store for logging
+    (request as any).responseTime = durationMs;
+
+    // Log slow requests
+    if (logSlowRequests && durationMs > slowThreshold!) {
+      request.log.warn(
+        {
+          method: request.method,
+          url: request.url,
+          responseTime: formattedDuration,
+          threshold: `${slowThreshold}ms`,
+        },
+        "Slow request detected"
+      );
+    }
+  });
+}
+
+/**
+ * Get response time from request (after onSend hook)
+ */
+export function getResponseTime(request: FastifyRequest): number | undefined {
+  return (request as any).responseTime;
+}
+
+/**
+ * Create response time metrics for monitoring
+ */
+export function createResponseTimeMetrics(app: FastifyInstance) {
+  const metrics: {
+    count: number;
+    total: number;
+    min: number;
+    max: number;
+    avg: number;
+    histogram: Record<string, number>;
+  } = {
+    count: 0,
+    total: 0,
+    min: Infinity,
+    max: 0,
+    avg: 0,
+    histogram: {
+      "< 100ms": 0,
+      "100-500ms": 0,
+      "500ms-1s": 0,
+      "1-5s": 0,
+      "> 5s": 0,
+    },
+  };
+
+  app.addHook("onResponse", async (request) => {
+    const responseTime = (request as any).responseTime as number;
+    if (typeof responseTime !== "number") return;
+
+    metrics.count++;
+    metrics.total += responseTime;
+    metrics.min = Math.min(metrics.min, responseTime);
+    metrics.max = Math.max(metrics.max, responseTime);
+    metrics.avg = metrics.total / metrics.count;
+
+    // Update histogram
+    if (responseTime < 100) metrics.histogram["< 100ms"]++;
+    else if (responseTime < 500) metrics.histogram["100-500ms"]++;
+    else if (responseTime < 1000) metrics.histogram["500ms-1s"]++;
+    else if (responseTime < 5000) metrics.histogram["1-5s"]++;
+    else metrics.histogram["> 5s"]++;
+  });
+
+  // Endpoint to get metrics
+  app.get("/metrics/response-time", async () => ({
+    ...metrics,
+    min: metrics.min === Infinity ? 0 : metrics.min,
+    avg: Number(metrics.avg.toFixed(2)),
+  }));
+
+  return metrics;
+}
+
+// Usage:
+// registerResponseTime(app);
+// createResponseTimeMetrics(app); // Optional: adds /metrics/response-time endpoint

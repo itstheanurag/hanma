@@ -1,0 +1,188 @@
+---
+name: fastify-swagger
+description: OpenAPI documentation using @fastify/swagger and @fastify/swagger-ui
+dependencies:
+  - fastify
+  - "@fastify/swagger"
+  - "@fastify/swagger-ui"
+files:
+  - name: src/docs/swagger.ts
+---
+import { FastifyInstance } from "fastify";
+import swagger, { SwaggerOptions } from "@fastify/swagger";
+import swaggerUI, { FastifySwaggerUiOptions } from "@fastify/swagger-ui";
+
+/**
+ * Swagger configuration
+ */
+interface SwaggerConfig {
+  title?: string;
+  description?: string;
+  version?: string;
+  routePrefix?: string;
+  servers?: { url: string; description?: string }[];
+  tags?: { name: string; description?: string }[];
+  security?: boolean;
+}
+
+const defaultConfig: SwaggerConfig = {
+  title: "API Documentation",
+  description: "API documentation generated with Fastify",
+  version: "1.0.0",
+  routePrefix: "/docs",
+  servers: [
+    { url: "http://localhost:3000", description: "Development" },
+  ],
+  tags: [],
+  security: true,
+};
+
+/**
+ * Register Swagger documentation
+ */
+export async function registerSwagger(
+  app: FastifyInstance,
+  config?: SwaggerConfig
+): Promise<void> {
+  const { title, description, version, routePrefix, servers, tags, security } = {
+    ...defaultConfig,
+    ...config,
+  };
+
+  // Register Swagger (OpenAPI spec generator)
+  const swaggerOptions: SwaggerOptions = {
+    openapi: {
+      openapi: "3.1.0",
+      info: {
+        title: title!,
+        description: description!,
+        version: version!,
+        contact: {
+          name: "API Support",
+          email: process.env.SUPPORT_EMAIL ?? "support@example.com",
+        },
+        license: {
+          name: "MIT",
+          url: "https://opensource.org/licenses/MIT",
+        },
+      },
+      servers: servers!.length > 0 ? servers : undefined,
+      tags: tags!,
+      components: security
+        ? {
+            securitySchemes: {
+              bearerAuth: {
+                type: "http",
+                scheme: "bearer",
+                bearerFormat: "JWT",
+                description: "JWT Authorization header using Bearer scheme",
+              },
+              apiKey: {
+                type: "apiKey",
+                in: "header",
+                name: "x-api-key",
+                description: "API key for service-to-service auth",
+              },
+            },
+          }
+        : undefined,
+    },
+    hideUntagged: false,
+    exposeRoute: true,
+  };
+
+  await app.register(swagger, swaggerOptions);
+
+  // Register Swagger UI
+  const uiOptions: FastifySwaggerUiOptions = {
+    routePrefix: routePrefix!,
+    uiConfig: {
+      docExpansion: "list",
+      deepLinking: true,
+      displayRequestDuration: true,
+      filter: true,
+      syntaxHighlight: {
+        activate: true,
+        theme: "monokai",
+      },
+    },
+    uiHooks: {
+      onRequest: (request, reply, next) => next(),
+      preHandler: (request, reply, next) => next(),
+    },
+    staticCSP: true,
+    transformStaticCSP: (header) => header,
+  };
+
+  await app.register(swaggerUI, uiOptions);
+
+  // JSON spec endpoint
+  app.get("/docs.json", async () => {
+    return app.swagger();
+  });
+
+  app.log.info(`[Swagger] Documentation available at ${routePrefix}`);
+}
+
+/**
+ * Common schema definitions for reuse
+ */
+export const commonSchemas = {
+  Error: {
+    type: "object",
+    properties: {
+      success: { type: "boolean", example: false },
+      error: {
+        type: "object",
+        properties: {
+          code: { type: "string", example: "VALIDATION_ERROR" },
+          message: { type: "string", example: "Validation failed" },
+          details: { type: "object" },
+        },
+      },
+    },
+  },
+  Pagination: {
+    type: "object",
+    properties: {
+      page: { type: "integer", minimum: 1, default: 1 },
+      limit: { type: "integer", minimum: 1, maximum: 100, default: 20 },
+      total: { type: "integer" },
+      totalPages: { type: "integer" },
+    },
+  },
+};
+
+/**
+ * Helper to add security to route schema
+ */
+export function withBearerAuth(schema: object = {}): object {
+  return {
+    ...schema,
+    security: [{ bearerAuth: [] }],
+  };
+}
+
+export function withApiKey(schema: object = {}): object {
+  return {
+    ...schema,
+    security: [{ apiKey: [] }],
+  };
+}
+
+// Usage:
+// await registerSwagger(app, {
+//   title: "My API",
+//   version: "2.0.0",
+//   tags: [{ name: "users", description: "User operations" }],
+// });
+//
+// Route with docs:
+// app.get("/users", {
+//   schema: {
+//     tags: ["users"],
+//     summary: "Get all users",
+//     response: { 200: { type: "array", items: { $ref: "#/definitions/User" } } },
+//     ...withBearerAuth(),
+//   },
+// }, handler);

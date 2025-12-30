@@ -1,0 +1,105 @@
+---
+name: fastify-api-key
+description: API key authentication without external dependencies
+dependencies:
+  - fastify
+files:
+  - name: src/middleware/api-key-auth.ts
+---
+import { FastifyRequest, FastifyReply } from "fastify";
+import crypto from "crypto";
+
+interface ApiKeyConfig {
+  keys: string[];
+  headerName?: string;
+  queryParam?: string;
+}
+
+const defaultConfig: ApiKeyConfig = {
+  keys: (process.env.API_KEYS ?? "").split(",").filter((k) => k.trim()),
+  headerName: "x-api-key",
+  queryParam: "api_key",
+};
+
+/**
+ * Validate API key from header or query parameter
+ */
+export function apiKeyAuth(config?: Partial<ApiKeyConfig>) {
+  const { keys, headerName, queryParam } = { ...defaultConfig, ...config };
+  
+  if (keys.length === 0) {
+    console.warn("[API Key Auth] No API keys configured. Set API_KEYS env var.");
+  }
+
+  return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
+    // Extract API key from header or query
+    const apiKey = 
+      (request.headers[headerName!] as string) ?? 
+      (request.query as Record<string, string>)[queryParam!];
+
+    if (!apiKey) {
+      reply.status(401).send({
+        error: "Unauthorized",
+        message: `Missing API key. Include it in the '${headerName}' header or '${queryParam}' query parameter.`,
+      });
+      return;
+    }
+
+    // Validate API key using timing-safe comparison
+    const isValid = keys.some((validKey) => 
+      safeCompare(apiKey, validKey)
+    );
+
+    if (!isValid) {
+      request.log.warn({ apiKey: maskKey(apiKey) }, "Invalid API key attempt");
+      reply.status(401).send({
+        error: "Unauthorized",
+        message: "Invalid API key",
+      });
+      return;
+    }
+
+    // Optionally store API key info on request for logging
+    (request as any).apiKeyId = maskKey(apiKey);
+  };
+}
+
+/**
+ * Timing-safe string comparison to prevent timing attacks
+ */
+function safeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
+
+/**
+ * Mask API key for logging (show only first and last 4 chars)
+ */
+function maskKey(key: string): string {
+  if (key.length <= 8) {
+    return "****";
+  }
+  return `${key.slice(0, 4)}...${key.slice(-4)}`;
+}
+
+/**
+ * Generate a new API key
+ */
+export function generateApiKey(prefix = "hm"): string {
+  const key = crypto.randomBytes(24).toString("base64url");
+  return `${prefix}_${key}`;
+}
+
+/**
+ * Hash an API key for storage (if you want to store hashes instead of raw keys)
+ */
+export function hashApiKey(key: string): string {
+  return crypto.createHash("sha256").update(key).digest("hex");
+}
+
+// Usage:
+// app.addHook("preHandler", apiKeyAuth());
+// Or per-route:
+// app.get("/api/data", { preHandler: [apiKeyAuth()] }, handler);

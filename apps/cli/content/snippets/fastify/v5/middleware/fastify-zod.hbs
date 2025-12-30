@@ -1,0 +1,167 @@
+---
+name: fastify-zod
+description: Request validation using Zod schemas with type inference
+dependencies:
+  - fastify
+  - zod
+  - zod-to-json-schema
+files:
+  - name: src/middleware/validation.ts
+---
+import { FastifyRequest, FastifyReply, FastifySchema } from "fastify";
+import { z, ZodType, ZodError } from "zod";
+import { zodToJsonSchema } from "zod-to-json-schema";
+
+/**
+ * Convert Zod schema to Fastify JSON Schema
+ */
+export function zodToFastifySchema<T extends ZodType>(schema: T): object {
+  return zodToJsonSchema(schema, { target: "openApi3" });
+}
+
+/**
+ * Validate request body with Zod schema
+ */
+export function validateBody<T extends ZodType>(schema: T) {
+  return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
+    try {
+      const parsed = await schema.parseAsync(request.body);
+      (request as any).validatedBody = parsed;
+    } catch (error) {
+      if (error instanceof ZodError) {
+        reply.status(400).send({
+          success: false,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Request body validation failed",
+            details: formatZodErrors(error),
+          },
+        });
+        return;
+      }
+      throw error;
+    }
+  };
+}
+
+/**
+ * Validate query parameters with Zod schema
+ */
+export function validateQuery<T extends ZodType>(schema: T) {
+  return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
+    try {
+      const parsed = await schema.parseAsync(request.query);
+      (request as any).validatedQuery = parsed;
+    } catch (error) {
+      if (error instanceof ZodError) {
+        reply.status(400).send({
+          success: false,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Query parameter validation failed",
+            details: formatZodErrors(error),
+          },
+        });
+        return;
+      }
+      throw error;
+    }
+  };
+}
+
+/**
+ * Validate URL params with Zod schema
+ */
+export function validateParams<T extends ZodType>(schema: T) {
+  return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
+    try {
+      const parsed = await schema.parseAsync(request.params);
+      (request as any).validatedParams = parsed;
+    } catch (error) {
+      if (error instanceof ZodError) {
+        reply.status(400).send({
+          success: false,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "URL parameter validation failed",
+            details: formatZodErrors(error),
+          },
+        });
+        return;
+      }
+      throw error;
+    }
+  };
+}
+
+/**
+ * Format Zod errors into a user-friendly structure
+ */
+function formatZodErrors(error: ZodError): object[] {
+  return error.errors.map((err) => ({
+    path: err.path.join("."),
+    message: err.message,
+    code: err.code,
+  }));
+}
+
+/**
+ * Create Fastify schema from Zod schemas for OpenAPI generation
+ */
+export function createFastifySchema<
+  TBody extends ZodType = ZodType,
+  TQuery extends ZodType = ZodType,
+  TParams extends ZodType = ZodType,
+  TResponse extends ZodType = ZodType
+>(schemas: {
+  body?: TBody;
+  querystring?: TQuery;
+  params?: TParams;
+  response?: { [statusCode: number]: TResponse };
+}): FastifySchema {
+  const fastifySchema: FastifySchema = {};
+
+  if (schemas.body) {
+    fastifySchema.body = zodToFastifySchema(schemas.body);
+  }
+  if (schemas.querystring) {
+    fastifySchema.querystring = zodToFastifySchema(schemas.querystring);
+  }
+  if (schemas.params) {
+    fastifySchema.params = zodToFastifySchema(schemas.params);
+  }
+  if (schemas.response) {
+    fastifySchema.response = Object.fromEntries(
+      Object.entries(schemas.response).map(([code, schema]) => [
+        code,
+        zodToFastifySchema(schema),
+      ])
+    );
+  }
+
+  return fastifySchema;
+}
+
+/**
+ * Common Zod schemas for reuse
+ */
+export const commonSchemas = {
+  id: z.string().uuid(),
+  email: z.string().email(),
+  password: z.string().min(8).max(100),
+  pagination: z.object({
+    page: z.coerce.number().int().positive().default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+  }),
+  sort: z.object({
+    field: z.string().default("createdAt"),
+    order: z.enum(["asc", "desc"]).default("desc"),
+  }),
+};
+
+// Usage:
+// const userSchema = z.object({ email: z.string().email(), name: z.string() });
+// app.post("/users", { preHandler: [validateBody(userSchema)] }, handler);
+//
+// Or with auto-generated OpenAPI schema:
+// app.post("/users", { schema: createFastifySchema({ body: userSchema }) }, handler);

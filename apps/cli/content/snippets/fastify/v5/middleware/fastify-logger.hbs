@@ -1,0 +1,154 @@
+---
+name: fastify-logger
+description: Structured logging with Pino (Fastify's built-in logger)
+dependencies:
+  - fastify
+  - pino-pretty
+files:
+  - name: src/middleware/logger.ts
+---
+import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
+import { pino } from "pino";
+
+/**
+ * Logger configuration based on environment
+ */
+export function createLoggerConfig() {
+  const isDev = process.env.NODE_ENV === "development";
+  const level = process.env.LOG_LEVEL ?? (isDev ? "debug" : "info");
+
+  return {
+    level,
+    // Pretty print in development
+    transport: isDev
+      ? {
+          target: "pino-pretty",
+          options: {
+            colorize: true,
+            translateTime: "HH:MM:ss Z",
+            ignore: "pid,hostname",
+          },
+        }
+      : undefined,
+    // Redact sensitive fields
+    redact: {
+      paths: [
+        "req.headers.authorization",
+        "req.headers.cookie",
+        "req.headers['x-api-key']",
+        "body.password",
+        "body.token",
+        "body.secret",
+      ],
+      censor: "[REDACTED]",
+    },
+    // Custom serializers
+    serializers: {
+      req(request: FastifyRequest) {
+        return {
+          method: request.method,
+          url: request.url,
+          path: request.routeOptions?.url,
+          parameters: request.params,
+          headers: {
+            host: request.headers.host,
+            "user-agent": request.headers["user-agent"],
+            "content-type": request.headers["content-type"],
+          },
+        };
+      },
+      res(reply: FastifyReply) {
+        return {
+          statusCode: reply.statusCode,
+        };
+      },
+    },
+  };
+}
+
+/**
+ * Create a child logger for a specific service/module
+ */
+export function createServiceLogger(app: FastifyInstance, service: string) {
+  return app.log.child({ service });
+}
+
+/**
+ * Request logging hook - logs request and response
+ */
+export function registerRequestLogger(app: FastifyInstance): void {
+  app.addHook("onRequest", async (request) => {
+    request.log.info({ requestId: request.id }, "Request started");
+  });
+
+  app.addHook("onResponse", async (request, reply) => {
+    const responseTime = reply.elapsedTime;
+    request.log.info(
+      {
+        requestId: request.id,
+        statusCode: reply.statusCode,
+        responseTime: `${responseTime.toFixed(2)}ms`,
+      },
+      "Request completed"
+    );
+  });
+
+  app.addHook("onError", async (request, reply, error) => {
+    request.log.error(
+      {
+        requestId: request.id,
+        error: {
+          message: error.message,
+          stack: error.stack,
+          code: (error as any).code,
+        },
+      },
+      "Request failed"
+    );
+  });
+}
+
+/**
+ * Log audit events (for sensitive operations)
+ */
+export function logAudit(
+  app: FastifyInstance,
+  action: string,
+  details: {
+    userId?: string;
+    resource?: string;
+    resourceId?: string;
+    metadata?: Record<string, unknown>;
+  }
+) {
+  app.log.info(
+    {
+      audit: true,
+      action,
+      ...details,
+      timestamp: new Date().toISOString(),
+    },
+    `Audit: ${action}`
+  );
+}
+
+/**
+ * Standalone logger for use outside of request context
+ */
+export const logger = pino(createLoggerConfig());
+
+// Convenience methods
+export const log = {
+  debug: (msg: string, data?: object) => logger.debug(data, msg),
+  info: (msg: string, data?: object) => logger.info(data, msg),
+  warn: (msg: string, data?: object) => logger.warn(data, msg),
+  error: (msg: string, data?: object) => logger.error(data, msg),
+  fatal: (msg: string, data?: object) => logger.fatal(data, msg),
+};
+
+// Usage in Fastify:
+// const app = Fastify({ logger: createLoggerConfig() });
+// registerRequestLogger(app);
+//
+// Usage standalone:
+// log.info("Application started", { port: 3000 });

@@ -1,0 +1,130 @@
+---
+name: fastify-graphql-server
+description: GraphQL server using Mercurius with type definitions and resolvers
+dependencies:
+  - fastify
+  - mercurius
+  - graphql
+devDependencies:
+  - "@types/node"
+files:
+  - name: src/graphql-server.ts
+---
+import Fastify, { FastifyInstance } from "fastify";
+import mercurius from "mercurius";
+
+// Type definitions
+const schema = `
+  type Query {
+    hello(name: String): String!
+    health: HealthStatus!
+  }
+
+  type Mutation {
+    echo(message: String!): EchoResponse!
+  }
+
+  type Subscription {
+    countdown(from: Int!): Int!
+  }
+
+  type HealthStatus {
+    status: String!
+    timestamp: String!
+    uptime: Float!
+  }
+
+  type EchoResponse {
+    message: String!
+    timestamp: String!
+  }
+`;
+
+// Resolvers
+const resolvers = {
+  Query: {
+    hello: (_: unknown, { name }: { name?: string }) => {
+      return `Hello, ${name ?? "World"}!`;
+    },
+    health: () => ({
+      status: "healthy",
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+    }),
+  },
+  Mutation: {
+    echo: (_: unknown, { message }: { message: string }) => ({
+      message,
+      timestamp: new Date().toISOString(),
+    }),
+  },
+  Subscription: {
+    countdown: {
+      subscribe: async function* (_: unknown, { from }: { from: number }) {
+        for (let i = from; i >= 0; i--) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          yield { countdown: i };
+        }
+      },
+    },
+  },
+};
+
+// Context type for authentication
+interface GraphQLContext {
+  user?: {
+    id: string;
+    email: string;
+    roles: string[];
+  };
+}
+
+export async function createGraphQLServer(): Promise<FastifyInstance> {
+  const app = Fastify({
+    logger: {
+      level: process.env.LOG_LEVEL ?? "info",
+    },
+  });
+
+  await app.register(mercurius, {
+    schema,
+    resolvers,
+    subscription: true,
+    graphiql: process.env.NODE_ENV !== "production",
+    context: (request): GraphQLContext => {
+      // Extract user from JWT or session here
+      // const token = request.headers.authorization?.replace("Bearer ", "");
+      return {
+        // user: decoded user from token
+      };
+    },
+    errorHandler: (error, request, reply) => {
+      app.log.error({ error, path: request.url }, "GraphQL error");
+      
+      // Don't expose internal errors in production
+      if (process.env.NODE_ENV === "production") {
+        reply.send({
+          errors: [{ message: "An error occurred" }],
+        });
+      } else {
+        reply.send({
+          errors: [{ message: error.message, stack: error.stack }],
+        });
+      }
+    },
+  });
+
+  // Health check
+  app.get("/health", async () => ({
+    status: "healthy",
+    graphql: "/graphql",
+    graphiql: process.env.NODE_ENV !== "production" ? "/graphiql" : "disabled",
+  }));
+
+  return app;
+}
+
+// Usage:
+// const app = await createGraphQLServer();
+// await app.listen({ port: 4000 });
+// GraphQL playground available at http://localhost:4000/graphiql

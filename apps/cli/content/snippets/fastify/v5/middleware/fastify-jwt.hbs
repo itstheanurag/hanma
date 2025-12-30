@@ -1,0 +1,125 @@
+---
+name: fastify-jwt
+description: JWT authentication using @fastify/jwt with role-based access control
+dependencies:
+  - fastify
+  - "@fastify/jwt"
+devDependencies:
+  - "@types/node"
+files:
+  - name: src/middleware/jwt-auth.ts
+---
+import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
+import jwt from "@fastify/jwt";
+
+interface JwtPayload {
+  id: string;
+  email: string;
+  roles: string[];
+}
+
+declare module "@fastify/jwt" {
+  interface FastifyJWT {
+    payload: JwtPayload;
+    user: JwtPayload;
+  }
+}
+
+export async function registerJwtAuth(app: FastifyInstance): Promise<void> {
+  await app.register(jwt, {
+    secret: process.env.JWT_SECRET ?? "your-secret-key-change-in-production",
+    sign: {
+      expiresIn: process.env.JWT_EXPIRES_IN ?? "7d",
+    },
+    verify: {
+      maxAge: process.env.JWT_EXPIRES_IN ?? "7d",
+    },
+  });
+
+  // Decorate with authenticate method
+  app.decorate("authenticate", async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      await request.jwtVerify();
+    } catch (err) {
+      reply.status(401).send({ 
+        error: "Unauthorized",
+        message: "Invalid or missing authentication token",
+      });
+    }
+  });
+}
+
+// Middleware to verify JWT
+export async function authenticate(
+  request: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
+  try {
+    await request.jwtVerify();
+  } catch (err) {
+    reply.status(401).send({
+      error: "Unauthorized",
+      message: "Invalid or missing authentication token",
+    });
+  }
+}
+
+// Middleware to check roles
+export function authorize(allowedRoles: string[]) {
+  return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
+    try {
+      await request.jwtVerify();
+      
+      const user = request.user;
+      const hasRole = user.roles.some((role) => allowedRoles.includes(role));
+      
+      if (!hasRole) {
+        reply.status(403).send({
+          error: "Forbidden",
+          message: "Insufficient permissions",
+          required: allowedRoles,
+        });
+      }
+    } catch (err) {
+      reply.status(401).send({
+        error: "Unauthorized",
+        message: "Invalid or missing authentication token",
+      });
+    }
+  };
+}
+
+// Generate tokens
+export function generateTokens(app: FastifyInstance, payload: JwtPayload) {
+  const accessToken = app.jwt.sign(payload);
+  const refreshToken = app.jwt.sign(payload, { expiresIn: "30d" });
+  
+  return { accessToken, refreshToken };
+}
+
+// Optional: Refresh token handler
+export async function refreshTokenHandler(
+  request: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
+  try {
+    const decoded = await request.jwtVerify();
+    const newToken = request.server.jwt.sign({
+      id: decoded.id,
+      email: decoded.email,
+      roles: decoded.roles,
+    });
+    
+    reply.send({ accessToken: newToken });
+  } catch (err) {
+    reply.status(401).send({
+      error: "Unauthorized",
+      message: "Invalid refresh token",
+    });
+  }
+}
+
+// Usage:
+// await registerJwtAuth(app);
+// app.get("/protected", { preHandler: [authenticate] }, handler);
+// app.get("/admin", { preHandler: [authorize(["admin"])] }, handler);

@@ -1,0 +1,118 @@
+---
+name: fastify-cors
+description: CORS configuration using @fastify/cors with environment-driven options
+dependencies:
+  - fastify
+  - "@fastify/cors"
+files:
+  - name: src/middleware/cors.ts
+---
+import { FastifyInstance } from "fastify";
+import cors, { FastifyCorsOptions } from "@fastify/cors";
+
+/**
+ * Parse environment variables for CORS configuration
+ */
+const getEnvConfig = () => {
+  const allowedOrigins = (process.env.CORS_ORIGINS ?? "")
+    .split(",")
+    .map((o) => o.trim())
+    .filter((o) => o.length > 0);
+
+  const allowedMethods = (process.env.CORS_METHODS ?? "GET,POST,PUT,DELETE,PATCH,OPTIONS")
+    .split(",")
+    .map((m) => m.trim())
+    .filter((m) => m.length > 0);
+
+  const allowedHeaders = (process.env.CORS_HEADERS ?? "Content-Type,Authorization,X-Request-Id")
+    .split(",")
+    .map((h) => h.trim())
+    .filter((h) => h.length > 0);
+
+  return { allowedOrigins, allowedMethods, allowedHeaders };
+};
+
+export const { allowedOrigins, allowedMethods, allowedHeaders } = getEnvConfig();
+
+/**
+ * Create CORS options with environment variable support
+ */
+export function createCorsOptions(
+  overrides?: Partial<FastifyCorsOptions>
+): FastifyCorsOptions {
+  const { allowedOrigins, allowedMethods, allowedHeaders } = getEnvConfig();
+
+  return {
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, Postman)
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      // Development mode: allow all origins
+      if (allowedOrigins.length === 0) {
+        callback(null, true);
+        return;
+      }
+
+      // Check if origin is in allowed list
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Origin ${origin} not allowed by CORS`), false);
+      }
+    },
+    methods: allowedMethods,
+    allowedHeaders,
+    exposedHeaders: ["Content-Length", "X-Request-Id", "X-Response-Time"],
+    credentials: true,
+    maxAge: 600, // 10 minutes preflight cache
+    preflight: true,
+    strictPreflight: true,
+    ...overrides,
+  };
+}
+
+/**
+ * Register CORS middleware with environment-driven configuration
+ */
+export async function registerCors(
+  app: FastifyInstance,
+  options?: Partial<FastifyCorsOptions>
+): Promise<void> {
+  const corsOptions = createCorsOptions(options);
+  
+  await app.register(cors, corsOptions);
+
+  // Log CORS configuration on startup
+  if (allowedOrigins.length === 0) {
+    app.log.warn("[CORS] No CORS_ORIGINS configured - allowing all origins (development mode)");
+  } else {
+    app.log.info({ origins: allowedOrigins }, "[CORS] Configured allowed origins");
+  }
+}
+
+/**
+ * Development CORS - allows all origins
+ */
+export const devCorsOptions: FastifyCorsOptions = {
+  origin: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Request-Id"],
+  credentials: true,
+};
+
+/**
+ * Get appropriate CORS options based on environment
+ */
+export function getCorsOptions(): FastifyCorsOptions {
+  return process.env.NODE_ENV === "production"
+    ? createCorsOptions()
+    : devCorsOptions;
+}
+
+// Usage:
+// await registerCors(app);
+// Or with custom options:
+// await registerCors(app, { credentials: false });

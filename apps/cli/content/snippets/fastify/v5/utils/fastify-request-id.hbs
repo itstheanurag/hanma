@@ -1,0 +1,106 @@
+---
+name: fastify-request-id
+description: Request ID generation for distributed tracing
+dependencies:
+  - fastify
+files:
+  - name: src/utils/request-id.ts
+---
+import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
+import crypto from "crypto";
+
+/**
+ * Request ID configuration
+ */
+interface RequestIdConfig {
+  headerName?: string;
+  prefix?: string;
+  generator?: () => string;
+}
+
+const defaultConfig: RequestIdConfig = {
+  headerName: "x-request-id",
+  prefix: "req",
+  generator: () => crypto.randomUUID(),
+};
+
+/**
+ * Generate a unique request ID
+ */
+export function generateRequestId(prefix = "req"): string {
+  return `${prefix}_${Date.now()}_${crypto.randomBytes(8).toString("hex")}`;
+}
+
+/**
+ * Register request ID handling
+ * - Uses incoming request ID if present
+ * - Generates new ID if not
+ * - Adds ID to response headers
+ * - Adds ID to log context
+ */
+export function registerRequestId(
+  app: FastifyInstance,
+  config?: RequestIdConfig
+): void {
+  const { headerName, prefix, generator } = { ...defaultConfig, ...config };
+
+  // Add request ID before routing
+  app.addHook("onRequest", async (request: FastifyRequest, reply: FastifyReply) => {
+    // Use existing ID from header or generate new one
+    const existingId = request.headers[headerName!] as string | undefined;
+    const requestId = existingId ?? generator!();
+
+    // Store on request for access in handlers
+    (request as any).requestId = requestId;
+
+    // Add to response headers
+    reply.header(headerName!, requestId);
+    reply.header("x-correlation-id", requestId);
+  });
+}
+
+/**
+ * Get request ID from request object
+ */
+export function getRequestId(request: FastifyRequest): string {
+  return (request as any).requestId ?? request.id;
+}
+
+/**
+ * Create a correlation context for propagating request ID to downstream services
+ */
+export function createCorrelationHeaders(request: FastifyRequest): Record<string, string> {
+  const requestId = getRequestId(request);
+  return {
+    "x-request-id": requestId,
+    "x-correlation-id": requestId,
+    "x-trace-id": requestId,
+  };
+}
+
+/**
+ * Middleware to require request ID (for services that should always receive one)
+ */
+export async function requireRequestId(
+  request: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
+  const headerName = "x-request-id";
+  const requestId = request.headers[headerName];
+
+  if (!requestId) {
+    reply.status(400).send({
+      error: "Bad Request",
+      message: `Missing required header: ${headerName}`,
+    });
+  }
+}
+
+// Usage:
+// registerRequestId(app);
+//
+// In handlers:
+// const requestId = getRequestId(request);
+//
+// For downstream calls:
+// fetch(url, { headers: createCorrelationHeaders(request) });

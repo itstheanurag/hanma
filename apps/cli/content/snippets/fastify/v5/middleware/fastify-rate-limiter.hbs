@@ -1,0 +1,116 @@
+---
+name: fastify-rate-limiter
+description: Rate limiting using @fastify/rate-limit with Redis support
+dependencies:
+  - fastify
+  - "@fastify/rate-limit"
+devDependencies:
+  - "@types/node"
+files:
+  - name: src/middleware/rate-limiter.ts
+---
+import { FastifyInstance, FastifyRequest } from "fastify";
+import rateLimit, { RateLimitPluginOptions } from "@fastify/rate-limit";
+
+interface RateLimitConfig {
+  max?: number;
+  timeWindow?: string | number;
+  ban?: number;
+  keyGenerator?: (request: FastifyRequest) => string;
+}
+
+/**
+ * Default rate limit configuration
+ */
+const defaultConfig: RateLimitPluginOptions = {
+  max: parseInt(process.env.RATE_LIMIT_MAX ?? "100", 10),
+  timeWindow: process.env.RATE_LIMIT_WINDOW ?? "1 minute",
+  ban: parseInt(process.env.RATE_LIMIT_BAN ?? "0", 10) || undefined,
+  cache: 10000, // Max 10k IPs in memory
+  allowList: (process.env.RATE_LIMIT_WHITELIST ?? "")
+    .split(",")
+    .filter((ip) => ip.trim()),
+  keyGenerator: (request: FastifyRequest) => {
+    // Use X-Forwarded-For if behind a proxy, otherwise use IP
+    return (
+      (request.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ??
+      request.ip
+    );
+  },
+  errorResponseBuilder: (request, context) => ({
+    error: "Too Many Requests",
+    message: `Rate limit exceeded. Try again in ${Math.ceil(context.ttl / 1000)} seconds.`,
+    statusCode: 429,
+    retryAfter: Math.ceil(context.ttl / 1000),
+  }),
+  addHeadersOnExceeding: {
+    "x-ratelimit-limit": true,
+    "x-ratelimit-remaining": true,
+    "x-ratelimit-reset": true,
+  },
+  addHeaders: {
+    "x-ratelimit-limit": true,
+    "x-ratelimit-remaining": true,
+    "x-ratelimit-reset": true,
+    "retry-after": true,
+  },
+};
+
+/**
+ * Register global rate limiting
+ */
+export async function registerRateLimit(
+  app: FastifyInstance,
+  options?: Partial<RateLimitPluginOptions>
+): Promise<void> {
+  const config = { ...defaultConfig, ...options };
+  
+  await app.register(rateLimit, config);
+  
+  app.log.info(
+    { max: config.max, window: config.timeWindow },
+    "[Rate Limit] Configured"
+  );
+}
+
+/**
+ * Create route-specific rate limit options
+ */
+export function createRouteRateLimit(config: RateLimitConfig): { config: RateLimitPluginOptions } {
+  return {
+    config: {
+      max: config.max ?? 10,
+      timeWindow: config.timeWindow ?? "1 minute",
+      ban: config.ban,
+      keyGenerator: config.keyGenerator,
+    },
+  };
+}
+
+/**
+ * Preset rate limits for common use cases
+ */
+export const rateLimitPresets = {
+  // Strict: For authentication endpoints
+  auth: createRouteRateLimit({ max: 5, timeWindow: "15 minutes" }),
+  
+  // Standard: For regular API endpoints
+  standard: createRouteRateLimit({ max: 100, timeWindow: "1 minute" }),
+  
+  // Relaxed: For read-heavy endpoints
+  relaxed: createRouteRateLimit({ max: 1000, timeWindow: "1 minute" }),
+  
+  // Upload: For file upload endpoints
+  upload: createRouteRateLimit({ max: 10, timeWindow: "1 hour" }),
+  
+  // Search: For search endpoints
+  search: createRouteRateLimit({ max: 30, timeWindow: "1 minute" }),
+};
+
+// Usage:
+// Global:
+// await registerRateLimit(app);
+//
+// Per-route:
+// app.get("/search", { ...rateLimitPresets.search }, handler);
+// app.post("/auth/login", { ...rateLimitPresets.auth }, handler);

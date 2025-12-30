@@ -1,0 +1,137 @@
+---
+name: fastify-compression
+description: Response compression using @fastify/compress
+dependencies:
+  - fastify
+  - "@fastify/compress"
+files:
+  - name: src/utils/compression.ts
+---
+import { FastifyInstance } from "fastify";
+import compress, { FastifyCompressOptions } from "@fastify/compress";
+
+/**
+ * Default compression configuration
+ */
+const defaultConfig: FastifyCompressOptions = {
+  // Compression method priority
+  encodings: ["br", "gzip", "deflate"],
+  
+  // Minimum size to compress (in bytes)
+  threshold: 1024, // 1KB
+  
+  // Brotli options (preferred for modern browsers)
+  brotliOptions: {
+    params: {
+      // Quality: 0-11, higher = better compression but slower
+      // 4 is a good balance for dynamic content
+      [require("zlib").constants.BROTLI_PARAM_QUALITY]: 4,
+    },
+  },
+  
+  // Gzip options
+  zlib: {
+    level: 6, // 1-9, higher = better compression but slower
+  },
+  
+  // Compress responses when Accept-Encoding header is present
+  global: true,
+  
+  // Enable decompression of request bodies (optional)
+  inflateIfDeflated: true,
+  
+  // Custom function to determine if response should be compressed
+  customTypes: /^text\/|\+json$|\+text$|\+xml$/,
+};
+
+/**
+ * Content types that should be compressed
+ */
+const compressibleTypes = [
+  "text/html",
+  "text/plain",
+  "text/css",
+  "text/javascript",
+  "application/javascript",
+  "application/json",
+  "application/xml",
+  "application/rss+xml",
+  "image/svg+xml",
+];
+
+/**
+ * Register compression middleware
+ */
+export async function registerCompression(
+  app: FastifyInstance,
+  options?: Partial<FastifyCompressOptions>
+): Promise<void> {
+  const config = { ...defaultConfig, ...options };
+  
+  await app.register(compress, config);
+  
+  app.log.info(
+    { encodings: config.encodings, threshold: config.threshold },
+    "[Compression] Configured"
+  );
+}
+
+/**
+ * Create route-specific compression options
+ */
+export function createRouteCompression(
+  options: Partial<FastifyCompressOptions>
+): { compress: FastifyCompressOptions } {
+  return {
+    compress: { ...defaultConfig, ...options },
+  };
+}
+
+/**
+ * Disable compression for specific routes
+ */
+export const noCompression = {
+  compress: false as const,
+};
+
+/**
+ * Compression presets for common use cases
+ */
+export const compressionPresets = {
+  // High compression for static assets (slower but smaller)
+  static: createRouteCompression({
+    brotliOptions: {
+      params: {
+        [require("zlib").constants.BROTLI_PARAM_QUALITY]: 11,
+      },
+    },
+    zlib: { level: 9 },
+  }),
+  
+  // Fast compression for API responses
+  api: createRouteCompression({
+    brotliOptions: {
+      params: {
+        [require("zlib").constants.BROTLI_PARAM_QUALITY]: 4,
+      },
+    },
+    zlib: { level: 6 },
+  }),
+  
+  // Minimal compression for real-time data
+  realtime: createRouteCompression({
+    brotliOptions: {
+      params: {
+        [require("zlib").constants.BROTLI_PARAM_QUALITY]: 1,
+      },
+    },
+    zlib: { level: 1 },
+  }),
+};
+
+// Usage:
+// await registerCompression(app);
+//
+// Per-route:
+// app.get("/static/*", { ...compressionPresets.static }, handler);
+// app.get("/stream", { ...noCompression }, streamHandler);

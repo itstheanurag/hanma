@@ -1,0 +1,110 @@
+---
+name: fastify-server
+description: Production-ready Fastify HTTP server with graceful shutdown and health checks
+dependencies:
+  - fastify
+  - "@fastify/cors"
+  - "@fastify/helmet"
+devDependencies:
+  - "@types/node"
+files:
+  - name: src/server.ts
+---
+import Fastify, { FastifyInstance } from "fastify";
+import cors from "@fastify/cors";
+import helmet from "@fastify/helmet";
+
+export interface ServerOptions {
+  port?: number;
+  host?: string;
+  corsOrigins?: string[];
+}
+
+const getEnvConfig = () => ({
+  port: parseInt(process.env.PORT ?? "3000", 10),
+  host: process.env.HOST ?? "0.0.0.0",
+  corsOrigins: (process.env.CORS_ORIGINS ?? "")
+    .split(",")
+    .map((o) => o.trim())
+    .filter((o) => o.length > 0),
+});
+
+export async function createServer(options?: ServerOptions): Promise<FastifyInstance> {
+  const config = { ...getEnvConfig(), ...options };
+  
+  const app = Fastify({
+    logger: {
+      level: process.env.LOG_LEVEL ?? "info",
+      transport:
+        process.env.NODE_ENV === "development"
+          ? { target: "pino-pretty", options: { colorize: true } }
+          : undefined,
+    },
+    requestIdHeader: "x-request-id",
+    requestIdLogLabel: "requestId",
+    disableRequestLogging: false,
+  });
+
+  // Security headers
+  await app.register(helmet, {
+    contentSecurityPolicy: process.env.NODE_ENV === "production",
+  });
+
+  // CORS
+  await app.register(cors, {
+    origin: config.corsOrigins.length > 0 ? config.corsOrigins : true,
+    credentials: true,
+  });
+
+  // Health check endpoints
+  app.get("/health", async () => ({
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memoryUsage: process.memoryUsage(),
+  }));
+
+  app.get("/ready", async () => ({
+    status: "ready",
+    timestamp: new Date().toISOString(),
+  }));
+
+  app.get("/live", async () => ({
+    status: "live",
+    timestamp: new Date().toISOString(),
+  }));
+
+  return app;
+}
+
+export async function startServer(app: FastifyInstance, options?: ServerOptions): Promise<void> {
+  const config = { ...getEnvConfig(), ...options };
+
+  // Graceful shutdown
+  const shutdown = async (signal: string) => {
+    app.log.info(`Received ${signal}, shutting down gracefully...`);
+    try {
+      await app.close();
+      app.log.info("Server closed successfully");
+      process.exit(0);
+    } catch (err) {
+      app.log.error(err, "Error during shutdown");
+      process.exit(1);
+    }
+  };
+
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
+
+  try {
+    await app.listen({ port: config.port, host: config.host });
+    app.log.info(`Server listening on http://${config.host}:${config.port}`);
+  } catch (err) {
+    app.log.error(err);
+    process.exit(1);
+  }
+}
+
+// Usage example:
+// const app = await createServer();
+// await startServer(app);

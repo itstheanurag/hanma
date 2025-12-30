@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+
+public/sources/*
+public/modules/*
+public/registry/*
+public/templates/*

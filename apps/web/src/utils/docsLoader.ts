@@ -21,6 +21,13 @@ import elysiaIndex from "@/docs/snippets/elysia/index.json";
 import elysiaLibs from "@/docs/snippets/elysia/libs.json";
 import elysiaPlugins from "@/docs/snippets/elysia/plugins.json";
 
+// Snippets - Fastify
+import fastifyIndex from "@/docs/snippets/fastify/index.json";
+import fastifyDocs from "@/docs/snippets/fastify/docs.json";
+import fastifyLibs from "@/docs/snippets/fastify/libs.json";
+import fastifyMiddleware from "@/docs/snippets/fastify/middleware.json";
+import fastifyUtils from "@/docs/snippets/fastify/utils.json";
+
 // Snippets - Shared
 import sharedIndex from "@/docs/snippets/shared/index.json";
 import sharedDb from "@/docs/snippets/shared/db.json";
@@ -53,11 +60,12 @@ import addonsPresets from "@/docs/templates/shared/presets.json";
 // Modules
 import modulesIndex from "@/docs/modules/index.json";
 
-// Snippets Sources
-import expressSourcesJson from "@/docs/sources/express/sources.json";
-import honoSourcesJson from "@/docs/sources/hono/sources.json";
-import elysiaSourcesJson from "@/docs/sources/elysia/sources.json";
-import sharedSourcesJson from "@/docs/sources/shared/sources.json";
+// Snippets Sources ( stay in public cause they can be generated from scripts )
+import expressSourcesJson from "@public/sources/express/sources.json";
+import honoSourcesJson from "@public/sources/hono/sources.json";
+import elysiaSourcesJson from "@public/sources/elysia/sources.json";
+import fastifySourcesJson from "@public/sources/fastify/sources.json";
+import sharedSourcesJson from "@public/sources/shared/sources.json";
 
 import type { FrameworkType } from "@/types/docs";
 
@@ -68,6 +76,7 @@ export const snippetIndexes: Record<FrameworkType, any> = {
   express: expressIndex,
   hono: honoIndex,
   elysia: elysiaIndex,
+  fastify: fastifyIndex,
   shared: sharedIndex,
 };
 
@@ -90,6 +99,13 @@ const elysiaCategories: Record<string, any> = {
   "plugins.json": elysiaPlugins,
 };
 
+const fastifyCategories: Record<string, any> = {
+  "docs.json": fastifyDocs,
+  "libs.json": fastifyLibs,
+  "middleware.json": fastifyMiddleware,
+  "utils.json": fastifyUtils,
+};
+
 const sharedCategories: Record<string, any> = {
   "db.json": sharedDb,
   "libs.json": sharedLibs,
@@ -104,6 +120,7 @@ const allCategories: Record<FrameworkType, Record<string, any>> = {
   express: expressCategories,
   hono: honoCategories,
   elysia: elysiaCategories,
+  fastify: fastifyCategories,
   shared: sharedCategories,
 };
 
@@ -175,6 +192,7 @@ export const snippetSources: Record<FrameworkType, Record<string, string>> = {
   express: expressSourcesJson as Record<string, string>,
   hono: honoSourcesJson as Record<string, string>,
   elysia: elysiaSourcesJson as Record<string, string>,
+  fastify: fastifySourcesJson as Record<string, string>,
   shared: sharedSourcesJson as Record<string, string>,
 };
 

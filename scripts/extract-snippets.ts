@@ -8,7 +8,7 @@ import {
   ensureDir,
 } from "./utils";
 
-const FRAMEWORKS = ["express", "hono", "elysia", "shared"];
+const FRAMEWORKS = ["express", "hono", "elysia", "fastify", "shared"];
 
 async function main() {
   console.log("Extracting snippet source code...");

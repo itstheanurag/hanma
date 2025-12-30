@@ -2,14 +2,14 @@ import { useMemo, memo } from "react";
 import {
   LuBookOpen,
   LuSearch,
-  LuServer,
-  LuFlame,
   LuZap,
   LuPackage,
   LuChevronDown,
   LuChevronRight,
 } from "react-icons/lu";
 import { CgChevronRight } from "react-icons/cg";
+import { motion, AnimatePresence } from "motion/react";
+
 import type {
   TabType,
   SnippetFramework,
@@ -18,28 +18,34 @@ import type {
 } from "@/types/docs";
 import { useUIStore } from "@/stores";
 import { ThemeToggle } from "../theme/Toggle";
+import { SiExpress, SiFastify, SiHono } from "react-icons/si";
 
 interface DocsSidebarProps {
   activeTab: TabType;
   activeCategory: string;
   activeFramework: FrameworkType;
   onTabChange: (tab: TabType) => void;
-  onNavigate: (tab: TabType, framework: FrameworkType, category?: string) => void;
+  onNavigate: (
+    tab: TabType,
+    framework: FrameworkType,
+    category?: string,
+  ) => void;
   snippetsData: SnippetFramework | null;
   templatesData: TemplatesData | null;
 }
 
 const frameworks = [
-  { id: "express" as FrameworkType, label: "Express", icon: LuServer },
-  { id: "hono" as FrameworkType, label: "Hono", icon: LuFlame },
+  { id: "express" as FrameworkType, label: "Express", icon: SiExpress },
+  { id: "hono" as FrameworkType, label: "Hono", icon: SiHono },
   { id: "elysia" as FrameworkType, label: "Elysia", icon: LuZap },
+  { id: "fastify" as FrameworkType, label: "Fastify", icon: SiFastify },
   { id: "shared" as FrameworkType, label: "Shared", icon: LuPackage },
 ];
 
 // Template frameworks (no "shared" for templates)
 const templateFrameworks = [
-  { id: "express" as FrameworkType, label: "Express", icon: LuServer },
-  { id: "hono" as FrameworkType, label: "Hono", icon: LuFlame },
+  { id: "express" as FrameworkType, label: "Express", icon: SiExpress },
+  { id: "hono" as FrameworkType, label: "Hono", icon: SiHono },
   { id: "elysia" as FrameworkType, label: "Elysia", icon: LuZap },
 ];
 
@@ -133,6 +139,9 @@ const DocsSidebarComponent = ({
             const isActive =
               activeTab === "snippets" && activeFramework === fw.id;
 
+            // Check if data matches current framework to avoid stale renders
+            const hasData = snippetsData?.framework === fw.id;
+
             return (
               <div key={fw.id} className="mb-1">
                 <button
@@ -152,24 +161,34 @@ const DocsSidebarComponent = ({
                   )}
                 </button>
 
-                {/* Expanded Categories - only show when snippets tab is active */}
-                {isExpanded && isActive && snippetsData && (
-                  <div className="ml-4 mt-1 space-y-0.5 border-l border-border pl-2">
-                    {filteredCategories.map((cat) => (
-                      <button
-                        key={cat.id}
-                        onClick={() => handleCategoryClick(cat.id)}
-                        className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${
-                          activeCategory === cat.id
-                            ? "bg-secondary text-black font-medium"
-                            : "text-muted hover:text-foreground hover:bg-surface-hover"
-                        }`}
-                      >
-                        {cat.title}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                {/* Expanded Categories - with Animation */}
+                <AnimatePresence>
+                  {isExpanded && isActive && hasData && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2, ease: "easeInOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className="ml-4 mt-1 space-y-0.5 border-l border-border pl-2">
+                        {filteredCategories.map((cat) => (
+                          <button
+                            key={cat.id}
+                            onClick={() => handleCategoryClick(cat.id)}
+                            className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${
+                              activeCategory === cat.id
+                                ? "bg-secondary text-black font-medium"
+                                : "text-muted hover:text-foreground hover:bg-surface-hover"
+                            }`}
+                          >
+                            {cat.title}
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             );
           })}
@@ -208,23 +227,33 @@ const DocsSidebarComponent = ({
                 </button>
 
                 {/* Expanded Template Categories */}
-                {isExpanded && templatesData && (
-                  <div className="ml-4 mt-1 space-y-0.5 border-l border-border pl-2">
-                    {templatesData.categories.map((cat) => (
-                      <button
-                        key={cat.id}
-                        onClick={() => handleTemplateCategoryClick(cat.id)}
-                        className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${
-                          activeCategory === cat.id
-                            ? "bg-secondary text-black font-medium"
-                            : "text-muted hover:text-foreground hover:bg-surface-hover"
-                        }`}
-                      >
-                        {cat.title}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <AnimatePresence>
+                  {isExpanded && templatesData && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2, ease: "easeInOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className="ml-4 mt-1 space-y-0.5 border-l border-border pl-2">
+                        {templatesData.categories.map((cat) => (
+                          <button
+                            key={cat.id}
+                            onClick={() => handleTemplateCategoryClick(cat.id)}
+                            className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${
+                              activeCategory === cat.id
+                                ? "bg-secondary text-black font-medium"
+                                : "text-muted hover:text-foreground hover:bg-surface-hover"
+                            }`}
+                          >
+                            {cat.title}
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             );
           })}

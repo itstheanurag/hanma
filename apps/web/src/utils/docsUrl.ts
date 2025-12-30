@@ -35,7 +35,9 @@ export const parseDocsPath = (
 
   if (parts.length >= 2) {
     const secondPart = parts[1];
-    if (["express", "hono", "elysia", "shared"].includes(secondPart)) {
+    if (
+      ["express", "hono", "elysia", "fastify", "shared"].includes(secondPart)
+    ) {
       framework = secondPart as FrameworkType;
     } else {
       category = secondPart;

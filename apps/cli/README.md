@@ -183,6 +183,33 @@ npx hanma mod auth-jwt  # 'mod' is an alias
 
 ---
 
+### `show` - View Available Snippets & Templates
+
+Browse available snippets and templates without adding them to your project.
+
+```bash
+# Show all snippets for a framework
+npx hanma show snippets --framework express
+
+# Show details for a specific snippet
+npx hanma show snippets cors --framework express
+
+# Show available templates
+npx hanma show templates --framework hono
+
+# Output as JSON (for scripting)
+npx hanma show snippets --framework express --json
+```
+
+#### Show Command Options
+
+| Option | Description |
+|--------|-------------|
+| `-f, --framework <fw>` | Framework to use (express, hono, elysia, fastify, shared) |
+| `--json` | Output in JSON format |
+
+---
+
 ### `init` - Initialize Configuration
 
 Create a `hanma.json` configuration file in your project.

@@ -1,4 +1,3 @@
-export * from "./command-helpers";
 export * from "./prompts";
 export * from "./registry";
 export * from "./config";

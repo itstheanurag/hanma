@@ -9,6 +9,8 @@ export interface TemplateBlock {
   name: string;
   category: string;
   description: string;
+  framework?: string;
+  version?: string;
   dependencies?: string[];
   devDependencies?: string[];
   scripts?: Record<string, string>;

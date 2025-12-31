@@ -1,17 +1,16 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import prompts from "prompts";
 import { RegistryItem } from "../types";
+import { fetchFrameworks, fetchRegistry, getConfig } from "../utils";
 import {
-  fetchFrameworks,
-  fetchRegistry,
-  getConfig,
-  promptCategory,
+  findItemsByName,
+  installRegistryItems,
+  promptMultiSelectRegistry,
+  promptCategoryFilter,
   promptFramework,
   promptVersion,
-} from "../utils";
-import { findItemsByName, installRegistryItems } from "../helpers";
+} from "../helpers";
 
 /**
  * Filter registry items by version (modules only)
@@ -27,29 +26,6 @@ function filterModules(
     return versionMatch && isModule;
   });
 }
-
-/**
- * Prompt for multi-module selection from filtered list
- */
-async function promptModules(items: RegistryItem[]): Promise<RegistryItem[]> {
-  const { modules } = await prompts({
-    type: "multiselect",
-    name: "modules",
-    message: "Select modules to add (space to select, enter to confirm)",
-    choices: items.map((item) => ({
-      title: item.name,
-      value: item,
-      description: item.description,
-    })),
-    hint: "- Space to select. Return to submit",
-  });
-
-  return modules || [];
-}
-
-// ============================================================================
-// Main Command
-// ============================================================================
 
 export const module = new Command()
   .name("module")
@@ -143,12 +119,15 @@ export const module = new Command()
       }
       selectedModules = found;
     } else {
-      const categoryFiltered = await promptCategory(modules);
+      const categoryFiltered = await promptCategoryFilter(modules);
       if (!categoryFiltered) {
         console.log("Operation cancelled.");
         process.exit(0);
       }
-      selectedModules = await promptModules(categoryFiltered);
+      selectedModules = await promptMultiSelectRegistry(
+        categoryFiltered,
+        "Select modules to add (space to select, enter to confirm)",
+      );
       if (selectedModules.length === 0) {
         console.log("No modules selected.");
         process.exit(0);

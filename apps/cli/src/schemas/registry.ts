@@ -3,7 +3,7 @@ import { z } from "zod";
 export const registryItemSchema = z.object({
   name: z.string(),
   description: z.string(),
-  type: z.enum(["snippet", "module"]).default("snippet"),
+  type: z.enum(["snippet", "module", "addon", "tooling"]).default("snippet"),
   category: z.string().optional(), // e.g., "libs", "middleware", "utils"
   dependencies: z.array(z.string()).optional(),
   devDependencies: z.array(z.string()).optional(),

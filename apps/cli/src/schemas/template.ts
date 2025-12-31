@@ -51,3 +51,6 @@ export const templateRegistrySchema = z.object({
   presets: z.array(templateBlockSchema).optional(),
   extra: z.array(templateBlockSchema).optional(),
 });
+
+export type TemplateBlock = z.infer<typeof templateBlockSchema>;
+export type TemplateRegistry = z.infer<typeof templateRegistrySchema>;

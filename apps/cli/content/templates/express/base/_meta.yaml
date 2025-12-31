@@ -12,7 +12,7 @@ includes:
     path: src/libs/cors.ts
   - snippet: express/v5/middleware/logger.hbs
     path: src/middleware/logger.ts
-  - snippet: shared/tsconfig/express.hbs
+  - snippet: tooling/tsconfig/express.hbs
     path: tsconfig.json
     
 dependencies:

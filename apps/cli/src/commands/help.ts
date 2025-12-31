@@ -16,11 +16,15 @@ export const help = new Command()
     ${chalk.yellow("create")} [name]           Scaffold a new backend project from templates
     ${chalk.yellow("add")} [snippets...]       Add snippet(s) to your project
     ${chalk.yellow("module")} [modules...]     Add multi-file module(s) to your project
-    ${chalk.yellow("show")} <snippets|templates> Show details about snippets or templates
+    ${chalk.yellow("addons")} [snippets...]    Add cross-framework shared snippets (addons)
+    ${chalk.yellow("tooling")} [configs...]    Add development tooling configurations
+    ${chalk.yellow("show")} <type>             View snippets, templates, addons, or tooling
+    ${chalk.yellow("docs")}                    Display documentation and guides
     ${chalk.yellow("help")}                    Display this help message
 
   ${chalk.bold("ALIASES")}
     ${chalk.dim("mod")} → module
+    ${chalk.dim("mod add")} → addons
 
   ${chalk.bold("ADD OPTIONS")}
     ${chalk.dim("-a, --all")}             Add all snippets (use with --category)

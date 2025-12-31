@@ -1,0 +1,61 @@
+{
+  "id": "formatters",
+  "title": "Formatters & Linters",
+  "description": "Code formatting and linting configurations for your development workflow",
+  "items": [
+    {
+      "id": "biome-config",
+      "name": "biome-config",
+      "displayName": "Biome Configuration",
+      "description": "Biome configuration for linting and formatting",
+      "purpose": "Setup Biome as your project's all-in-one linter and formatter. Biome is a fast, modern alternative to ESLint + Prettier.",
+      "features": [
+        "Import organization",
+        "Linting with recommended rules",
+        "Code formatting with consistent style",
+        "Significantly faster than ESLint"
+      ],
+      "output": "biome.json",
+      "dependencies": [],
+      "devDependencies": ["@biomejs/biome"],
+      "command": "hanma tooling biome-config",
+      "usage": "npx @biomejs/biome check --write ."
+    },
+    {
+      "id": "eslint-config",
+      "name": "eslint-config",
+      "displayName": "ESLint Configuration",
+      "description": "ESLint configuration with TypeScript support",
+      "purpose": "Setup ESLint for TypeScript projects using the modern flat config format.",
+      "features": [
+        "TypeScript support",
+        "Recommended rules",
+        "Modern flat config format",
+        "Plugin extensibility"
+      ],
+      "output": "eslint.config.mjs",
+      "dependencies": [],
+      "devDependencies": ["eslint", "@typescript-eslint/eslint-plugin", "@typescript-eslint/parser"],
+      "command": "hanma tooling eslint-config",
+      "usage": "npx eslint ."
+    },
+    {
+      "id": "prettier-config",
+      "name": "prettier-config",
+      "displayName": "Prettier Configuration",
+      "description": "Prettier configuration for consistent code formatting",
+      "purpose": "Setup Prettier as your code formatter for consistent styling across your codebase.",
+      "features": [
+        "Consistent code style",
+        "Customizable rules",
+        "Editor integration support",
+        "Works with most languages"
+      ],
+      "output": ".prettierrc",
+      "dependencies": [],
+      "devDependencies": ["prettier"],
+      "command": "hanma tooling prettier-config",
+      "usage": "npx prettier --write ."
+    }
+  ]
+}

@@ -29,3 +29,8 @@ export const TEMPLATES_URL =
  * Docs URL for fetching documentation
  */
 export const DOCS_URL = process.env.HANMA_DOCS_URL || `${BASE_URL}/docs`;
+
+/**
+ * CLI Version
+ */
+export const VERSION = "0.1.0";

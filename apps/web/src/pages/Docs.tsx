@@ -1,5 +1,5 @@
-import { memo, useCallback, useEffect, useMemo } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { memo, useEffect, useMemo } from "react";
+import { useLocation } from "react-router-dom";
 import { useDocsStore } from "@/stores/docsStore";
 import {
   DocsSidebar,
@@ -7,20 +7,21 @@ import {
   TemplatesView,
   ModulesView,
 } from "@/components/docs";
-import type { FrameworkType, TabType } from "@/types/docs";
 import ContentLoader from "@/components/loaders/ContentLoader";
-import { parseDocsPath, buildDocsPath } from "@/utils/docsUrl";
+import { parseDocsPath } from "@/utils/docsUrl";
+import { useDocsActions } from "@/actions/docs.actions";
 
-// Memoized sidebar to prevent re-renders when only content changes
 const MemoizedSidebar = memo(DocsSidebar);
-
 
 const Docs = () => {
   const location = useLocation();
-  const navigate = useNavigate();
+  const { handleTabChange, handleNavigate } = useDocsActions();
 
   // Parse URL to get current state
-  const urlState = useMemo(() => parseDocsPath(location.pathname), [location.pathname]);
+  const urlState = useMemo(
+    () => parseDocsPath(location.pathname),
+    [location.pathname],
+  );
 
   const {
     snippetsData,
@@ -28,6 +29,8 @@ const Docs = () => {
     addonsData,
     modulesData,
     loading,
+    activeFramework,
+    activeCategory,
     setActiveCategory,
     setActiveFramework,
     fetchSnippetsData,
@@ -36,75 +39,74 @@ const Docs = () => {
     fetchModulesData,
   } = useDocsStore();
 
-  // Sync URL state to Zustand store
+  // Optimize: Consolidate effects and check before updating
   useEffect(() => {
-    setActiveFramework(urlState.framework);
-    if (urlState.category) {
-      setActiveCategory(urlState.category);
+    // 1. Sync Store with URL
+    const { framework, category, tab } = urlState;
+    if (activeFramework !== framework) {
+      setActiveFramework(framework);
     }
-  }, [urlState.framework, urlState.category, setActiveFramework, setActiveCategory]);
-
-  // Fetch data based on URL state
-  useEffect(() => {
-    if (urlState.tab === "snippets") {
-      fetchSnippetsData(urlState.framework);
+    if (category && activeCategory !== category) {
+      setActiveCategory(category);
     }
 
-    if (urlState.tab === "templates") {
-      fetchTemplatesData(urlState.framework);
-    }
+    // 2. Fetch data if needed
+    const fetchMap: Record<string, () => Promise<void>> = {
+      snippets: () => {
+        if (!snippetsData || snippetsData.framework !== framework) {
+          return fetchSnippetsData(framework);
+        }
+        return Promise.resolve();
+      },
+      templates: () => {
+        // Templates might be loaded but for a different framework?
+        // Current implementation of fetchTemplatesData checks cache internally,
+        // so calling it is safe, but we can avoid the call if we know the data is already there.
+        // However, templatesData doesn't explicitly store 'framework' in the root object
+        // in the current type definition (it just has title/desc).
+        // We rely on the store's internal cache check.
+        return fetchTemplatesData(framework);
+      },
+      addons: () => {
+        if (!addonsData) return fetchAddonsData();
+        return Promise.resolve();
+      },
+      modules: () => {
+        if (!modulesData) return fetchModulesData();
+        return Promise.resolve();
+      },
+    };
 
-    if (urlState.tab === "addons") {
-      fetchAddonsData();
-    }
-
-    if (urlState.tab === "modules") {
-      fetchModulesData();
-    }
-  }, [urlState.tab, urlState.framework, fetchSnippetsData, fetchTemplatesData, fetchAddonsData, fetchModulesData]);
-
-  // Note: Removed auto-navigation to first category
-  // Users can now stay on framework overview pages (e.g., /docs/snippets/express)
-  // without being redirected to /docs/snippets/express/libs
-
-  const handleTabChange = useCallback(
-    (tab: TabType) => {
-      // Navigate to new tab, keeping framework if applicable
-      if (tab === "modules") {
-        navigate("/docs/modules");
-      } else if (tab === "addons") {
-        navigate("/docs/addons");
-      } else {
-        navigate(buildDocsPath(tab, urlState.framework, ""));
-      }
-    },
-    [navigate, urlState.framework]
-  );
-
-
-
-  const handleNavigate = useCallback(
-    (tab: TabType, framework: FrameworkType, category: string = "") => {
-      navigate(buildDocsPath(tab, framework, category));
-    },
-    [navigate]
-  );
+    fetchMap[tab]?.();
+  }, [
+    urlState,
+    activeFramework,
+    activeCategory,
+    snippetsData,
+    templatesData,
+    addonsData,
+    modulesData,
+    setActiveFramework,
+    setActiveCategory,
+    fetchSnippetsData,
+    fetchTemplatesData,
+    fetchAddonsData,
+    fetchModulesData,
+  ]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row">
-      {/* Sidebar */}
       <MemoizedSidebar
         activeTab={urlState.tab}
         activeCategory={urlState.category}
         activeFramework={urlState.framework}
-        onTabChange={handleTabChange}
-
+        onTabChange={(tab) => handleTabChange(tab, urlState.framework)}
         onNavigate={handleNavigate}
         snippetsData={snippetsData}
         templatesData={templatesData}
+        addonsData={addonsData}
       />
 
-      {/* Main Content */}
       <main className="flex-1 p-6 md:p-12 overflow-y-auto">
         <div className="max-w-4xl mx-auto">
           {loading ? (
@@ -127,9 +129,10 @@ const Docs = () => {
               )}
 
               {urlState.tab === "addons" && addonsData && (
-                <TemplatesView
+                <SnippetsView
                   data={addonsData}
                   activeCategory={urlState.category}
+                  activeFramework="shared"
                 />
               )}
 
@@ -145,4 +148,3 @@ const Docs = () => {
 };
 
 export default Docs;
-

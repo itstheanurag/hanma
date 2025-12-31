@@ -13,6 +13,9 @@ interface UIState {
 
   // Copy state (track by ID with timeout)
   copiedItems: Set<string>;
+
+  // Snippet view state (track by ID: "about" | "code")
+  snippetViewModes: Map<string, "about" | "code">;
 }
 
 interface UIActions {
@@ -23,6 +26,10 @@ interface UIActions {
   // Cards
   toggleCardExpanded: (id: string) => void;
   isCardExpanded: (id: string) => boolean;
+
+  // Snippets
+  setSnippetViewMode: (id: string, mode: "about" | "code") => void;
+  getSnippetViewMode: (id: string) => "about" | "code";
 
   // FAQ
   setOpenFaqIndex: (index: number | null) => void;
@@ -42,6 +49,7 @@ const initialState: UIState = {
   expandedCards: new Set(),
   openFaqIndex: 0,
   copiedItems: new Set(),
+  snippetViewModes: new Map(),
 };
 
 export const useUIStore = create<UIState & UIActions>((set, get) => ({
@@ -63,6 +71,15 @@ export const useUIStore = create<UIState & UIActions>((set, get) => ({
     set({ expandedCards: newSet });
   },
   isCardExpanded: (id) => get().expandedCards.has(id),
+
+  // Snippet actions
+  setSnippetViewMode: (id, mode) => {
+    const { snippetViewModes } = get();
+    const newMap = new Map(snippetViewModes);
+    newMap.set(id, mode);
+    set({ snippetViewModes: newMap });
+  },
+  getSnippetViewMode: (id) => get().snippetViewModes.get(id) || "about",
 
   // FAQ actions
   setOpenFaqIndex: (index) => set({ openFaqIndex: index }),

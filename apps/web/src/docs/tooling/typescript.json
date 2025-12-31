@@ -1,0 +1,25 @@
+{
+  "id": "typescript",
+  "title": "TypeScript Configuration",
+  "description": "TypeScript compiler configurations for different project types",
+  "items": [
+    {
+      "id": "tsconfig-base",
+      "name": "tsconfig-base",
+      "displayName": "TSConfig Base",
+      "description": "Base TypeScript configuration for Node.js projects",
+      "purpose": "Setup TypeScript with sensible defaults for Node.js backend development.",
+      "features": [
+        "Strict type checking enabled",
+        "ESM module resolution",
+        "Node.js 18+ compatible settings",
+        "Source maps for debugging"
+      ],
+      "output": "tsconfig.json",
+      "dependencies": [],
+      "devDependencies": ["typescript", "@types/node"],
+      "command": "hanma tooling tsconfig-base",
+      "usage": "npx tsc --build"
+    }
+  ]
+}

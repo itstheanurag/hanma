@@ -4,11 +4,11 @@ import { highlightCode, countLines } from "@/utils/shiki-highlighter";
 import { useUIStore } from "@/stores";
 import clsx from "clsx";
 import type { FrameworkType } from "@/types/docs";
-import { getSnippetSource } from "@/utils/docsLoader";
+import { getSnippetSource, getToolingSource } from "@/utils/docsLoader";
 
 interface CodeViewerProps {
   snippetId: string;
-  framework: FrameworkType;
+  framework: FrameworkType | "shared" | "tooling";
 }
 
 const MAX_COLLAPSED_LINES = 10;
@@ -34,7 +34,13 @@ const CodeViewerComponent = ({ snippetId, framework }: CodeViewerProps) => {
 
       try {
         // Use static import from docsLoader
-        const code = getSnippetSource(framework, snippetId);
+        let code: string | null = null;
+
+        if (framework === "tooling") {
+          code = getToolingSource(snippetId);
+        } else {
+          code = getSnippetSource(framework, snippetId);
+        }
 
         if (!code) {
           throw new Error("Snippet source not found");
@@ -43,7 +49,7 @@ const CodeViewerComponent = ({ snippetId, framework }: CodeViewerProps) => {
         setSourceCode(code);
 
         // Highlighting logic stays exactly the same
-        const html = await highlightCode(code, "typescript");
+        const html = await highlightCode(code, "typescript", "github-dark");
         setHighlightedHtml(html);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load source");
@@ -87,9 +93,7 @@ const CodeViewerComponent = ({ snippetId, framework }: CodeViewerProps) => {
     <div className="space-y-2">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <span className="text-xs text-muted font-mono">
-          {totalLines} lines
-        </span>
+        <span className="text-xs text-muted font-mono">{totalLines} lines</span>
 
         <button
           onClick={handleCopy}
@@ -114,7 +118,7 @@ const CodeViewerComponent = ({ snippetId, framework }: CodeViewerProps) => {
       <div
         className={clsx(
           "relative overflow-hidden transition-all duration-300 rounded-lg border border-border bg-transparent",
-          !isExpanded && needsExpansion && "max-h-[280px]"
+          !isExpanded && needsExpansion && "max-h-[280px]",
         )}
       >
         {/* Highlighted code (Shiki owns the background) */}

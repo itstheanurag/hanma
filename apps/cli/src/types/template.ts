@@ -1,5 +1,3 @@
-import { RegistryItem } from "./schema";
-
 export interface TemplateFile {
   path: string;
   content: string;
@@ -42,5 +40,3 @@ export interface CollectedBlockData {
   scripts: Record<string, string>;
   envVars: string[];
 }
-
-export { type RegistryItem };

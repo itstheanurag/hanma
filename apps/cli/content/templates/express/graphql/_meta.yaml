@@ -7,7 +7,7 @@ version: "5"
 includes:
   - snippet: express/v5/libs/servers/graphql-server.hbs
     path: src/libs/graphql-server.ts
-  - snippet: shared/tsconfig/express.hbs
+  - snippet: tooling/tsconfig/express.hbs
     path: tsconfig.json
 
 dependencies:

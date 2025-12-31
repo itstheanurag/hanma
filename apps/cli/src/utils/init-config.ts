@@ -1,8 +1,8 @@
-import prompts from "prompts";
 import chalk from "chalk";
-import { createConfig, HanmaConfig } from "./config";
-import { fetchFrameworks, promptFramework } from "../utils";
 import ora from "ora";
+import { createConfig, HanmaConfig } from "./config";
+import { fetchFrameworks } from "./registry";
+import { promptFramework, promptInitConfig } from "../helpers";
 
 /**
  * Common initialization logic for Hanma config
@@ -11,22 +11,8 @@ import ora from "ora";
 export async function initHanmaConfig(): Promise<HanmaConfig | null> {
   console.log(chalk.bold.blue("Initializing Hanma..."));
 
-  const response = await prompts([
-    {
-      type: "text",
-      name: "componentsPath",
-      message: "Where would you like to store your snippets?",
-      initial: "src",
-    },
-    {
-      type: "text",
-      name: "utilsPath",
-      message: "Where would you like to store utils?",
-      initial: "src/utils",
-    },
-  ]);
-
-  if (!response.componentsPath || !response.utilsPath) {
+  const response = await promptInitConfig();
+  if (!response) {
     return null;
   }
 

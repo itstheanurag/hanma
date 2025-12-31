@@ -11,6 +11,8 @@ export const CLI_CONTENT_DIR = path.join(ROOT_DIR, "apps/cli/content");
 export const SNIPPETS_DIR = path.join(CLI_CONTENT_DIR, "snippets");
 export const TEMPLATES_DIR = path.join(CLI_CONTENT_DIR, "templates");
 export const MODULES_DIR = path.join(CLI_CONTENT_DIR, "modules");
+export const SHARED_DIR = path.join(CLI_CONTENT_DIR, "shared");
+export const TOOLING_DIR = path.join(CLI_CONTENT_DIR, "tooling");
 export const PUBLIC_DIR = path.join(ROOT_DIR, "apps/web/public");
 export const WEB_SRC_DIR = path.join(ROOT_DIR, "apps/web/src");
 export const DOCS_REGISTRY_DIR = path.join(PUBLIC_DIR, "registry");
@@ -31,7 +33,7 @@ export interface SnippetMeta {
   version?: string;
   framework?: string;
   category?: string;
-  type?: "snippet" | "module";
+  type?: "snippet" | "module" | "addon" | "tooling";
   [key: string]: any;
 }
 

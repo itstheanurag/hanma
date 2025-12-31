@@ -28,16 +28,6 @@ import fastifyLibs from "@/docs/snippets/fastify/libs.json";
 import fastifyMiddleware from "@/docs/snippets/fastify/middleware.json";
 import fastifyUtils from "@/docs/snippets/fastify/utils.json";
 
-// Snippets - Shared
-import sharedIndex from "@/docs/snippets/shared/index.json";
-import sharedDb from "@/docs/snippets/shared/db.json";
-import sharedLibs from "@/docs/snippets/shared/libs.json";
-import sharedMailers from "@/docs/snippets/shared/mailers.json";
-import sharedPasswords from "@/docs/snippets/shared/passwords.json";
-import sharedQueries from "@/docs/snippets/shared/queries.json";
-import sharedUploads from "@/docs/snippets/shared/uploads.json";
-import sharedUtils from "@/docs/snippets/shared/utils.json";
-
 // Templates - Express
 import templatesExpressIndex from "@/docs/templates/express/index.json";
 import templatesExpressBase from "@/docs/templates/express/base.json";
@@ -50,29 +40,38 @@ import templatesHonoBase from "@/docs/templates/hono/base.json";
 import templatesElysiaIndex from "@/docs/templates/elysia/index.json";
 import templatesElysiaBase from "@/docs/templates/elysia/base.json";
 
-// Add-ons (shared across all frameworks)
-import addonsIndex from "@/docs/templates/shared/index.json";
-import addonsDatabase from "@/docs/templates/shared/database.json";
-import addonsAuth from "@/docs/templates/shared/auth.json";
-import addonsFeatures from "@/docs/templates/shared/features.json";
-import addonsPresets from "@/docs/templates/shared/presets.json";
+// Add-ons (shared snippets - cross-framework)
+import sharedIndex from "@/docs/shared/index.json";
+import sharedDb from "@/docs/shared/db.json";
+import sharedLibs from "@/docs/shared/libs.json";
+import sharedMailers from "@/docs/shared/mailers.json";
+import sharedPasswords from "@/docs/shared/passwords.json";
+import sharedQueries from "@/docs/shared/queries.json";
+import sharedUploads from "@/docs/shared/uploads.json";
+import sharedUtils from "@/docs/shared/utils.json";
 
 // Modules
 import modulesIndex from "@/docs/modules/index.json";
 
-// Snippets Sources ( stay in public cause they can be generated from scripts )
+// Tooling
+import toolingIndex from "@/docs/tooling/index.json";
+import toolingFormatters from "@/docs/tooling/formatters.json";
+import toolingTypescript from "@/docs/tooling/typescript.json";
+
+// Sources (generated from scripts)
 import expressSourcesJson from "@/docs/sources/express/sources.json";
 import honoSourcesJson from "@/docs/sources/hono/sources.json";
 import elysiaSourcesJson from "@/docs/sources/elysia/sources.json";
 import fastifySourcesJson from "@/docs/sources/fastify/sources.json";
 import sharedSourcesJson from "@/docs/sources/shared/sources.json";
+import toolingSourcesJson from "@/docs/sources/tooling/sources.json";
 
 import type { FrameworkType } from "@/types/docs";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 // Snippet index loaders
-export const snippetIndexes: Record<FrameworkType, any> = {
+export const snippetIndexes: Record<string, any> = {
   express: expressIndex,
   hono: honoIndex,
   elysia: elysiaIndex,
@@ -116,7 +115,7 @@ const sharedCategories: Record<string, any> = {
   "utils.json": sharedUtils,
 };
 
-const allCategories: Record<FrameworkType, Record<string, any>> = {
+const allCategories: Record<string, Record<string, any>> = {
   express: expressCategories,
   hono: honoCategories,
   elysia: elysiaCategories,
@@ -163,17 +162,10 @@ const allTemplatesCategories: Record<string, Record<string, any>> = {
 };
 
 // Add-ons loader
-export const addonsIndexData: any = addonsIndex;
-
-const addonsCategories: Record<string, any> = {
-  "database.json": addonsDatabase,
-  "auth.json": addonsAuth,
-  "features.json": addonsFeatures,
-  "presets.json": addonsPresets,
-};
+export const addonsIndexData: any = sharedIndex;
 
 export function loadAddonCategory(fileName: string): any | null {
-  return addonsCategories[fileName] || null;
+  return sharedCategories[fileName] || null;
 }
 
 export function loadTemplateCategory(
@@ -187,8 +179,20 @@ export function loadTemplateCategory(
 // Modules loader
 export const modulesData: any = modulesIndex;
 
+// Tooling loader
+export const toolingIndexData: any = toolingIndex;
+
+const toolingCategories: Record<string, any> = {
+  "formatters.json": toolingFormatters,
+  "typescript.json": toolingTypescript,
+};
+
+export function loadToolingCategory(fileName: string): any | null {
+  return toolingCategories[fileName] || null;
+}
+
 // Sources loaders
-export const snippetSources: Record<FrameworkType, Record<string, string>> = {
+export const snippetSources: Record<string, Record<string, string>> = {
   express: expressSourcesJson as Record<string, string>,
   hono: honoSourcesJson as Record<string, string>,
   elysia: elysiaSourcesJson as Record<string, string>,
@@ -196,10 +200,26 @@ export const snippetSources: Record<FrameworkType, Record<string, string>> = {
   shared: sharedSourcesJson as Record<string, string>,
 };
 
+export const toolingSources: Record<string, string> =
+  toolingSourcesJson as Record<string, string>;
+
+export const addonSources: Record<string, string> = sharedSourcesJson as Record<
+  string,
+  string
+>;
+
 export function getSnippetSource(
-  framework: FrameworkType,
+  framework: FrameworkType | "shared",
   snippetId: string,
 ): string | null {
   const sources = snippetSources[framework];
   return sources?.[snippetId] || null;
+}
+
+export function getToolingSource(toolingId: string): string | null {
+  return toolingSources[toolingId] || null;
+}
+
+export function getAddonSource(addonId: string): string | null {
+  return addonSources[addonId] || null;
 }

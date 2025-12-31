@@ -2,29 +2,18 @@ import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
 import fs from "fs-extra";
+import path from "path";
 import { TemplateBlock, TemplateRegistry, CollectedBlockData } from "../types";
 import {
   promptProjectName,
   promptBlockSelection,
-  promptMultiSelect,
+  promptMultiSelectFeatures,
   promptPackageManager,
-} from "../utils/prompts";
-import path from "path";
-import { TEMPLATES_URL } from "../constants";
-import { collectBlockData, writeProjectFiles } from "../helpers";
+  collectBlockData,
+  writeProjectFiles,
+} from "../helpers";
+import { fetchTemplatesRegistry } from "../utils";
 
-
-async function fetchTemplateRegistry(): Promise<TemplateRegistry> {
-  const res = await fetch(`${TEMPLATES_URL}/index.json`);
-  if (!res.ok) {
-    throw new Error(`Failed to fetch template registry: ${res.statusText}`);
-  }
-  return res.json() as Promise<TemplateRegistry>;
-}
-
-// ============================================================================
-// Validators
-// ============================================================================
 
 /**
  * Validate project path doesn't already exist
@@ -37,7 +26,6 @@ async function validateProjectPath(projectName: string): Promise<string> {
   }
   return projectPath;
 }
-
 
 /**
  * Build the final package.json object
@@ -73,9 +61,6 @@ async function runPackageInstall(
   }
 }
 
-// ============================================================================
-// Output Messages
-// ============================================================================
 
 /**
  * Print success message and next steps
@@ -98,9 +83,6 @@ function printSuccessMessage(
   console.log(`${packageManager} run dev\n`);
 }
 
-// ============================================================================
-// Main Command
-// ============================================================================
 
 export const create = new Command()
   .name("create")
@@ -152,11 +134,12 @@ export const create = new Command()
     // 2. Validate project path
     const projectPath = await validateProjectPath(projectName);
 
-    // 3. Fetch template registry
+    // 3. Fetch template registry (fetch empty/generic first to get all options)
     const spinner = ora("Fetching templates...").start();
-    let registry: TemplateRegistry;
+    let registry: TemplateRegistry | null;
     try {
-      registry = await fetchTemplateRegistry();
+      registry = await fetchTemplatesRegistry("");
+      if (!registry) throw new Error("Registry is empty");
       spinner.succeed("Templates loaded");
     } catch (error) {
       spinner.fail("Failed to fetch templates");
@@ -225,7 +208,7 @@ export const create = new Command()
       );
 
       if (otherFeatures.length > 0) {
-        const selectedOther = await promptMultiSelect(
+        const selectedOther = await promptMultiSelectFeatures(
           otherFeatures,
           "Select additional features (space to select, enter to confirm):",
         );

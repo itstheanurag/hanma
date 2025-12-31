@@ -59,7 +59,7 @@ export async function promptBlockSelection(
 }
 
 /**
- * Prompt for framework selection (string based, for add/module)
+ * Prompt for framework selection (string based)
  */
 export async function promptFramework(
   frameworks: string[],
@@ -90,7 +90,7 @@ export async function promptVersion(
     new Set(
       registry.map((item) => item.version).filter((v): v is string => !!v),
     ),
-  );
+  ).sort();
 
   if (preselected && versions.includes(preselected)) {
     return preselected;
@@ -114,13 +114,36 @@ export async function promptVersion(
 }
 
 /**
- * Prompt for category selection
+ * Prompt for multi-item selection from a list of registry items
  */
-export async function promptCategory(
+export async function promptMultiSelectRegistry(
   items: RegistryItem[],
+  message: string = "Select items to add (space to select, enter to confirm)",
+): Promise<RegistryItem[]> {
+  const { selected } = await prompts({
+    type: "multiselect",
+    name: "selected",
+    message,
+    choices: items.map((item) => ({
+      title: item.name,
+      value: item,
+      description: item.description,
+    })),
+    hint: "- Space to select. Return to submit",
+  });
+
+  return selected || [];
+}
+
+/**
+ * Prompt for category selection and return filtered items
+ */
+export async function promptCategoryFilter(
+  items: RegistryItem[],
+  message: string = "Select a category",
 ): Promise<RegistryItem[] | null> {
   const categories = Array.from(
-    new Set(items.map((item) => item.category || "uncategorized")),
+    new Set(items.map((i) => i.category || "uncategorized")),
   ).sort();
 
   if (categories.length <= 1) {
@@ -130,25 +153,23 @@ export async function promptCategory(
   const { category } = await prompts({
     type: "select",
     name: "category",
-    message: "Select a category",
+    message,
     choices: [
       { title: "All categories", value: "all" },
       ...categories.map((c) => ({ title: c, value: c })),
     ],
   });
 
-  if (!category) return null;
+  if (category === undefined) return null;
   if (category === "all") return items;
 
-  return items.filter(
-    (item) => (item.category || "uncategorized") === category,
-  );
+  return items.filter((i) => (i.category || "uncategorized") === category);
 }
 
 /**
- * Prompt for multi-select features
+ * Prompt for multi-select features (TemplateBlocks)
  */
-export async function promptMultiSelect(
+export async function promptMultiSelectFeatures(
   items: TemplateBlock[],
   message: string,
   cliOptions?: Record<string, string>,
@@ -219,4 +240,33 @@ export async function promptPackageManager(
   });
 
   return pm || null;
+}
+
+/**
+ * Prompt for initial Hanma configuration
+ */
+export async function promptInitConfig(): Promise<{
+  componentsPath: string;
+  utilsPath: string;
+} | null> {
+  const response = await prompts([
+    {
+      type: "text",
+      name: "componentsPath",
+      message: "Where would you like to store your snippets?",
+      initial: "src",
+    },
+    {
+      type: "text",
+      name: "utilsPath",
+      message: "Where would you like to store utils?",
+      initial: "src/utils",
+    },
+  ]);
+
+  if (!response.componentsPath || !response.utilsPath) {
+    return null;
+  }
+
+  return response;
 }

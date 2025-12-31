@@ -5,20 +5,19 @@ import { RegistryItem } from "../types";
 import {
   getConfig,
   fetchFrameworks,
-  promptFramework,
   fetchRegistry,
   fetchTemplatesRegistry,
+  fetchToolingRegistry,
+  fetchAddonsRegistry,
 } from "../utils";
 import {
   displaySnippetDetails,
   displaySnippetsTable,
   displayTemplateDetails,
   displayTemplatesList,
+  promptFramework,
 } from "../helpers";
 
-// ============================================================================
-// Subcommands
-// ============================================================================
 
 const showSnippets = new Command()
   .name("snippets")
@@ -43,11 +42,12 @@ const showSnippets = new Command()
         process.exit(1);
       }
 
-      selectedFramework = await promptFramework(frameworks);
-      if (!selectedFramework) {
+      const selected = await promptFramework(frameworks);
+      if (!selected) {
         console.log("Operation cancelled.");
         process.exit(0);
       }
+      selectedFramework = selected;
     }
 
     // Fetch registry
@@ -140,11 +140,12 @@ const showTemplates = new Command()
         process.exit(1);
       }
 
-      selectedFramework = await promptFramework(frameworks);
-      if (!selectedFramework) {
+      const selected = await promptFramework(frameworks);
+      if (!selected) {
         console.log("Operation cancelled.");
         process.exit(0);
       }
+      selectedFramework = selected;
     }
 
     // Fetch template registry
@@ -168,6 +169,7 @@ const showTemplates = new Command()
         ...(registry.auth || []),
         ...(registry.features || []),
         ...(registry.presets || []),
+        ...(registry.extra || []),
       ];
 
       const template = allTemplates.find(
@@ -206,11 +208,127 @@ const showTemplates = new Command()
   });
 
 // ============================================================================
+// Tooling Subcommand
+// ============================================================================
+
+const showTooling = new Command()
+  .name("tooling")
+  .description("Show available tooling configurations")
+  .argument("[name]", "Tooling config name to show details for")
+  .option("--json", "Output in JSON format")
+  .action(async (toolingName: string | undefined, options) => {
+    const registrySpinner = ora("Fetching tooling configurations...").start();
+    let registry: RegistryItem[] = [];
+    try {
+      registry = await fetchToolingRegistry();
+      registrySpinner.succeed("Tooling configurations fetched");
+    } catch (error) {
+      registrySpinner.fail("Failed to fetch tooling registry");
+      console.error(error);
+      process.exit(1);
+    }
+
+    if (registry.length === 0) {
+      console.log(chalk.yellow("No tooling configurations available."));
+      process.exit(0);
+    }
+
+    if (toolingName) {
+      const tooling = registry.find(
+        (t) => t.name.toLowerCase() === toolingName.toLowerCase(),
+      );
+
+      if (!tooling) {
+        console.log(chalk.red(`Tooling config '${toolingName}' not found`));
+        console.log(chalk.dim("Available configs:"));
+        registry
+          .slice(0, 10)
+          .forEach((t) => console.log(chalk.dim(`  • ${t.name}`)));
+        process.exit(1);
+      }
+
+      if (options.json) {
+        console.log(JSON.stringify(tooling, null, 2));
+      } else {
+        displaySnippetDetails(tooling);
+      }
+    } else {
+      if (options.json) {
+        console.log(JSON.stringify(registry, null, 2));
+      } else {
+        console.log();
+        console.log(chalk.bold.hex("#ea580c")("Tooling Configurations"));
+        displaySnippetsTable(registry);
+      }
+    }
+  });
+
+// ============================================================================
+// Addons Subcommand
+// ============================================================================
+
+const showAddons = new Command()
+  .name("addons")
+  .description("Show available addons (cross-framework snippets)")
+  .argument("[name]", "Addon name to show details for")
+  .option("--json", "Output in JSON format")
+  .action(async (addonName: string | undefined, options) => {
+    const registrySpinner = ora("Fetching addons...").start();
+    let registry: RegistryItem[] = [];
+    try {
+      registry = await fetchAddonsRegistry();
+      registrySpinner.succeed("Addons fetched");
+    } catch (error) {
+      registrySpinner.fail("Failed to fetch addons registry");
+      console.error(error);
+      process.exit(1);
+    }
+
+    if (registry.length === 0) {
+      console.log(chalk.yellow("No addons available."));
+      process.exit(0);
+    }
+
+    if (addonName) {
+      const addon = registry.find(
+        (a) => a.name.toLowerCase() === addonName.toLowerCase(),
+      );
+
+      if (!addon) {
+        console.log(chalk.red(`Addon '${addonName}' not found`));
+        console.log(chalk.dim("Available addons:"));
+        registry
+          .slice(0, 10)
+          .forEach((a) => console.log(chalk.dim(`  • ${a.name}`)));
+        process.exit(1);
+      }
+
+      if (options.json) {
+        console.log(JSON.stringify(addon, null, 2));
+      } else {
+        displaySnippetDetails(addon);
+      }
+    } else {
+      if (options.json) {
+        console.log(JSON.stringify(registry, null, 2));
+      } else {
+        console.log();
+        console.log(
+          chalk.bold.hex("#ea580c")("Addons (Cross-Framework Snippets)"),
+        );
+        displaySnippetsTable(registry);
+      }
+    }
+  });
+
+// ============================================================================
 // Main Command
 // ============================================================================
 
 export const show = new Command()
   .name("show")
-  .description("Show details about snippets or templates")
+  .description("Show details about snippets, templates, tooling, or addons")
   .addCommand(showSnippets)
-  .addCommand(showTemplates);
+  .addCommand(showTemplates)
+  .addCommand(showTooling)
+  .addCommand(showAddons);

@@ -4,3 +4,5 @@ export * from "./create";
 export * from "./module";
 export * from "./help";
 export * from "./show";
+export * from "./tooling";
+export * from "./addons";

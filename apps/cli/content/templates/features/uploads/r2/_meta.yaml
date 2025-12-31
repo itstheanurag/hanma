@@ -5,7 +5,7 @@ description: Cloudflare R2 uploads (S3-compatible)
 framework: express
 
 includes:
-  - snippet: shared/v1/uploads/cloudflare-r2.hbs
+  - snippet: shared/uploads/cloudflare-r2.hbs
     path: src/libs/upload.ts
 
 dependencies:

@@ -30,7 +30,7 @@ interface DocsState {
   // Data
   snippetsData: SnippetFramework | null;
   templatesData: TemplatesData | null;
-  addonsData: TemplatesData | null;
+  addonsData: SnippetFramework | null;
   modulesData: ModulesData | null;
 
   // Loading state
@@ -200,16 +200,21 @@ export const useDocsStore = create<DocsState & DocsActions>((set, get) => ({
         throw new Error("No add-ons index found");
       }
 
-      const categories: TemplateCategory[] = indexData.categoryFiles
+      const categories: SnippetCategory[] = indexData.categoryFiles
         .map(
           (catFile: { id: string; file: string }) =>
-            loadAddonCategory(catFile.file) as TemplateCategory,
+            loadAddonCategory(catFile.file) as SnippetCategory,
         )
-        .filter((cat: unknown): cat is TemplateCategory => cat !== null);
+        .filter((cat: unknown): cat is SnippetCategory => cat !== null);
 
-      const mergedData: TemplatesData = {
-        title: indexData.title || "",
+      const mergedData: SnippetFramework = {
+        framework: indexData.framework || "shared",
+        version: indexData.version || "v1",
+        title: indexData.title || "Add-ons",
         description: indexData.description || "",
+        installNote: indexData.installNote,
+        concept: indexData.concept,
+        examples: indexData.examples,
         categories,
       };
 

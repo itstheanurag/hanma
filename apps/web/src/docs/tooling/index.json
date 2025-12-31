@@ -1,0 +1,113 @@
+{
+  "title": "Tooling",
+  "description": "Development tool configurations for linting, formatting, and TypeScript setup",
+  "version": "v1",
+  "categories": [
+    {
+      "id": "formatters",
+      "title": "Formatters & Linters",
+      "description": "Code formatting and linting configurations",
+      "subcategories": [
+        {
+          "id": "biome",
+          "title": "Biome",
+          "description": "Fast all-in-one formatter and linter",
+          "snippets": [
+            {
+              "id": "biome-config",
+              "name": "biome-config",
+              "displayName": "Biome Configuration",
+              "description": "Biome configuration for linting and formatting",
+              "purpose": "Setup Biome as your project's linter and formatter",
+              "features": [
+                "Import organization",
+                "Linting with recommended rules",
+                "Code formatting with consistent style"
+              ],
+              "output": "biome.json",
+              "dependencies": [],
+              "devDependencies": ["@biomejs/biome"],
+              "command": "hanma tooling biome-config"
+            }
+          ]
+        },
+        {
+          "id": "eslint",
+          "title": "ESLint",
+          "description": "JavaScript/TypeScript linting",
+          "snippets": [
+            {
+              "id": "eslint-config",
+              "name": "eslint-config",
+              "displayName": "ESLint Configuration",
+              "description": "ESLint configuration with TypeScript support",
+              "purpose": "Setup ESLint for TypeScript projects",
+              "features": [
+                "TypeScript support",
+                "Recommended rules",
+                "Modern flat config format"
+              ],
+              "output": "eslint.config.mjs",
+              "dependencies": [],
+              "devDependencies": ["eslint", "@typescript-eslint/eslint-plugin", "@typescript-eslint/parser"],
+              "command": "hanma tooling eslint-config"
+            }
+          ]
+        },
+        {
+          "id": "prettier",
+          "title": "Prettier",
+          "description": "Code formatting",
+          "snippets": [
+            {
+              "id": "prettier-config",
+              "name": "prettier-config",
+              "displayName": "Prettier Configuration",
+              "description": "Prettier configuration for consistent code formatting",
+              "purpose": "Setup Prettier as your code formatter",
+              "features": [
+                "Consistent code style",
+                "Customizable rules",
+                "Editor integration support"
+              ],
+              "output": ".prettierrc",
+              "dependencies": [],
+              "devDependencies": ["prettier"],
+              "command": "hanma tooling prettier-config"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "typescript",
+      "title": "TypeScript",
+      "description": "TypeScript configuration",
+      "subcategories": [
+        {
+          "id": "tsconfig",
+          "title": "TSConfig",
+          "description": "TypeScript compiler configuration",
+          "snippets": [
+            {
+              "id": "tsconfig-base",
+              "name": "tsconfig-base",
+              "displayName": "TSConfig Base",
+              "description": "Base TypeScript configuration for Node.js projects",
+              "purpose": "Setup TypeScript with sensible defaults",
+              "features": [
+                "Strict type checking",
+                "ESM module resolution",
+                "Node.js compatible settings"
+              ],
+              "output": "tsconfig.json",
+              "dependencies": [],
+              "devDependencies": ["typescript"],
+              "command": "hanma tooling tsconfig-base"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

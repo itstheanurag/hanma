@@ -1,6 +1,32 @@
-import { Registry, registrySchema } from "../schema";
+import { registrySchema } from "../schemas/registry";
 import { REGISTRY_URL, TEMPLATES_URL } from "../constants";
-import { TemplateRegistry } from "../types";
+import { Registry, TemplateRegistry } from "../types";
+
+/**
+ * Generic fetcher for registry data
+ */
+async function fetchRegistryData<T>(
+  url: string,
+  schema: {
+    safeParse: (data: unknown) => { success: boolean; data?: T; error?: any };
+  },
+  errorMessage: string,
+): Promise<T> {
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`${errorMessage}: ${res.statusText}`);
+  }
+  const json = await res.json();
+  const result = schema.safeParse(json);
+
+  if (!result.success) {
+    throw new Error(
+      `${errorMessage} (Invalid format): ${result.error.message}`,
+    );
+  }
+
+  return result.data as T;
+}
 
 export async function fetchFrameworks(): Promise<string[]> {
   const res = await fetch(`${REGISTRY_URL}/index.json`);
@@ -11,22 +37,11 @@ export async function fetchFrameworks(): Promise<string[]> {
 }
 
 export async function fetchRegistry(framework: string): Promise<Registry> {
-  const res = await fetch(`${REGISTRY_URL}/${framework}.json`);
-  if (!res.ok) {
-    throw new Error(
-      `Failed to fetch registry for ${framework}: ${res.statusText}`,
-    );
-  }
-  const json = await res.json();
-  const result = registrySchema.safeParse(json);
-
-  if (!result.success) {
-    throw new Error(
-      `Invalid registry format for ${framework}: ${result.error.message}`,
-    );
-  }
-
-  return result.data;
+  return fetchRegistryData(
+    `${REGISTRY_URL}/${framework}.json`,
+    registrySchema,
+    `Failed to fetch registry for ${framework}`,
+  );
 }
 
 export async function fetchTemplatesRegistry(
@@ -57,8 +72,31 @@ export async function fetchTemplatesRegistry(
       auth: filterByFramework(fullRegistry.auth),
       features: filterByFramework(fullRegistry.features),
       presets: filterByFramework(fullRegistry.presets),
+      extra: filterByFramework(fullRegistry.extra),
     };
   } catch {
     return null;
   }
+}
+
+/**
+ * Fetch tooling registry (dev configs like biome, eslint, prettier)
+ */
+export async function fetchToolingRegistry(): Promise<Registry> {
+  return fetchRegistryData(
+    `${REGISTRY_URL}/tooling.json`,
+    registrySchema,
+    "Failed to fetch tooling registry",
+  );
+}
+
+/**
+ * Fetch addons registry (shared cross-framework snippets)
+ */
+export async function fetchAddonsRegistry(): Promise<Registry> {
+  return fetchRegistryData(
+    `${REGISTRY_URL}/shared.json`,
+    registrySchema,
+    "Failed to fetch addons registry",
+  );
 }

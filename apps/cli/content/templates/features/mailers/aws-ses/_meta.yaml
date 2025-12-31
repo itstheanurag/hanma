@@ -5,7 +5,7 @@ description: Email sending with AWS SES
 framework: express
 
 includes:
-  - snippet: shared/v1/mailers/aws-ses.hbs
+  - snippet: shared/mailers/aws-ses.hbs
     path: src/libs/mailer.ts
 
 dependencies:

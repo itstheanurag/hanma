@@ -4,6 +4,8 @@ import yaml from "js-yaml";
 import {
   TEMPLATES_DIR,
   SNIPPETS_DIR,
+  SHARED_DIR,
+  TOOLING_DIR,
   MODULES_DIR,
   DOCS_REGISTRY_DIR,
   parseSnippetFile,
@@ -13,6 +15,28 @@ const TEMPLATES_OUTPUT_DIR = path.join(
   path.dirname(DOCS_REGISTRY_DIR),
   "templates",
 );
+
+/**
+ * Resolve a snippet reference path to its actual filesystem path.
+ * Handles:
+ * - shared/... → SHARED_DIR (cross-framework snippets/addons)
+ * - tooling/... → TOOLING_DIR (dev tool configs)
+ * - framework/... → SNIPPETS_DIR (framework-specific)
+ */
+function resolveSnippetPath(snippetRef: string): string {
+  if (snippetRef.startsWith("shared/")) {
+    // shared/db/prisma-client.hbs → SHARED_DIR/db/prisma-client.hbs
+    const relativePath = snippetRef.replace("shared/", "");
+    return path.join(SHARED_DIR, relativePath);
+  } else if (snippetRef.startsWith("tooling/")) {
+    // tooling/biome/config.hbs → TOOLING_DIR/biome/config.hbs
+    const relativePath = snippetRef.replace("tooling/", "");
+    return path.join(TOOLING_DIR, relativePath);
+  } else {
+    // Default: framework-specific snippets
+    return path.join(SNIPPETS_DIR, snippetRef);
+  }
+}
 
 interface TemplateBlock {
   name: string;
@@ -66,7 +90,7 @@ async function buildTemplateBlock(
         typeof include === "string"
           ? { snippet: include, path: null }
           : include;
-      const snippetPath = path.join(SNIPPETS_DIR, snippetRef.snippet);
+      const snippetPath = resolveSnippetPath(snippetRef.snippet);
       const parsed = await parseSnippetFile(snippetPath);
 
       if (!parsed) {

@@ -5,7 +5,7 @@ description: Modern email API with Resend
 framework: express
 
 includes:
-  - snippet: shared/v1/mailers/resend.hbs
+  - snippet: shared/mailers/resend.hbs
     path: src/libs/mailer.ts
 
 dependencies:

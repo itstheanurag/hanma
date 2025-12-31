@@ -1,19 +1,24 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import prompts from "prompts";
-import { RegistryItem } from "../types";
 import {
   getConfig,
   initHanmaConfig,
   fetchFrameworks,
-  promptFramework,
   fetchRegistry,
-  promptVersion,
-  promptCategory,
   createConfig,
 } from "../utils";
-import { findItemsByName, installRegistryItems } from "../helpers";
+
+import {
+  findItemsByName,
+  installRegistryItems,
+  promptMultiSelectRegistry,
+  promptCategoryFilter,
+  promptFramework,
+  promptVersion,
+} from "../helpers";
+
+import { RegistryItem } from "../types";
 
 /**
  * Filter registry items by version (snippets only)
@@ -29,29 +34,6 @@ function filterSnippets(
     return versionMatch && isSnippet;
   });
 }
-
-/**
- * Prompt for multi-snippet selection from filtered list
- */
-async function promptSnippets(items: RegistryItem[]): Promise<RegistryItem[]> {
-  const { snippets } = await prompts({
-    type: "multiselect",
-    name: "snippets",
-    message: "Select snippets to add (space to select, enter to confirm)",
-    choices: items.map((item) => ({
-      title: item.name,
-      value: item,
-      description: item.description,
-    })),
-    hint: "- Space to select. Return to submit",
-  });
-
-  return snippets || [];
-}
-
-// ============================================================================
-// Main Command
-// ============================================================================
 
 export const add = new Command()
   .name("add")
@@ -81,7 +63,7 @@ export const add = new Command()
     let selectedFramework = options.framework || config.framework;
 
     if (!selectedFramework) {
-      // 2. Fetch and select framework
+      // Fetch and select framework
       const frameworksSpinner = ora("Fetching frameworks...").start();
       let frameworks: string[] = [];
       try {
@@ -93,21 +75,23 @@ export const add = new Command()
         process.exit(1);
       }
 
-      selectedFramework = (await promptFramework(frameworks)) || undefined;
-      if (!selectedFramework) {
+      const selected = await promptFramework(frameworks);
+      if (!selected) {
         console.log("Operation cancelled.");
         process.exit(0);
       }
+      selectedFramework = selected;
 
       // Update config with the selected framework
       config.framework = selectedFramework;
       await createConfig(config);
     }
 
-    // 3. Fetch registry
+    // Fetch registry
     const registrySpinner = ora(
       `Fetching registry for ${selectedFramework}...`,
     ).start();
+
     let registry: RegistryItem[] = [];
     try {
       registry = await fetchRegistry(selectedFramework);
@@ -118,14 +102,14 @@ export const add = new Command()
       process.exit(1);
     }
 
-    // 4. Select version
+    // Select version
     const selectedVersion = await promptVersion(registry, options.version);
     if (selectedVersion === "") {
       console.log("Operation cancelled.");
       process.exit(0);
     }
 
-    // 5. Filter snippets only
+    // Filter snippets only
     const snippets = filterSnippets(registry, selectedVersion);
 
     if (snippets.length === 0) {
@@ -139,7 +123,7 @@ export const add = new Command()
 
     let selectedSnippets: RegistryItem[] = [];
 
-    // 6. Handle different modes
+    // Handle different modes
     if (options.all) {
       if (options.category) {
         selectedSnippets = snippets.filter(
@@ -173,19 +157,22 @@ export const add = new Command()
       }
       selectedSnippets = found;
     } else {
-      const categoryFiltered = await promptCategory(snippets);
+      const categoryFiltered = await promptCategoryFilter(snippets);
       if (!categoryFiltered) {
         console.log("Operation cancelled.");
         process.exit(0);
       }
-      selectedSnippets = await promptSnippets(categoryFiltered);
+      selectedSnippets = await promptMultiSelectRegistry(
+        categoryFiltered,
+        "Select snippets to add (space to select, enter to confirm)",
+      );
       if (selectedSnippets.length === 0) {
         console.log("No snippets selected.");
         process.exit(0);
       }
     }
 
-    // 7. Install snippets
+    // Install snippets
     await installRegistryItems(
       selectedSnippets,
       options.path || config.componentsPath,

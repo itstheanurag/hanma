@@ -153,12 +153,12 @@ export function findItemsByName(
 }
 
 /**
- * Install registry items (snippets or modules)
+ * Install registry items (snippets, modules, addons, or tooling)
  */
 export async function installRegistryItems(
   items: RegistryItem[],
   targetDir: string,
-  type: "snippet" | "module",
+  type: "snippet" | "module" | "addon" | "tooling",
 ): Promise<void> {
   console.log(chalk.blue(`\nInstalling ${items.length} ${type}(s)...`));
 

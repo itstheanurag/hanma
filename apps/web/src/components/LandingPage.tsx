@@ -15,6 +15,7 @@ const LandingPage = () => {
       {/* <Stats />
       <div className="w-full h-px bg-border" /> */}
       <Philosophy />
+      <div className="w-full h-px bg-border" />
       <TerminalSection />
       <div className="w-full h-px bg-border" />
       <Features />

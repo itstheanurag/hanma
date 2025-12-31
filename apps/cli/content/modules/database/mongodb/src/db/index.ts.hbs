@@ -1,0 +1,67 @@
+import { MongoClient, Db } from "mongodb";
+
+const uri = process.env.MONGODB_URI || "mongodb://localhost:27017/database";
+
+/**
+ * MongoDB client with connection pool options
+ */
+const client = new MongoClient(uri, {
+  maxPoolSize: 20,
+  minPoolSize: 5,
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
+});
+
+let db: Db;
+
+/**
+ * Connect to database with retry logic
+ */
+export async function connectDatabase(retries = 5, delay = 5000): Promise<Db> {
+  if (db) return db;
+
+  for (let i = 0; i < retries; i++) {
+    try {
+      await client.connect();
+      db = client.db();
+      console.log("[OK] MongoDB connected");
+      return db;
+    } catch (error) {
+      console.error(`[ERROR] MongoDB connection failed (attempt ${i + 1}/${retries})`);
+      if (i < retries - 1) {
+        await new Promise((r) => setTimeout(r, delay));
+      }
+    }
+  }
+  throw new Error("Failed to connect to MongoDB after retries");
+}
+
+/**
+ * Disconnect from database (for graceful shutdown)
+ */
+export async function disconnectDatabase(): Promise<void> {
+  await client.close();
+  console.log("[INFO] MongoDB disconnected");
+}
+
+/**
+ * Get database instance
+ */
+export function getDB(): Db {
+  if (!db) {
+    throw new Error("Database not connected. Call connectDatabase() first.");
+  }
+  return db;
+}
+
+/**
+ * Health check for database connection
+ */
+export async function isDatabaseHealthy(): Promise<boolean> {
+  try {
+    await client.db().admin().ping();
+    return true;
+  } catch {
+    return false;
+  }
+}

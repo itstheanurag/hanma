@@ -1,0 +1,17 @@
+name: better-auth
+category: auth
+description: better-auth setup with session management
+framework: express
+
+dependencies:
+  - better-auth
+
+devDependencies: []
+
+envVars:
+  - BETTER_AUTH_SECRET
+  - BETTER_AUTH_URL
+
+merge:
+  - file: package.json
+    strategy: deep

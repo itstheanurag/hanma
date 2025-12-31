@@ -1,0 +1,25 @@
+name: jwt-auth
+category: auth
+description: Custom JWT authentication with refresh tokens
+framework: express
+
+includes:
+  - snippet: express/v5/middleware/auth/jwt-auth.hbs
+    path: src/middleware/auth.ts
+  - snippet: express/v5/utils/jwt.hbs
+    path: src/utils/jwt.ts
+
+dependencies:
+  - jsonwebtoken
+
+devDependencies:
+  - "@types/jsonwebtoken"
+
+envVars:
+  - JWT_SECRET=your-secret-key-change-in-production
+  - JWT_EXPIRES_IN=15m
+  - JWT_REFRESH_EXPIRES_IN=7d
+
+merge:
+  - file: package.json
+    strategy: deep

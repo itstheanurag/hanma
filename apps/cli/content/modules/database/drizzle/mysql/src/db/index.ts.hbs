@@ -1,0 +1,76 @@
+import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
+import * as schema from "./schema/schema";
+
+/**
+ * MySQL connection pool
+ */
+const pool = mysql.createPool({
+  uri: process.env.DATABASE_URL,
+  waitForConnections: true,
+  connectionLimit: 20,        // Maximum connections in pool
+  queueLimit: 0,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 10000,
+});
+
+// Log pool errors
+pool.on('error', (err) => {
+  console.error('[ERROR] Unexpected database pool error:', err);
+});
+
+/**
+ * Drizzle ORM instance
+ */
+export const db = drizzle(pool, { schema, mode: 'default' });
+
+/**
+ * Connect to database with health check
+ */
+export const connectDatabase = async () => {
+  try {
+    const connection = await pool.getConnection();
+    await connection.query('SELECT 1');
+    connection.release();
+    console.log('[OK] Database connected');
+  } catch (error) {
+    console.error('[ERROR] Database connection failed:', error);
+    throw error;
+  }
+};
+
+/**
+ * Disconnect from database (for graceful shutdown)
+ */
+export const disconnectDatabase = async () => {
+  await pool.end();
+  console.log('[INFO] Database disconnected');
+};
+
+/**
+ * Health check for database connection
+ */
+export const isDatabaseHealthy = async (): Promise<boolean> => {
+  try {
+    const connection = await pool.getConnection();
+    await connection.query('SELECT 1');
+    connection.release();
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Transaction helper
+ * @example
+ * await transaction(async (tx) => {
+ *   await tx.insert(users).values({ name: 'John' });
+ *   await tx.insert(posts).values({ title: 'Hello' });
+ * });
+ */
+export const transaction = async <T>(
+  fn: (tx: typeof db) => Promise<T>
+): Promise<T> => {
+  return db.transaction(fn);
+};

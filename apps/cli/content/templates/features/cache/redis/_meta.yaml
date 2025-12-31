@@ -5,7 +5,7 @@ description: Redis caching layer with ioredis
 framework: express
 
 includes:
-  - snippet: shared/v1/db/redis-client.hbs
+  - snippet: shared/db/redis-client.hbs
     path: src/libs/cache.ts
 
 dependencies:

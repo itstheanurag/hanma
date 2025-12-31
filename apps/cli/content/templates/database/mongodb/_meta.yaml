@@ -4,7 +4,7 @@ description: MongoDB native driver setup
 framework: express
 
 includes:
-  - snippet: shared/v1/queries/mongodb-storage.hbs
+  - snippet: shared/queries/mongodb-storage.hbs
     path: src/libs/db/storage.ts
 
 dependencies:

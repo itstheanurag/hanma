@@ -5,7 +5,7 @@ description: ESLint for linting
 framework: express
 
 includes:
-  - snippet: shared/eslint/express.hbs
+  - snippet: tooling/eslint/express.hbs
     path: eslint.config.mjs
 
 devDependencies:

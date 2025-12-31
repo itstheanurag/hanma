@@ -5,7 +5,7 @@ description: Biome for linting and formatting
 framework: express
 
 includes:
-  - snippet: shared/biome/config.hbs
+  - snippet: tooling/biome/config.hbs
     path: biome.json
 
 devDependencies:

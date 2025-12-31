@@ -8,7 +8,7 @@ version: "4"
 includes:
   - snippet: hono/v4/libs/servers/hono-basic.hbs
     path: src/libs/server.ts
-  - snippet: shared/tsconfig/express.hbs
+  - snippet: tooling/tsconfig/express.hbs
     path: tsconfig.json
     
 dependencies:

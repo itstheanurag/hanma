@@ -135,13 +135,14 @@ export interface ModulesData {
   upcomingModules: UpcomingModule[];
 }
 
-export type TabType = "snippets" | "templates" | "addons" | "modules";
-export type FrameworkType =
-  | "express"
-  | "hono"
-  | "elysia"
-  | "fastify"
-  | "shared";
+export type TabType =
+  | "snippets"
+  | "addons"
+  | "templates"
+  | "modules"
+  | "tooling";
+
+export type FrameworkType = "express" | "hono" | "elysia" | "fastify";
 
 export interface DocsState {
   activeTab: TabType;

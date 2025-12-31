@@ -11,16 +11,17 @@ import type { FrameworkType, TabType } from "@/types/docs";
 import ContentLoader from "@/components/loaders/ContentLoader";
 import { parseDocsPath, buildDocsPath } from "@/utils/docsUrl";
 
-// Memoized sidebar to prevent re-renders when only content changes
 const MemoizedSidebar = memo(DocsSidebar);
-
 
 const Docs = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
   // Parse URL to get current state
-  const urlState = useMemo(() => parseDocsPath(location.pathname), [location.pathname]);
+  const urlState = useMemo(
+    () => parseDocsPath(location.pathname),
+    [location.pathname],
+  );
 
   const {
     snippetsData,
@@ -42,7 +43,12 @@ const Docs = () => {
     if (urlState.category) {
       setActiveCategory(urlState.category);
     }
-  }, [urlState.framework, urlState.category, setActiveFramework, setActiveCategory]);
+  }, [
+    urlState.framework,
+    urlState.category,
+    setActiveFramework,
+    setActiveCategory,
+  ]);
 
   // Fetch data based on URL state
   useEffect(() => {
@@ -61,11 +67,14 @@ const Docs = () => {
     if (urlState.tab === "modules") {
       fetchModulesData();
     }
-  }, [urlState.tab, urlState.framework, fetchSnippetsData, fetchTemplatesData, fetchAddonsData, fetchModulesData]);
-
-  // Note: Removed auto-navigation to first category
-  // Users can now stay on framework overview pages (e.g., /docs/snippets/express)
-  // without being redirected to /docs/snippets/express/libs
+  }, [
+    urlState.tab,
+    urlState.framework,
+    fetchSnippetsData,
+    fetchTemplatesData,
+    fetchAddonsData,
+    fetchModulesData,
+  ]);
 
   const handleTabChange = useCallback(
     (tab: TabType) => {
@@ -78,16 +87,18 @@ const Docs = () => {
         navigate(buildDocsPath(tab, urlState.framework, ""));
       }
     },
-    [navigate, urlState.framework]
+    [navigate, urlState.framework],
   );
 
-
-
   const handleNavigate = useCallback(
-    (tab: TabType, framework: FrameworkType, category: string = "") => {
-      navigate(buildDocsPath(tab, framework, category));
+    (
+      tab: TabType,
+      framework: FrameworkType | "shared" | "tooling",
+      category: string = "",
+    ) => {
+      navigate(buildDocsPath(tab, framework as FrameworkType, category));
     },
-    [navigate]
+    [navigate],
   );
 
   return (
@@ -98,10 +109,10 @@ const Docs = () => {
         activeCategory={urlState.category}
         activeFramework={urlState.framework}
         onTabChange={handleTabChange}
-
         onNavigate={handleNavigate}
         snippetsData={snippetsData}
         templatesData={templatesData}
+        addonsData={addonsData}
       />
 
       {/* Main Content */}
@@ -127,9 +138,10 @@ const Docs = () => {
               )}
 
               {urlState.tab === "addons" && addonsData && (
-                <TemplatesView
+                <SnippetsView
                   data={addonsData}
                   activeCategory={urlState.category}
+                  activeFramework="shared"
                 />
               )}
 
@@ -145,4 +157,3 @@ const Docs = () => {
 };
 
 export default Docs;
-

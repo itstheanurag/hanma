@@ -24,7 +24,8 @@ export const parseDocsPath = (
       firstPart === "templates" ||
       firstPart === "modules" ||
       firstPart === "snippets" ||
-      firstPart === "addons"
+      firstPart === "addons" ||
+      firstPart === "tooling"
     ) {
       tab = firstPart as TabType;
     } else {
@@ -62,9 +63,10 @@ export const buildDocsPath = (
   if (tab === "modules") {
     return "/docs/modules";
   }
-  if (tab === "addons") {
-    return "/docs/addons";
+  if (tab === "tooling") {
+    return "/docs/tooling";
   }
+  // Addons fall through to use normal path structure /docs/addons/shared/category
 
   let path = `/docs/${tab}/${framework}`;
   if (category) {

@@ -48,6 +48,10 @@
   body {
     @apply bg-background text-foreground font-sans antialiased transition-colors duration-300;
   }
+
+  ::selection {
+    @apply bg-primary/20 text-foreground;
+  }
 }
 
 @layer utilities {

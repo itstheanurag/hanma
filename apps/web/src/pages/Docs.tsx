@@ -1,5 +1,5 @@
-import { memo, useCallback, useEffect, useMemo } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { memo, useEffect, useMemo } from "react";
+import { useLocation } from "react-router-dom";
 import { useDocsStore } from "@/stores/docsStore";
 import {
   DocsSidebar,
@@ -7,15 +7,15 @@ import {
   TemplatesView,
   ModulesView,
 } from "@/components/docs";
-import type { FrameworkType, TabType } from "@/types/docs";
 import ContentLoader from "@/components/loaders/ContentLoader";
-import { parseDocsPath, buildDocsPath } from "@/utils/docsUrl";
+import { parseDocsPath } from "@/utils/docsUrl";
+import { useDocsActions } from "@/actions/docs.actions";
 
 const MemoizedSidebar = memo(DocsSidebar);
 
 const Docs = () => {
   const location = useLocation();
-  const navigate = useNavigate();
+  const { handleTabChange, handleNavigate } = useDocsActions();
 
   // Parse URL to get current state
   const urlState = useMemo(
@@ -52,21 +52,14 @@ const Docs = () => {
 
   // Fetch data based on URL state
   useEffect(() => {
-    if (urlState.tab === "snippets") {
-      fetchSnippetsData(urlState.framework);
-    }
+    const fetchMap: Record<string, () => Promise<void>> = {
+      snippets: () => fetchSnippetsData(urlState.framework),
+      templates: () => fetchTemplatesData(urlState.framework),
+      addons: fetchAddonsData,
+      modules: fetchModulesData,
+    };
 
-    if (urlState.tab === "templates") {
-      fetchTemplatesData(urlState.framework);
-    }
-
-    if (urlState.tab === "addons") {
-      fetchAddonsData();
-    }
-
-    if (urlState.tab === "modules") {
-      fetchModulesData();
-    }
+    fetchMap[urlState.tab]?.();
   }, [
     urlState.tab,
     urlState.framework,
@@ -76,46 +69,19 @@ const Docs = () => {
     fetchModulesData,
   ]);
 
-  const handleTabChange = useCallback(
-    (tab: TabType) => {
-      // Navigate to new tab, keeping framework if applicable
-      if (tab === "modules") {
-        navigate("/docs/modules");
-      } else if (tab === "addons") {
-        navigate("/docs/addons");
-      } else {
-        navigate(buildDocsPath(tab, urlState.framework, ""));
-      }
-    },
-    [navigate, urlState.framework],
-  );
-
-  const handleNavigate = useCallback(
-    (
-      tab: TabType,
-      framework: FrameworkType | "shared" | "tooling",
-      category: string = "",
-    ) => {
-      navigate(buildDocsPath(tab, framework as FrameworkType, category));
-    },
-    [navigate],
-  );
-
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row">
-      {/* Sidebar */}
       <MemoizedSidebar
         activeTab={urlState.tab}
         activeCategory={urlState.category}
         activeFramework={urlState.framework}
-        onTabChange={handleTabChange}
+        onTabChange={(tab) => handleTabChange(tab, urlState.framework)}
         onNavigate={handleNavigate}
         snippetsData={snippetsData}
         templatesData={templatesData}
         addonsData={addonsData}
       />
 
-      {/* Main Content */}
       <main className="flex-1 p-6 md:p-12 overflow-y-auto">
         <div className="max-w-4xl mx-auto">
           {loading ? (

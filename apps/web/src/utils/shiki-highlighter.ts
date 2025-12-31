@@ -28,21 +28,13 @@ export async function getHighlighter(): Promise<Highlighter> {
 export async function highlightCode(
   code: string,
   lang: BundledLanguage = "typescript",
-  theme?: BundledTheme,
+  theme: BundledTheme = "github-dark",
 ): Promise<string> {
   const highlighter = await getHighlighter();
 
-  // Detect theme from document
-  const isDark =
-    typeof document !== "undefined"
-      ? document.documentElement.classList.contains("dark")
-      : true;
-
-  const selectedTheme = theme || (isDark ? "github-dark" : "github-light");
-
   return highlighter.codeToHtml(code, {
     lang,
-    theme: selectedTheme,
+    theme,
   });
 }
 

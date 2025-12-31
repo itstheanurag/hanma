@@ -6,6 +6,7 @@ import {
   LuPackage,
   LuChevronDown,
   LuChevronRight,
+  LuSettings,
 } from "react-icons/lu";
 import { CgChevronRight } from "react-icons/cg";
 import { motion, AnimatePresence } from "motion/react";
@@ -23,15 +24,16 @@ import { SiExpress, SiFastify, SiHono } from "react-icons/si";
 interface DocsSidebarProps {
   activeTab: TabType;
   activeCategory: string;
-  activeFramework: FrameworkType;
+  activeFramework: FrameworkType | "shared" | "tooling";
   onTabChange: (tab: TabType) => void;
   onNavigate: (
     tab: TabType,
-    framework: FrameworkType,
+    framework: FrameworkType | "shared" | "tooling",
     category?: string,
   ) => void;
   snippetsData: SnippetFramework | null;
   templatesData: TemplatesData | null;
+  addonsData: SnippetFramework | null;
 }
 
 const frameworks = [
@@ -39,7 +41,6 @@ const frameworks = [
   { id: "hono" as FrameworkType, label: "Hono", icon: SiHono },
   { id: "elysia" as FrameworkType, label: "Elysia", icon: LuZap },
   { id: "fastify" as FrameworkType, label: "Fastify", icon: SiFastify },
-  { id: "shared" as FrameworkType, label: "Shared", icon: LuPackage },
 ];
 
 // Template frameworks (no "shared" for templates)
@@ -57,6 +58,7 @@ const DocsSidebarComponent = ({
   onNavigate,
   snippetsData,
   templatesData,
+  addonsData,
 }: DocsSidebarProps) => {
   // Use Zustand store for UI state
   const {
@@ -66,18 +68,25 @@ const DocsSidebarComponent = ({
     setExpandedFramework,
   } = useUIStore();
 
-  // Filter categories based on search
+  // Filter categories based on search and active tab
   const filteredCategories = useMemo(() => {
-    if (!snippetsData?.categories || !searchQuery.trim()) {
-      return snippetsData?.categories || [];
+    const data = activeTab === "addons" ? addonsData : snippetsData;
+
+    if (!data?.categories || !searchQuery.trim()) {
+      return data?.categories || [];
     }
     const query = searchQuery.toLowerCase();
-    return snippetsData.categories.filter(
+    return data.categories.filter(
       (cat) =>
         cat.title.toLowerCase().includes(query) ||
         cat.id.toLowerCase().includes(query),
     );
-  }, [snippetsData?.categories, searchQuery]);
+  }, [
+    snippetsData?.categories,
+    addonsData?.categories,
+    searchQuery,
+    activeTab,
+  ]);
 
   // Handle clicking on a framework header
   const handleFrameworkClick = (fw: FrameworkType) => {
@@ -88,7 +97,12 @@ const DocsSidebarComponent = ({
 
   // Handle clicking on a framework category
   const handleCategoryClick = (categoryId: string) => {
-    onNavigate("snippets", activeFramework, categoryId);
+    onNavigate(activeTab, activeFramework, categoryId);
+  };
+
+  // Handle clicking on an addon category
+  const handleAddonCategoryClick = (categoryId: string) => {
+    onNavigate("addons", "shared", categoryId);
   };
 
   // Handle clicking on a template framework
@@ -100,6 +114,9 @@ const DocsSidebarComponent = ({
   const handleTemplateCategoryClick = (categoryId: string) => {
     onNavigate("templates", activeFramework, categoryId);
   };
+
+  // Define isAddonActive
+  const isAddonsActive = activeTab === "addons";
 
   return (
     <aside className="w-full md:w-72 border-r border-border bg-surface sticky top-0 h-screen overflow-y-auto hidden md:flex flex-col">
@@ -194,6 +211,55 @@ const DocsSidebarComponent = ({
           })}
         </div>
 
+        {/* Add-ons Section */}
+        <div className="mb-2 mt-4">
+          <button
+            onClick={() => onTabChange("addons")}
+            className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors ${
+              isAddonsActive
+                ? "bg-primary/10 text-primary font-medium"
+                : "text-muted hover:text-foreground hover:bg-surface-hover"
+            }`}
+          >
+            <LuPackage size={16} />
+            Add-ons
+            {isAddonsActive ? (
+              <LuChevronDown size={14} className="text-muted" />
+            ) : (
+              <LuChevronRight size={14} className="text-muted" />
+            )}
+          </button>
+
+          {/* Expanded Addon Categories */}
+          <AnimatePresence>
+            {isAddonsActive && addonsData && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+                className="overflow-hidden"
+              >
+                <div className="ml-4 mt-1 space-y-0.5 border-l border-border pl-2">
+                  {filteredCategories.map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => handleAddonCategoryClick(cat.id)}
+                      className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${
+                        activeCategory === cat.id
+                          ? "bg-secondary text-black font-medium"
+                          : "text-muted hover:text-foreground hover:bg-surface-hover"
+                      }`}
+                    >
+                      {cat.title}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
         {/* Templates Section */}
         <div className="mb-2 mt-4">
           <div className="text-xs font-semibold text-muted uppercase tracking-wider mb-2 px-2">
@@ -259,21 +325,21 @@ const DocsSidebarComponent = ({
           })}
         </div>
 
-        {/* Add-ons Section */}
+        {/* Tooling Section */}
         <div className="mb-2 mt-4">
           <div className="text-xs font-semibold text-muted uppercase tracking-wider mb-2 px-2">
-            Add-ons
+            Tooling
           </div>
           <button
-            onClick={() => onTabChange("addons")}
+            onClick={() => onTabChange("tooling")}
             className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors ${
-              activeTab === "addons"
+              activeTab === "tooling"
                 ? "bg-primary/10 text-primary font-medium"
                 : "text-muted hover:text-foreground hover:bg-surface-hover"
             }`}
           >
-            <LuPackage size={16} />
-            Database, Auth & More
+            <LuSettings size={16} />
+            Linters, Formatters & Config
           </button>
         </div>
 

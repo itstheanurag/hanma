@@ -7,27 +7,46 @@ import { CodeBlock } from "./CodeBlock";
 interface SnippetsViewProps {
   data: SnippetFramework;
   activeCategory: string;
-  activeFramework: FrameworkType;
+  activeFramework: FrameworkType | "shared" | "tooling";
 }
 
-export const SnippetsView = ({ data, activeCategory, activeFramework }: SnippetsViewProps) => {
+export const SnippetsView = ({
+  data,
+  activeCategory,
+  activeFramework,
+}: SnippetsViewProps) => {
+  // Debug log
+  console.log("SnippetsView rendering:", {
+    title: data.title,
+    categoriesCount: data.categories?.length,
+    activeCategory,
+    activeFramework,
+    hasMatch: data.categories?.some((c) => c.id === activeCategory),
+  });
+
   // Show intro when no category is selected (default/overview state)
-  const showIntro = activeCategory === ""; 
+  const showIntro = activeCategory === "";
 
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground mb-2">{data.title}</h1>
+        <h1 className="text-3xl font-bold text-foreground mb-2">
+          {data.title}
+        </h1>
         <p className="text-muted text-lg">{data.description}</p>
       </div>
 
       {/* Concept Section */}
       {showIntro && data.concept && (
         <div className="mb-12 p-6 bg-surface rounded-xl border border-border">
-          <h3 className="text-lg font-semibold text-foreground mb-4">What is a Snippet?</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-4">
+            What is a Snippet?
+          </h3>
           <p className="text-muted mb-4">{data.concept.whatIsASnippet}</p>
-          
-          <h4 className="text-sm font-semibold text-foreground mb-2">When to use snippets:</h4>
+
+          <h4 className="text-sm font-semibold text-foreground mb-2">
+            When to use snippets:
+          </h4>
           <ul className="list-disc list-inside text-muted mb-4 space-y-1">
             {data.concept.whenToUseSnippets.map((item, idx) => (
               <li key={idx}>{item}</li>
@@ -36,16 +55,28 @@ export const SnippetsView = ({ data, activeCategory, activeFramework }: Snippets
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-border">
             <div>
-              <h5 className="text-xs font-semibold text-primary uppercase mb-1">Snippets</h5>
-              <p className="text-sm text-muted">{data.concept.snippetsVsPackages.snippets}</p>
+              <h5 className="text-xs font-semibold text-primary uppercase mb-1">
+                Snippets
+              </h5>
+              <p className="text-sm text-muted">
+                {data.concept.snippetsVsPackages.snippets}
+              </p>
             </div>
             <div>
-              <h5 className="text-xs font-semibold text-yellow-500 uppercase mb-1">Packages</h5>
-              <p className="text-sm text-muted">{data.concept.snippetsVsPackages.packages}</p>
+              <h5 className="text-xs font-semibold text-yellow-500 uppercase mb-1">
+                Packages
+              </h5>
+              <p className="text-sm text-muted">
+                {data.concept.snippetsVsPackages.packages}
+              </p>
             </div>
             <div>
-              <h5 className="text-xs font-semibold text-green-500 uppercase mb-1">Benefit</h5>
-              <p className="text-sm text-muted">{data.concept.snippetsVsPackages.benefit}</p>
+              <h5 className="text-xs font-semibold text-green-500 uppercase mb-1">
+                Benefit
+              </h5>
+              <p className="text-sm text-muted">
+                {data.concept.snippetsVsPackages.benefit}
+              </p>
             </div>
           </div>
         </div>
@@ -54,13 +85,18 @@ export const SnippetsView = ({ data, activeCategory, activeFramework }: Snippets
       {/* Examples Section */}
       {showIntro && data.examples && data.examples.length > 0 && (
         <div className="mb-12 p-6 bg-surface rounded-xl border border-border">
-          <h3 className="text-lg font-semibold text-foreground mb-4">Quick Examples</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-4">
+            Quick Examples
+          </h3>
           <div className="space-y-4">
             {data.examples.map((example, idx) => (
               <div key={idx}>
                 <p className="text-sm text-muted mb-2">
-                  <span className="font-medium text-foreground">{example.title}</span>
-                  {" - "}{example.description}
+                  <span className="font-medium text-foreground">
+                    {example.title}
+                  </span>
+                  {" - "}
+                  {example.description}
                 </p>
                 <CodeBlock command={example.command} />
               </div>
@@ -79,14 +115,22 @@ export const SnippetsView = ({ data, activeCategory, activeFramework }: Snippets
                   <BiFolder size={14} />
                   <span>{category.title}</span>
                   <CgChevronRight size={14} />
-                  <span className="text-foreground font-medium">{subcat.title}</span>
+                  <span className="text-foreground font-medium">
+                    {subcat.title}
+                  </span>
                 </div>
-                <h2 className="text-2xl font-bold text-foreground mb-2">{subcat.title}</h2>
+                <h2 className="text-2xl font-bold text-foreground mb-2">
+                  {subcat.title}
+                </h2>
                 <p className="text-muted mb-6">{subcat.description}</p>
 
                 <div className="space-y-4">
                   {subcat.snippets.map((snippet) => (
-                    <SnippetCard key={snippet.id} snippet={snippet} framework={activeFramework} />
+                    <SnippetCard
+                      key={snippet.id}
+                      snippet={snippet}
+                      framework={activeFramework}
+                    />
                   ))}
                 </div>
               </div>

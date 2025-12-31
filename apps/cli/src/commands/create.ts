@@ -1,9 +1,16 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
+import prompts from "prompts";
 import fs from "fs-extra";
 import path from "path";
-import { TemplateBlock, TemplateRegistry, CollectedBlockData } from "../types";
+import {
+  TemplateBlock,
+  TemplateRegistry,
+  CollectedBlockData,
+  ModuleBlock,
+  ModulesRegistry,
+} from "../types";
 import {
   promptProjectName,
   promptBlockSelection,
@@ -12,12 +19,12 @@ import {
   collectBlockData,
   writeProjectFiles,
 } from "../helpers";
-import { fetchTemplatesRegistry } from "../utils";
+import {
+  fetchTemplatesRegistry,
+  fetchModulesRegistry,
+  fetchFrameworkWithPrompt,
+} from "../utils";
 
-
-/**
- * Validate project path doesn't already exist
- */
 async function validateProjectPath(projectName: string): Promise<string> {
   const projectPath = path.join(process.cwd(), projectName);
   if (await fs.pathExists(projectPath)) {
@@ -27,13 +34,7 @@ async function validateProjectPath(projectName: string): Promise<string> {
   return projectPath;
 }
 
-/**
- * Build the final package.json object
- */
-function buildPackageJson(
-  projectName: string,
-  data: CollectedBlockData,
-): Record<string, unknown> {
+function buildPackageJson(projectName: string, data: CollectedBlockData) {
   return {
     name: projectName,
     version: "1.0.0",
@@ -44,13 +45,7 @@ function buildPackageJson(
   };
 }
 
-/**
- * Install project dependencies
- */
-async function runPackageInstall(
-  projectPath: string,
-  packageManager: string,
-): Promise<boolean> {
+async function runPackageInstall(projectPath: string, packageManager: string) {
   try {
     const { execSync } = await import("child_process");
     process.chdir(projectPath);
@@ -61,212 +56,115 @@ async function runPackageInstall(
   }
 }
 
-
-/**
- * Print success message and next steps
- */
-function printSuccessMessage(
-  projectName: string,
-  packageManager: string,
-  hasEnvVars: boolean,
-  skipInstall: boolean,
-): void {
-  console.log(chalk.green(`\nProject ${projectName} created successfully!\n`));
-  console.log(chalk.blue("Next steps:"));
-  console.log(`cd ${projectName}`);
-  if (skipInstall) {
-    console.log(`${packageManager} install`);
-  }
-  if (hasEnvVars) {
-    console.log("cp .env.example .env");
-  }
-  console.log(`${packageManager} run dev\n`);
-}
-
-
 export const create = new Command()
   .name("create")
   .description("Create a new project from composable templates")
   .argument("[name]", "Project name")
-  .option(
-    "--framework <framework>",
-    "Base framework (express-minimal, express-rest-api, express-graphql, express-trpc, express-socket)",
-  )
-  .option(
-    "--database <database>",
-    "Database setup (drizzle-postgres, drizzle-mysql, drizzle-sqlite, prisma-postgres, mongodb)",
-  )
-  .option(
-    "--auth <auth>",
-    "Authentication (better-auth, clerk, jwt-auth, passport-local)",
-  )
-  .option(
-    "--mailer <mailer>",
-    "Email provider (nodemailer, resend, sendgrid, aws-ses)",
-  )
-  .option(
-    "--upload <upload>",
-    "File upload provider (s3, cloudinary, local, gcp, r2)",
-  )
-  .option("--cache <cache>", "Cache provider (redis)")
-  .option("--logging <logging>", "Logging provider (winston)")
-  .option("--monitoring <monitoring>", "Monitoring provider (sentry)")
-  .option(
-    "--preset <preset>",
-    "Security preset (security-basic, security-strict)",
-  )
-  .option(
-    "--tooling <tooling>",
-    "Linting & formatting (biome, eslint, prettier)",
-  )
-  .option("--pm <pm>", "Package manager (npm, pnpm, yarn, bun)")
+  .option("--framework <framework>", "Base framework")
+  .option("--pm <pm>", "Package manager")
   .option("--skip-install", "Skip package installation")
   .action(async (projectNameArg, options) => {
     console.log(chalk.blue("\nHanma Project Creator\n"));
 
-    // 1. Get project name
     const projectName = await promptProjectName(projectNameArg);
-    if (!projectName) {
-      console.log("Operation cancelled.");
-      process.exit(0);
-    }
+    if (!projectName) process.exit(0);
 
-    // 2. Validate project path
     const projectPath = await validateProjectPath(projectName);
 
-    // 3. Fetch template registry (fetch empty/generic first to get all options)
-    const spinner = ora("Fetching templates...").start();
-    let registry: TemplateRegistry | null;
-    try {
-      registry = await fetchTemplatesRegistry("");
-      if (!registry) throw new Error("Registry is empty");
-      spinner.succeed("Templates loaded");
-    } catch (error) {
-      spinner.fail("Failed to fetch templates");
-      console.error(error);
+    // Fetch registries
+    const spinner = ora("Fetching templates and modules...").start();
+    const [templateRegistry, modulesRegistry] = await Promise.all([
+      fetchTemplatesRegistry(""),
+      fetchModulesRegistry(),
+    ]);
+
+    if (!templateRegistry || !modulesRegistry) {
+      spinner.fail("Failed to fetch registries");
+      process.exit(1);
+    }
+    spinner.succeed("Registries loaded");
+
+    // Framework selection
+    const selectedFramework = await fetchFrameworkWithPrompt(options.framework);
+    if (!selectedFramework) process.exit(0);
+
+    // Template selection
+    const frameworkTemplates = templateRegistry.base.filter(
+      (b) => b.framework === selectedFramework,
+    );
+    if (frameworkTemplates.length === 0) {
+      console.log(chalk.red(`No templates found for ${selectedFramework}`));
       process.exit(1);
     }
 
-    // 4. Select framework
     const selectedBase = await promptBlockSelection(
-      registry.base,
-      "Select framework:",
-      options.framework,
+      frameworkTemplates,
+      `Select ${selectedFramework} template:`,
+      options.template,
     );
-    if (!selectedBase) {
-      console.log("Operation cancelled.");
-      process.exit(0);
-    }
+    if (!selectedBase) process.exit(0);
 
-    // 5. Select database
-    const selectedDatabase = await promptBlockSelection(
-      registry.database,
-      "Select database:",
-      options.database,
-      true,
-    );
+    // Module selection (DB & Auth)
+    const selectModule = async (category: string, message: string) => {
+      const mods = modulesRegistry.modules[category] || [];
+      if (mods.length === 0) return undefined;
+      const { selected } = await prompts({
+        type: "select",
+        name: "selected",
+        message,
+        choices: [
+          { title: "None", value: null, description: `Skip ${category} setup` },
+          ...mods.map((m) => ({
+            title: m.name,
+            value: m,
+            description: m.description,
+          })),
+        ],
+      });
+      return selected || undefined;
+    };
 
-    // 6. Select auth
-    const selectedAuth = await promptBlockSelection(
-      registry.auth,
-      "Select authentication:",
-      options.auth,
-      true,
-    );
+    const selectedDatabase = await selectModule("database", "Select database:");
+    const selectedAuth = await selectModule("auth", "Select authentication:");
 
-    // 7. Select features (optional)
+    // Feature selection
     let selectedFeatures: TemplateBlock[] = [];
-    if (registry.features && registry.features.length > 0) {
-      const exclusiveCategories = [
-        { type: "mailer", message: "Select mailer provider:" },
-        { type: "upload", message: "Select upload provider:" },
-        { type: "cache", message: "Select cache provider:" },
-        { type: "logging", message: "Select logging provider:" },
-        { type: "monitoring", message: "Select monitoring provider:" },
-      ];
+    const featureCategories = [
+      { type: "mailer", msg: "Select mailer:" },
+      { type: "upload", msg: "Select upload provider:" },
+      { type: "cache", msg: "Select cache:" },
+    ];
 
-      for (const { type, message } of exclusiveCategories) {
-        const categoryFeatures = registry.features.filter(
-          (f) => f.featureType === type,
+    for (const { type, msg } of featureCategories) {
+      const catFeatures =
+        templateRegistry.features?.filter((f) => f.featureType === type) || [];
+      if (catFeatures.length > 0) {
+        const selected = await promptBlockSelection(
+          catFeatures,
+          msg,
+          undefined,
+          true,
         );
-        if (categoryFeatures.length > 0) {
-          const selected = await promptBlockSelection(
-            categoryFeatures,
-            message,
-            (options as any)[type],
-            true,
-          );
-          if (selected) selectedFeatures.push(selected);
-        }
-      }
-
-      // Any other non-exclusive features
-      const otherFeatures = registry.features.filter(
-        (f) =>
-          !exclusiveCategories.some((ex) => ex.type === f.featureType) &&
-          f.featureType !== "tooling",
-      );
-
-      if (otherFeatures.length > 0) {
-        const selectedOther = await promptMultiSelectFeatures(
-          otherFeatures,
-          "Select additional features (space to select, enter to confirm):",
-        );
-        selectedFeatures.push(...selectedOther);
+        if (selected) selectedFeatures.push(selected);
       }
     }
 
-    // 8. Select security preset (optional)
-    let selectedPreset: TemplateBlock | undefined;
-    if (registry.presets && registry.presets.length > 0) {
-      selectedPreset = await promptBlockSelection(
-        registry.presets,
-        "Select security preset:",
-        options.preset,
-        true,
-      );
-    }
-
-    // 9. Select tooling (optional)
-    let selectedTooling: TemplateBlock | undefined;
-    if (registry.features && registry.features.length > 0) {
-      const toolingFeatures = registry.features.filter(
-        (f) => f.featureType === "tooling",
-      );
-      selectedTooling = await promptBlockSelection(
-        toolingFeatures,
-        "Select linting & formatting:",
-        options.tooling,
-        true,
-      );
-    }
-
-    // 10. Select package manager
+    // Tools & PM
     const packageManager = await promptPackageManager(options.pm);
-    if (!packageManager) {
-      console.log("Operation cancelled.");
-      process.exit(0);
-    }
+    if (!packageManager) process.exit(0);
 
     console.log(chalk.blue("\nCreating project...\n"));
-
-    // 10. Create project directory
     await fs.ensureDir(projectPath);
 
-    // 11. Collect and process template data
     const blocks = [
       selectedBase,
       selectedDatabase,
       selectedAuth,
       ...selectedFeatures,
-      selectedPreset,
-      selectedTooling,
-    ].filter(Boolean) as TemplateBlock[];
-
+    ].filter(Boolean) as any[];
     const blockData = collectBlockData(blocks);
     const packageJson = buildPackageJson(projectName, blockData);
 
-    // 10. Write files
     const writeSpinner = ora("Writing files...").start();
     await writeProjectFiles(
       projectPath,
@@ -275,43 +173,45 @@ export const create = new Command()
       packageJson,
       blockData.envVars,
     );
-    writeSpinner.succeed("Files written");
 
-    // 11. Initialize hanma.json
-    const framework = selectedBase.name.split("-")[0]; // Simplistic mapping, e.g., express-minimal -> express
+    // hanma.json
     await fs.writeJSON(
       path.join(projectPath, "hanma.json"),
       {
         componentsPath: "src",
         utilsPath: "src/utils",
-        framework: framework,
+        framework: selectedFramework,
       },
       { spaces: 2 },
     );
+    writeSpinner.succeed("Files written");
 
-    // 11. Install dependencies
     if (!options.skipInstall) {
       const installSpinner = ora(
         `Installing dependencies with ${packageManager}...`,
       ).start();
-      const success = await runPackageInstall(projectPath, packageManager);
-      if (success) {
+      if (await runPackageInstall(projectPath, packageManager)) {
         installSpinner.succeed("Dependencies installed");
       } else {
         installSpinner.fail("Failed to install dependencies");
-        console.log(
-          chalk.yellow(
-            `Run '${packageManager} install' manually in the project directory.`,
-          ),
-        );
       }
     }
 
-    // 12. Print success message
-    printSuccessMessage(
-      projectName,
-      packageManager,
-      blockData.envVars.length > 0,
-      options.skipInstall ?? false,
+    // Success Message
+    console.log(
+      chalk.green(`\nProject ${projectName} created successfully!\n`),
     );
+
+    console.log(chalk.blue("Next steps:"));
+    console.log(chalk.cyan(`cd ${projectName}`));
+
+    if (options.skipInstall) {
+      console.log(chalk.cyan(`${packageManager} install`));
+    }
+
+    if (blockData.envVars.length > 0) {
+      console.log(chalk.cyan("cp .env.example .env"));
+    }
+
+    console.log(chalk.cyan(`${packageManager} run dev\n`));
   });

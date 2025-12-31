@@ -68,7 +68,10 @@ export const help = new Command()
     ${chalk.dim("# Show available templates")}
     $ hanma show templates --framework hono
 
-  ${chalk.bold("DOCUMENTATION")}
+    ${chalk.bold("DOCS")}
+    ${chalk.underline("https://hanma-a2n.pages.dev/docs")}
+
+    ${chalk.bold("GITHUB")}
     ${chalk.underline("https://github.com/itstheanurag/hanma")}
     `);
   });

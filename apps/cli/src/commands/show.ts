@@ -1,23 +1,30 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import { RegistryItem } from "../types";
+import { RegistryItem, ModulesRegistry, ModuleBlock } from "../types";
+
 import {
   getConfig,
-  fetchFrameworks,
   fetchRegistry,
   fetchTemplatesRegistry,
   fetchToolingRegistry,
   fetchAddonsRegistry,
+  fetchModulesRegistry,
+  fetchFrameworkWithPrompt,
+  displayNotFound,
 } from "../utils";
+
 import {
   displaySnippetDetails,
   displaySnippetsTable,
   displayTemplateDetails,
   displayTemplatesList,
-  promptFramework,
+  createShowSubcommand,
 } from "../helpers";
 
+// ============================================================================
+// Snippets Subcommand (requires framework selection)
+// ============================================================================
 
 const showSnippets = new Command()
   .name("snippets")
@@ -27,27 +34,14 @@ const showSnippets = new Command()
   .option("--json", "Output in JSON format")
   .action(async (snippetName: string | undefined, options) => {
     const config = await getConfig();
-    let selectedFramework = options.framework || config?.framework;
 
-    // Prompt for framework if not provided
+    // Use shared helper for framework selection
+    const selectedFramework = await fetchFrameworkWithPrompt(
+      options.framework || config?.framework,
+    );
     if (!selectedFramework) {
-      const frameworksSpinner = ora("Fetching frameworks...").start();
-      let frameworks: string[] = [];
-      try {
-        frameworks = await fetchFrameworks();
-        frameworksSpinner.succeed("Frameworks fetched");
-      } catch (error) {
-        frameworksSpinner.fail("Failed to fetch frameworks");
-        console.error(error);
-        process.exit(1);
-      }
-
-      const selected = await promptFramework(frameworks);
-      if (!selected) {
-        console.log("Operation cancelled.");
-        process.exit(0);
-      }
-      selectedFramework = selected;
+      console.log("Operation cancelled.");
+      process.exit(0);
     }
 
     // Fetch registry
@@ -81,18 +75,7 @@ const showSnippets = new Command()
       );
 
       if (!snippet) {
-        console.log(
-          chalk.red(
-            `Snippet '${snippetName}' not found for ${selectedFramework}`,
-          ),
-        );
-        console.log(chalk.dim("Available snippets:"));
-        snippets
-          .slice(0, 10)
-          .forEach((s) => console.log(chalk.dim(`  • ${s.name}`)));
-        if (snippets.length > 10) {
-          console.log(chalk.dim(`  ... and ${snippets.length - 10} more`));
-        }
+        displayNotFound("Snippet", snippetName, snippets);
         process.exit(1);
       }
 
@@ -117,6 +100,10 @@ const showSnippets = new Command()
     }
   });
 
+// ============================================================================
+// Templates Subcommand (requires framework selection)
+// ============================================================================
+
 const showTemplates = new Command()
   .name("templates")
   .description("Show available templates for a framework")
@@ -125,27 +112,14 @@ const showTemplates = new Command()
   .option("--json", "Output in JSON format")
   .action(async (templateName: string | undefined, options) => {
     const config = await getConfig();
-    let selectedFramework = options.framework || config?.framework;
 
-    // Prompt for framework if not provided
+    // Use shared helper for framework selection
+    const selectedFramework = await fetchFrameworkWithPrompt(
+      options.framework || config?.framework,
+    );
     if (!selectedFramework) {
-      const frameworksSpinner = ora("Fetching frameworks...").start();
-      let frameworks: string[] = [];
-      try {
-        frameworks = await fetchFrameworks();
-        frameworksSpinner.succeed("Frameworks fetched");
-      } catch (error) {
-        frameworksSpinner.fail("Failed to fetch frameworks");
-        console.error(error);
-        process.exit(1);
-      }
-
-      const selected = await promptFramework(frameworks);
-      if (!selected) {
-        console.log("Operation cancelled.");
-        process.exit(0);
-      }
-      selectedFramework = selected;
+      console.log("Operation cancelled.");
+      process.exit(0);
     }
 
     // Fetch template registry
@@ -165,8 +139,6 @@ const showTemplates = new Command()
       // Search in all categories
       const allTemplates = [
         ...(registry.base || []),
-        ...(registry.database || []),
-        ...(registry.auth || []),
         ...(registry.features || []),
         ...(registry.presets || []),
         ...(registry.extra || []),
@@ -177,18 +149,7 @@ const showTemplates = new Command()
       );
 
       if (!template) {
-        console.log(
-          chalk.red(
-            `Template '${templateName}' not found for ${selectedFramework}`,
-          ),
-        );
-        console.log(chalk.dim("Available templates:"));
-        allTemplates
-          .slice(0, 10)
-          .forEach((t) => console.log(chalk.dim(`  • ${t.name}`)));
-        if (allTemplates.length > 10) {
-          console.log(chalk.dim(`  ... and ${allTemplates.length - 10} more`));
-        }
+        displayNotFound("Template", templateName, allTemplates);
         process.exit(1);
       }
 
@@ -208,115 +169,131 @@ const showTemplates = new Command()
   });
 
 // ============================================================================
-// Tooling Subcommand
+// Tooling Subcommand (using factory - no framework needed)
 // ============================================================================
 
-const showTooling = new Command()
-  .name("tooling")
-  .description("Show available tooling configurations")
-  .argument("[name]", "Tooling config name to show details for")
+const showTooling = createShowSubcommand({
+  name: "tooling",
+  description: "Show available tooling configurations",
+  itemType: "Tooling config",
+  fetchRegistry: fetchToolingRegistry,
+  headerTitle: "Tooling Configurations",
+});
+
+// ============================================================================
+// Addons Subcommand (using factory - no framework needed)
+// ============================================================================
+
+const showAddons = createShowSubcommand({
+  name: "addons",
+  description: "Show available addons (cross-framework snippets)",
+  itemType: "Addon",
+  fetchRegistry: fetchAddonsRegistry,
+  headerTitle: "Addons (Cross-Framework Snippets)",
+});
+
+// ============================================================================
+// Modules Subcommand (special handling for categories)
+// ============================================================================
+
+const showModules = new Command()
+  .name("modules")
+  .description("Show available modules (auth, database, etc.)")
+  .argument("[name]", "Module name to show details for")
+  .option("-c, --category <category>", "Filter by category (auth, database)")
   .option("--json", "Output in JSON format")
-  .action(async (toolingName: string | undefined, options) => {
-    const registrySpinner = ora("Fetching tooling configurations...").start();
-    let registry: RegistryItem[] = [];
+  .action(async (moduleName: string | undefined, options) => {
+    const registrySpinner = ora("Fetching modules...").start();
+    let registry: ModulesRegistry | null;
     try {
-      registry = await fetchToolingRegistry();
-      registrySpinner.succeed("Tooling configurations fetched");
+      registry = await fetchModulesRegistry();
+      if (!registry) throw new Error("Modules registry is empty");
+      registrySpinner.succeed("Modules fetched");
     } catch (error) {
-      registrySpinner.fail("Failed to fetch tooling registry");
+      registrySpinner.fail("Failed to fetch modules registry");
       console.error(error);
       process.exit(1);
     }
 
-    if (registry.length === 0) {
-      console.log(chalk.yellow("No tooling configurations available."));
+    // Flatten all modules or filter by category
+    let allModules: ModuleBlock[] = [];
+    const categoriesToShow = options.category
+      ? [options.category]
+      : registry.categories;
+
+    for (const category of categoriesToShow) {
+      if (registry.modules[category]) {
+        allModules.push(...registry.modules[category]);
+      }
+    }
+
+    if (allModules.length === 0) {
+      console.log(chalk.yellow("No modules available."));
       process.exit(0);
     }
 
-    if (toolingName) {
-      const tooling = registry.find(
-        (t) => t.name.toLowerCase() === toolingName.toLowerCase(),
+    if (moduleName) {
+      const module = allModules.find(
+        (m) => m.name.toLowerCase() === moduleName.toLowerCase(),
       );
 
-      if (!tooling) {
-        console.log(chalk.red(`Tooling config '${toolingName}' not found`));
-        console.log(chalk.dim("Available configs:"));
-        registry
-          .slice(0, 10)
-          .forEach((t) => console.log(chalk.dim(`  • ${t.name}`)));
+      if (!module) {
+        displayNotFound("Module", moduleName, allModules);
         process.exit(1);
       }
 
       if (options.json) {
-        console.log(JSON.stringify(tooling, null, 2));
+        console.log(JSON.stringify(module, null, 2));
       } else {
-        displaySnippetDetails(tooling);
+        console.log();
+        console.log(chalk.bold.hex("#ea580c")(module.name));
+        console.log(chalk.dim(module.description));
+        console.log();
+        console.log(chalk.bold("Category:"), module.category);
+        if (module.framework) {
+          console.log(chalk.bold("Framework:"), module.framework);
+        }
+        if (module.dependencies?.length) {
+          console.log(
+            chalk.bold("Dependencies:"),
+            module.dependencies.join(", "),
+          );
+        }
+        if (module.devDependencies?.length) {
+          console.log(
+            chalk.bold("Dev Dependencies:"),
+            module.devDependencies.join(", "),
+          );
+        }
+        if (module.envVars?.length) {
+          console.log(chalk.bold("Env Variables:"), module.envVars.join(", "));
+        }
+        console.log(chalk.bold("Files:"), module.files.length);
+        for (const file of module.files) {
+          console.log(chalk.dim(`  • ${file.path}`));
+        }
       }
     } else {
+      // List all modules grouped by category
       if (options.json) {
         console.log(JSON.stringify(registry, null, 2));
       } else {
         console.log();
-        console.log(chalk.bold.hex("#ea580c")("Tooling Configurations"));
-        displaySnippetsTable(registry);
-      }
-    }
-  });
-
-// ============================================================================
-// Addons Subcommand
-// ============================================================================
-
-const showAddons = new Command()
-  .name("addons")
-  .description("Show available addons (cross-framework snippets)")
-  .argument("[name]", "Addon name to show details for")
-  .option("--json", "Output in JSON format")
-  .action(async (addonName: string | undefined, options) => {
-    const registrySpinner = ora("Fetching addons...").start();
-    let registry: RegistryItem[] = [];
-    try {
-      registry = await fetchAddonsRegistry();
-      registrySpinner.succeed("Addons fetched");
-    } catch (error) {
-      registrySpinner.fail("Failed to fetch addons registry");
-      console.error(error);
-      process.exit(1);
-    }
-
-    if (registry.length === 0) {
-      console.log(chalk.yellow("No addons available."));
-      process.exit(0);
-    }
-
-    if (addonName) {
-      const addon = registry.find(
-        (a) => a.name.toLowerCase() === addonName.toLowerCase(),
-      );
-
-      if (!addon) {
-        console.log(chalk.red(`Addon '${addonName}' not found`));
-        console.log(chalk.dim("Available addons:"));
-        registry
-          .slice(0, 10)
-          .forEach((a) => console.log(chalk.dim(`  • ${a.name}`)));
-        process.exit(1);
-      }
-
-      if (options.json) {
-        console.log(JSON.stringify(addon, null, 2));
-      } else {
-        displaySnippetDetails(addon);
-      }
-    } else {
-      if (options.json) {
-        console.log(JSON.stringify(registry, null, 2));
-      } else {
+        console.log(chalk.bold.hex("#ea580c")("Available Modules"));
         console.log();
-        console.log(
-          chalk.bold.hex("#ea580c")("Addons (Cross-Framework Snippets)"),
-        );
-        displaySnippetsTable(registry);
+
+        for (const category of categoriesToShow) {
+          const modules = registry.modules[category] || [];
+          if (modules.length === 0) continue;
+
+          console.log(chalk.bold.underline(category.toUpperCase()));
+          for (const mod of modules) {
+            console.log(
+              `  ${chalk.cyan(mod.name.padEnd(25))} ${chalk.dim(mod.description || "")}`,
+            );
+          }
+          console.log();
+        }
       }
     }
   });
@@ -327,8 +304,11 @@ const showAddons = new Command()
 
 export const show = new Command()
   .name("show")
-  .description("Show details about snippets, templates, tooling, or addons")
+  .description(
+    "Show details about snippets, templates, modules, tooling, or addons",
+  )
   .addCommand(showSnippets)
   .addCommand(showTemplates)
+  .addCommand(showModules)
   .addCommand(showTooling)
   .addCommand(showAddons);

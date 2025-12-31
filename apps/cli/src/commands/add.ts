@@ -4,9 +4,9 @@ import ora from "ora";
 import {
   getConfig,
   initHanmaConfig,
-  fetchFrameworks,
   fetchRegistry,
   createConfig,
+  fetchFrameworkWithPrompt,
 } from "../utils";
 
 import {
@@ -14,7 +14,6 @@ import {
   installRegistryItems,
   promptMultiSelectRegistry,
   promptCategoryFilter,
-  promptFramework,
   promptVersion,
 } from "../helpers";
 
@@ -60,29 +59,17 @@ export const add = new Command()
       }
     }
 
-    let selectedFramework = options.framework || config.framework;
-
+    // Use shared helper for framework selection
+    const selectedFramework = await fetchFrameworkWithPrompt(
+      options.framework || config.framework,
+    );
     if (!selectedFramework) {
-      // Fetch and select framework
-      const frameworksSpinner = ora("Fetching frameworks...").start();
-      let frameworks: string[] = [];
-      try {
-        frameworks = await fetchFrameworks();
-        frameworksSpinner.succeed("Frameworks fetched");
-      } catch (error) {
-        frameworksSpinner.fail("Failed to fetch frameworks");
-        console.error(error);
-        process.exit(1);
-      }
+      console.log("Operation cancelled.");
+      process.exit(0);
+    }
 
-      const selected = await promptFramework(frameworks);
-      if (!selected) {
-        console.log("Operation cancelled.");
-        process.exit(0);
-      }
-      selectedFramework = selected;
-
-      // Update config with the selected framework
+    // Update config if framework was newly selected
+    if (config.framework !== selectedFramework) {
       config.framework = selectedFramework;
       await createConfig(config);
     }

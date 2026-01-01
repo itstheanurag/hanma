@@ -53,7 +53,7 @@ pnpm run build:templates
 
 ## Contributing
 
-We welcome contributions! Please see [CONTRIBUTION.md](./CONTRIBUTION.md) for guidelines on adding new snippets, modules, or templates.
+We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on adding new snippets, modules, or templates.
 
 ## Architecture & Design
 

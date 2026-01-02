@@ -1,0 +1,92 @@
+---
+name: mongoose-service
+description: MongoDB connection with Mongoose for NestJS with schema configuration
+dependencies:
+  - "@nestjs/mongoose"
+  - "mongoose"
+devDependencies:
+  - "@types/node"
+files:
+  - name: providers/mongoose.config.ts
+---
+import { Injectable, Logger } from "@nestjs/common";
+import {
+  MongooseModuleOptions,
+  MongooseOptionsFactory,
+} from "@nestjs/mongoose";
+import mongoose from "mongoose";
+
+@Injectable()
+export class MongooseConfigService implements MongooseOptionsFactory {
+  private readonly logger = new Logger(MongooseConfigService.name);
+
+  createMongooseOptions(): MongooseModuleOptions {
+    // Connection event handlers
+    mongoose.connection.on("connected", () => {
+      this.logger.log("MongoDB connected successfully");
+    });
+
+    mongoose.connection.on("error", (err) => {
+      this.logger.error("MongoDB connection error:", err);
+    });
+
+    mongoose.connection.on("disconnected", () => {
+      this.logger.warn("MongoDB disconnected");
+    });
+
+    return {
+      uri: process.env.MONGODB_URI || "mongodb://localhost:27017/app",
+      
+      // Connection options
+      maxPoolSize: parseInt(process.env.MONGO_POOL_SIZE || "10", 10),
+      minPoolSize: 2,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+      
+      // Auto-create indexes in development
+      autoIndex: process.env.NODE_ENV === "development",
+      
+      // Use new URL parser and unified topology
+      retryWrites: true,
+      w: "majority",
+    };
+  }
+}
+
+// Usage in AppModule:
+/*
+import { Module } from "@nestjs/common";
+import { MongooseModule } from "@nestjs/mongoose";
+import { MongooseConfigService } from "./providers/mongoose.config";
+
+@Module({
+  imports: [
+    MongooseModule.forRootAsync({
+      useClass: MongooseConfigService,
+    }),
+  ],
+})
+export class AppModule {}
+*/
+
+// Example Schema:
+/*
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { Document } from "mongoose";
+
+export type UserDocument = User & Document;
+
+@Schema({ timestamps: true })
+export class User {
+  @Prop({ required: true })
+  name: string;
+
+  @Prop({ required: true, unique: true })
+  email: string;
+
+  @Prop()
+  avatar?: string;
+}
+
+export const UserSchema = SchemaFactory.createForClass(User);
+*/

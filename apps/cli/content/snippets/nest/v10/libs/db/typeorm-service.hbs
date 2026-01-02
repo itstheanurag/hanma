@@ -1,0 +1,66 @@
+---
+name: typeorm-service
+description: TypeORM data source configuration with connection management for NestJS
+dependencies:
+  - "@nestjs/typeorm"
+  - "typeorm"
+  - "pg"
+devDependencies:
+  - "@types/node"
+files:
+  - name: providers/typeorm.config.ts
+---
+import { Injectable } from "@nestjs/common";
+import { TypeOrmModuleOptions, TypeOrmOptionsFactory } from "@nestjs/typeorm";
+
+@Injectable()
+export class TypeOrmConfigService implements TypeOrmOptionsFactory {
+  createTypeOrmOptions(): TypeOrmModuleOptions {
+    return {
+      type: "postgres",
+      host: process.env.DB_HOST || "localhost",
+      port: parseInt(process.env.DB_PORT || "5432", 10),
+      username: process.env.DB_USERNAME || "postgres",
+      password: process.env.DB_PASSWORD || "postgres",
+      database: process.env.DB_NAME || "app",
+      
+      // Entity discovery
+      entities: [__dirname + "/../**/*.entity{.ts,.js}"],
+      
+      // Migrations
+      migrations: [__dirname + "/../migrations/**/*{.ts,.js}"],
+      migrationsRun: process.env.NODE_ENV === "production",
+      
+      // Sync (disable in production)
+      synchronize: process.env.NODE_ENV === "development",
+      
+      // Logging
+      logging: process.env.NODE_ENV === "development" ? ["query", "error"] : ["error"],
+      
+      // Connection pool
+      poolSize: parseInt(process.env.DB_POOL_SIZE || "10", 10),
+      
+      // SSL for production
+      ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+      
+      // Auto load entities
+      autoLoadEntities: true,
+    };
+  }
+}
+
+// Usage in AppModule:
+/*
+import { Module } from "@nestjs/common";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { TypeOrmConfigService } from "./providers/typeorm.config";
+
+@Module({
+  imports: [
+    TypeOrmModule.forRootAsync({
+      useClass: TypeOrmConfigService,
+    }),
+  ],
+})
+export class AppModule {}
+*/

@@ -1,0 +1,117 @@
+---
+name: nest-websocket
+description: WebSocket gateway with Socket.io for real-time communication, authentication, and room management
+dependencies:
+  - "@nestjs/websockets"
+  - "@nestjs/platform-socket.io"
+  - "socket.io"
+devDependencies:
+  - "@types/socket.io"
+files:
+  - name: gateways/websocket.gateway.ts
+---
+import {
+  WebSocketGateway,
+  WebSocketServer,
+  SubscribeMessage,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+  OnGatewayInit,
+  ConnectedSocket,
+  MessageBody,
+} from "@nestjs/websockets";
+import { Logger } from "@nestjs/common";
+import { Server, Socket } from "socket.io";
+
+interface AuthenticatedSocket extends Socket {
+  userId?: string;
+}
+
+@WebSocketGateway({
+  cors: {
+    origin: process.env.CORS_ORIGIN?.split(",") || "*",
+    credentials: true,
+  },
+  namespace: "/ws",
+})
+export class WebsocketGateway
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+{
+  @WebSocketServer()
+  server: Server;
+
+  private readonly logger = new Logger(WebsocketGateway.name);
+  private connectedClients = new Map<string, AuthenticatedSocket>();
+
+  afterInit(server: Server) {
+    this.logger.log("WebSocket Gateway initialized");
+  }
+
+  handleConnection(client: AuthenticatedSocket) {
+    const { sockets } = this.server.sockets;
+    this.logger.log(`Client connected: ${client.id} (Total: ${sockets.size})`);
+  }
+
+  handleDisconnect(client: AuthenticatedSocket) {
+    this.connectedClients.delete(client.id);
+    this.logger.log(`Client disconnected: ${client.id}`);
+  }
+
+  @SubscribeMessage("ping")
+  handlePing(@ConnectedSocket() client: Socket): { event: string; data: string } {
+    return { event: "pong", data: new Date().toISOString() };
+  }
+
+  @SubscribeMessage("joinRoom")
+  handleJoinRoom(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() room: string
+  ): void {
+    client.join(room);
+    this.logger.log(`Client ${client.id} joined room: ${room}`);
+    client.emit("roomJoined", { room });
+  }
+
+  @SubscribeMessage("leaveRoom")
+  handleLeaveRoom(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() room: string
+  ): void {
+    client.leave(room);
+    this.logger.log(`Client ${client.id} left room: ${room}`);
+    client.emit("roomLeft", { room });
+  }
+
+  @SubscribeMessage("message")
+  handleMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { room?: string; message: string }
+  ): void {
+    if (payload.room) {
+      this.server.to(payload.room).emit("message", {
+        from: client.id,
+        message: payload.message,
+        timestamp: new Date().toISOString(),
+      });
+    } else {
+      this.server.emit("message", {
+        from: client.id,
+        message: payload.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  // Utility methods for broadcasting
+  broadcastToAll(event: string, data: unknown): void {
+    this.server.emit(event, data);
+  }
+
+  broadcastToRoom(room: string, event: string, data: unknown): void {
+    this.server.to(room).emit(event, data);
+  }
+
+  sendToClient(clientId: string, event: string, data: unknown): void {
+    this.server.to(clientId).emit(event, data);
+  }
+}

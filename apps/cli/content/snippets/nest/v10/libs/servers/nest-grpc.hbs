@@ -1,0 +1,103 @@
+---
+name: nest-grpc
+description: gRPC server setup for NestJS with proto loading and service implementation
+dependencies:
+  - "@nestjs/microservices"
+  - "@grpc/grpc-js"
+  - "@grpc/proto-loader"
+devDependencies:
+  - "@types/node"
+files:
+  - name: grpc/grpc.options.ts
+---
+import { MicroserviceOptions, Transport } from "@nestjs/microservices";
+import { join } from "path";
+
+export const grpcClientOptions: MicroserviceOptions = {
+  transport: Transport.GRPC,
+  options: {
+    package: "example", // Proto package name
+    protoPath: join(__dirname, "../proto/example.proto"),
+    url: process.env.GRPC_URL || "0.0.0.0:5000",
+    loader: {
+      keepCase: true,
+      longs: String,
+      enums: String,
+      defaults: true,
+      oneofs: true,
+    },
+  },
+};
+
+// Example proto file content (save as proto/example.proto):
+/*
+syntax = "proto3";
+
+package example;
+
+service ExampleService {
+  rpc FindOne (FindOneRequest) returns (ExampleResponse);
+  rpc FindMany (FindManyRequest) returns (stream ExampleResponse);
+}
+
+message FindOneRequest {
+  string id = 1;
+}
+
+message FindManyRequest {
+  repeated string ids = 1;
+}
+
+message ExampleResponse {
+  string id = 1;
+  string name = 2;
+  string createdAt = 3;
+}
+*/
+
+// Example controller implementation:
+/*
+import { Controller } from "@nestjs/common";
+import { GrpcMethod, GrpcStreamMethod } from "@nestjs/microservices";
+import { Observable, Subject } from "rxjs";
+
+interface FindOneRequest {
+  id: string;
+}
+
+interface ExampleResponse {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
+@Controller()
+export class ExampleGrpcController {
+  @GrpcMethod("ExampleService", "FindOne")
+  findOne(data: FindOneRequest): ExampleResponse {
+    return {
+      id: data.id,
+      name: "Example",
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  @GrpcStreamMethod("ExampleService", "FindMany")
+  findMany(data: Observable<FindOneRequest>): Observable<ExampleResponse> {
+    const subject = new Subject<ExampleResponse>();
+    
+    data.subscribe({
+      next: (req) => {
+        subject.next({
+          id: req.id,
+          name: "Streamed Example",
+          createdAt: new Date().toISOString(),
+        });
+      },
+      complete: () => subject.complete(),
+    });
+    
+    return subject.asObservable();
+  }
+}
+*/

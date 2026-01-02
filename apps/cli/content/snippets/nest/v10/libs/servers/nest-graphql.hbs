@@ -1,0 +1,71 @@
+---
+name: nest-graphql
+description: Apollo GraphQL server setup with code-first approach, context creation, and playground configuration
+dependencies:
+  - "@nestjs/graphql"
+  - "@nestjs/apollo"
+  - "@apollo/server"
+  - "graphql"
+devDependencies:
+  - "@types/node"
+files:
+  - name: graphql/graphql.module.ts
+---
+import { Module } from "@nestjs/common";
+import { GraphQLModule } from "@nestjs/graphql";
+import { ApolloDriver, ApolloDriverConfig } from "@nestjs/apollo";
+import { join } from "path";
+
+export interface GqlContext {
+  req: Request;
+  res: Response;
+  user?: { id: string; email: string; roles: string[] };
+}
+
+@Module({
+  imports: [
+    GraphQLModule.forRoot<ApolloDriverConfig>({
+      driver: ApolloDriver,
+      // Code-first approach - schema generated from decorators
+      autoSchemaFile: join(process.cwd(), "src/schema.gql"),
+      sortSchema: true,
+      
+      // Enable GraphQL Playground in development
+      playground: process.env.NODE_ENV !== "production",
+      introspection: process.env.NODE_ENV !== "production",
+      
+      // Context available in all resolvers
+      context: ({ req, res }): GqlContext => ({
+        req,
+        res,
+        user: (req as any).user, // Populated by auth middleware
+      }),
+      
+      // Custom error formatting
+      formatError: (error) => {
+        const graphQLFormattedError = {
+          message: error.message,
+          code: error.extensions?.code || "INTERNAL_SERVER_ERROR",
+          path: error.path,
+        };
+        
+        // Include stack trace in development
+        if (process.env.NODE_ENV === "development") {
+          return {
+            ...graphQLFormattedError,
+            extensions: error.extensions,
+          };
+        }
+        
+        return graphQLFormattedError;
+      },
+      
+      // Subscriptions configuration (optional)
+      subscriptions: {
+        "graphql-ws": true,
+        "subscriptions-transport-ws": false,
+      },
+    }),
+  ],
+})
+export class GraphqlConfigModule {}

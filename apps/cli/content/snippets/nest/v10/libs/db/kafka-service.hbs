@@ -1,0 +1,185 @@
+---
+name: kafka-service
+description: Apache Kafka client service with producer, consumer, and topic management for event-driven architecture
+dependencies:
+  - "kafkajs"
+devDependencies:
+  - "@types/node"
+files:
+  - name: providers/kafka.service.ts
+---
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from "@nestjs/common";
+
+import {
+  Kafka,
+  Producer,
+  Consumer,
+  Admin,
+  EachMessagePayload,
+  CompressionTypes,
+} from "kafkajs";
+
+export interface KafkaMessage<T = unknown> {
+  key?: string;
+  value: T;
+  headers?: Record<string, string>;
+}
+
+@Injectable()
+export class KafkaService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(KafkaService.name);
+  private kafka: Kafka;
+  private producer: Producer;
+  private consumers: Map<string, Consumer> = new Map();
+  private admin: Admin;
+
+  async onModuleInit() {
+    this.kafka = new Kafka({
+      clientId: process.env.KAFKA_CLIENT_ID || "nestjs-app",
+      brokers: (process.env.KAFKA_BROKERS || "localhost:9092").split(","),
+      ssl: process.env.KAFKA_SSL === "true",
+      sasl:
+        process.env.KAFKA_USERNAME && process.env.KAFKA_PASSWORD
+          ? {
+              mechanism: "plain",
+              username: process.env.KAFKA_USERNAME,
+              password: process.env.KAFKA_PASSWORD,
+            }
+          : undefined,
+      retry: {
+        initialRetryTime: 100,
+        retries: 8,
+      },
+    });
+
+    this.producer = this.kafka.producer({
+      allowAutoTopicCreation: true,
+      transactionTimeout: 30000,
+    });
+
+    this.admin = this.kafka.admin();
+
+    await this.producer.connect();
+    await this.admin.connect();
+    this.logger.log("Kafka producer and admin connected");
+  }
+
+  async onModuleDestroy() {
+    await this.producer.disconnect();
+    await this.admin.disconnect();
+    
+    for (const [groupId, consumer] of this.consumers) {
+      await consumer.disconnect();
+      this.logger.log(`Consumer ${groupId} disconnected`);
+    }
+    
+    this.logger.log("Kafka disconnected");
+  }
+
+  async isHealthy(): Promise<boolean> {
+    try {
+      const topics = await this.admin.listTopics();
+      return Array.isArray(topics);
+    } catch {
+      return false;
+    }
+  }
+
+  // Producer methods
+  async publish<T>(
+    topic: string,
+    message: KafkaMessage<T>
+  ): Promise<void> {
+    await this.producer.send({
+      topic,
+      compression: CompressionTypes.GZIP,
+      messages: [
+        {
+          key: message.key,
+          value: JSON.stringify(message.value),
+          headers: message.headers,
+        },
+      ],
+    });
+  }
+
+  async publishBatch<T>(
+    topic: string,
+    messages: KafkaMessage<T>[]
+  ): Promise<void> {
+    await this.producer.send({
+      topic,
+      compression: CompressionTypes.GZIP,
+      messages: messages.map((msg) => ({
+        key: msg.key,
+        value: JSON.stringify(msg.value),
+        headers: msg.headers,
+      })),
+    });
+  }
+
+  // Consumer methods
+  async subscribe<T>(
+    topic: string,
+    groupId: string,
+    handler: (message: T, metadata: EachMessagePayload) => Promise<void>
+  ): Promise<void> {
+    const consumer = this.kafka.consumer({ groupId });
+    await consumer.connect();
+    await consumer.subscribe({ topic, fromBeginning: false });
+
+    await consumer.run({
+      eachMessage: async (payload) => {
+        const { message } = payload;
+        if (message.value) {
+          const parsed = JSON.parse(message.value.toString()) as T;
+          await handler(parsed, payload);
+        }
+      },
+    });
+
+    this.consumers.set(groupId, consumer);
+    this.logger.log(`Subscribed to ${topic} with group ${groupId}`);
+  }
+
+  async unsubscribe(groupId: string): Promise<void> {
+    const consumer = this.consumers.get(groupId);
+    if (consumer) {
+      await consumer.disconnect();
+      this.consumers.delete(groupId);
+      this.logger.log(`Unsubscribed consumer ${groupId}`);
+    }
+  }
+
+  // Admin methods
+  async createTopic(
+    topic: string,
+    numPartitions = 1,
+    replicationFactor = 1
+  ): Promise<void> {
+    await this.admin.createTopics({
+      topics: [
+        {
+          topic,
+          numPartitions,
+          replicationFactor,
+        },
+      ],
+    });
+    this.logger.log(`Created topic: ${topic}`);
+  }
+
+  async deleteTopic(topic: string): Promise<void> {
+    await this.admin.deleteTopics({ topics: [topic] });
+    this.logger.log(`Deleted topic: ${topic}`);
+  }
+
+  async listTopics(): Promise<string[]> {
+    return this.admin.listTopics();
+  }
+}

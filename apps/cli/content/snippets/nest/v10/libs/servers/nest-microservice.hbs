@@ -1,0 +1,54 @@
+---
+name: nest-microservice
+description: NestJS microservice setup with TCP and Redis transports for distributed systems
+dependencies:
+  - "@nestjs/microservices"
+devDependencies:
+  - "@types/node"
+files:
+  - name: main.ts
+---
+import { NestFactory } from "@nestjs/core";
+import { MicroserviceOptions, Transport } from "@nestjs/microservices";
+import { Logger } from "@nestjs/common";
+import { AppModule } from "./app.module";
+
+async function bootstrap() {
+  const logger = new Logger("Microservice");
+
+  // Create hybrid application (HTTP + Microservice)
+  const app = await NestFactory.create(AppModule);
+
+  // TCP Transport
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.TCP,
+    options: {
+      host: process.env.TCP_HOST || "0.0.0.0",
+      port: parseInt(process.env.TCP_PORT || "3001", 10),
+    },
+  });
+
+  // Redis Transport (optional - uncomment if using Redis)
+  // app.connectMicroservice<MicroserviceOptions>({
+  //   transport: Transport.REDIS,
+  //   options: {
+  //     host: process.env.REDIS_HOST || "localhost",
+  //     port: parseInt(process.env.REDIS_PORT || "6379", 10),
+  //     password: process.env.REDIS_PASSWORD,
+  //   },
+  // });
+
+  // Start all microservices
+  await app.startAllMicroservices();
+  logger.log("Microservices are listening");
+
+  // Start HTTP server
+  const port = process.env.PORT || 3000;
+  await app.listen(port);
+  logger.log(`HTTP server listening on port ${port}`);
+}
+
+bootstrap().catch((err) => {
+  console.error("Failed to start microservice:", err);
+  process.exit(1);
+});

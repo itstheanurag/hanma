@@ -1,0 +1,192 @@
+---
+name: logger-middleware
+description: HTTP request logging middleware with customizable format and sensitive data masking
+dependencies: []
+devDependencies: []
+files:
+  - name: middleware/logger.middleware.ts
+---
+import { Injectable, NestMiddleware, Logger } from "@nestjs/common";
+import { Request, Response, NextFunction } from "express";
+
+export interface LoggerMiddlewareOptions {
+  excludePaths?: string[];
+  excludeMethods?: string[];
+  logBody?: boolean;
+  logQuery?: boolean;
+  logHeaders?: boolean;
+  maxBodyLength?: number;
+}
+
+@Injectable()
+export class LoggerMiddleware implements NestMiddleware {
+  private readonly logger = new Logger("HTTP");
+  private readonly options: Required<LoggerMiddlewareOptions>;
+
+  constructor(options: LoggerMiddlewareOptions = {}) {
+    this.options = {
+      excludePaths: options.excludePaths ?? ["/health", "/metrics"],
+      excludeMethods: options.excludeMethods ?? [],
+      logBody: options.logBody ?? process.env.NODE_ENV === "development",
+      logQuery: options.logQuery ?? true,
+      logHeaders: options.logHeaders ?? false,
+      maxBodyLength: options.maxBodyLength ?? 1000,
+    };
+  }
+
+  use(req: Request, res: Response, next: NextFunction) {
+    // Skip excluded paths
+    if (this.shouldSkip(req)) {
+      return next();
+    }
+
+    const startTime = Date.now();
+    const { method, originalUrl, ip } = req;
+
+    // Log request
+    this.logRequest(req);
+
+    // Capture response
+    const originalSend = res.send;
+    let responseBody: any;
+
+    res.send = function (body) {
+      responseBody = body;
+      return originalSend.call(this, body);
+    };
+
+    // Log response on finish
+    res.on("finish", () => {
+      const duration = Date.now() - startTime;
+      this.logResponse(req, res, duration, responseBody);
+    });
+
+    next();
+  }
+
+  private shouldSkip(req: Request): boolean {
+    if (this.options.excludeMethods.includes(req.method)) {
+      return true;
+    }
+
+    return this.options.excludePaths.some((path) =>
+      req.originalUrl.startsWith(path)
+    );
+  }
+
+  private logRequest(req: Request): void {
+    const logData: Record<string, any> = {
+      method: req.method,
+      url: req.originalUrl,
+      ip: this.getClientIp(req),
+      userAgent: req.headers["user-agent"],
+      userId: (req as any).user?.id,
+    };
+
+    if (this.options.logQuery && Object.keys(req.query).length > 0) {
+      logData.query = req.query;
+    }
+
+    if (this.options.logBody && req.body && Object.keys(req.body).length > 0) {
+      logData.body = this.sanitizeBody(req.body);
+    }
+
+    if (this.options.logHeaders) {
+      logData.headers = this.sanitizeHeaders(req.headers);
+    }
+
+    this.logger.debug(`→ ${req.method} ${req.originalUrl}`, logData);
+  }
+
+  private logResponse(
+    req: Request,
+    res: Response,
+    duration: number,
+    body?: any
+  ): void {
+    const { statusCode } = res;
+    const statusEmoji = statusCode < 400 ? "✓" : "✗";
+
+    const message = `${statusEmoji} ${req.method} ${req.originalUrl} ${statusCode} ${duration}ms`;
+
+    const logFn =
+      statusCode >= 500
+        ? this.logger.error.bind(this.logger)
+        : statusCode >= 400
+          ? this.logger.warn.bind(this.logger)
+          : this.logger.log.bind(this.logger);
+
+    logFn(message, {
+      duration,
+      statusCode,
+      contentLength: res.get("content-length"),
+    });
+  }
+
+  private getClientIp(req: Request): string {
+    return (
+      (req.headers["x-forwarded-for"] as string)?.split(",")[0] ||
+      req.ip ||
+      "unknown"
+    );
+  }
+
+  private sanitizeBody(body: any): any {
+    if (typeof body !== "object") return body;
+
+    const sensitiveFields = [
+      "password",
+      "token",
+      "secret",
+      "apiKey",
+      "authorization",
+      "creditCard",
+      "ssn",
+    ];
+
+    const sanitized = { ...body };
+    for (const field of Object.keys(sanitized)) {
+      if (sensitiveFields.some((f) => field.toLowerCase().includes(f.toLowerCase()))) {
+        sanitized[field] = "[REDACTED]";
+      }
+    }
+
+    const json = JSON.stringify(sanitized);
+    if (json.length > this.options.maxBodyLength) {
+      return `[Body truncated: ${json.length} chars]`;
+    }
+
+    return sanitized;
+  }
+
+  private sanitizeHeaders(headers: any): any {
+    const sanitized = { ...headers };
+    const sensitiveHeaders = ["authorization", "cookie", "x-api-key"];
+    
+    for (const header of sensitiveHeaders) {
+      if (sanitized[header]) {
+        sanitized[header] = "[REDACTED]";
+      }
+    }
+    return sanitized;
+  }
+}
+
+// Functional middleware
+export function loggerMiddleware(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const logger = new Logger("HTTP");
+  const start = Date.now();
+
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    const { statusCode } = res;
+    const emoji = statusCode < 400 ? "✓" : "✗";
+    logger.log(`${emoji} ${req.method} ${req.originalUrl} ${statusCode} ${duration}ms`);
+  });
+
+  next();
+}

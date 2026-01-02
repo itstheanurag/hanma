@@ -1,0 +1,87 @@
+---
+name: request-id-middleware
+description: Request ID middleware for distributed tracing and logging correlation
+dependencies:
+  - "uuid"
+devDependencies:
+  - "@types/uuid"
+files:
+  - name: middleware/request-id.middleware.ts
+---
+import { Injectable, NestMiddleware } from "@nestjs/common";
+import { Request, Response, NextFunction } from "express";
+import { v4 as uuidv4 } from "uuid";
+
+declare global {
+  namespace Express {
+    interface Request {
+      id: string;
+      correlationId?: string;
+      startTime: number;
+    }
+  }
+}
+
+@Injectable()
+export class RequestIdMiddleware implements NestMiddleware {
+  use(req: Request, res: Response, next: NextFunction) {
+    // Use existing request ID or generate new one
+    const requestId =
+      (req.headers["x-request-id"] as string) ||
+      (req.headers["x-amzn-trace-id"] as string) || // AWS ALB
+      uuidv4();
+
+    // Correlation ID for tracing across services
+    const correlationId =
+      (req.headers["x-correlation-id"] as string) ||
+      requestId;
+
+    // Attach to request object
+    req.id = requestId;
+    req.correlationId = correlationId;
+    req.startTime = Date.now();
+
+    // Set response headers
+    res.setHeader("X-Request-Id", requestId);
+    res.setHeader("X-Correlation-Id", correlationId);
+
+    next();
+  }
+}
+
+// Functional middleware for simpler use
+export function requestIdMiddleware(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const requestId =
+    (req.headers["x-request-id"] as string) ||
+    uuidv4();
+
+  const correlationId =
+    (req.headers["x-correlation-id"] as string) ||
+    requestId;
+
+  req.id = requestId;
+  req.correlationId = correlationId;
+  req.startTime = Date.now();
+
+  res.setHeader("X-Request-Id", requestId);
+  res.setHeader("X-Correlation-Id", correlationId);
+
+  next();
+}
+
+// Usage in AppModule:
+/*
+import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
+import { RequestIdMiddleware } from "./middleware/request-id.middleware";
+
+@Module({})
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(RequestIdMiddleware).forRoutes("*");
+  }
+}
+*/

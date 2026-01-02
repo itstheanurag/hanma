@@ -1,0 +1,109 @@
+---
+name: serialize-interceptor
+description: Response serialization interceptor using class-transformer for DTOs
+dependencies:
+  - "class-transformer"
+devDependencies: []
+files:
+  - name: interceptors/serialize.interceptor.ts
+---
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+  SetMetadata,
+  UseInterceptors,
+} from "@nestjs/common";
+import { Observable, map } from "rxjs";
+import { plainToInstance, ClassTransformOptions } from "class-transformer";
+import { Reflector } from "@nestjs/core";
+
+export const SERIALIZE_TYPE_KEY = "serialize_type";
+export const SERIALIZE_OPTIONS_KEY = "serialize_options";
+
+type ClassType<T = any> = new (...args: any[]) => T;
+
+/**
+ * Decorator to specify the DTO class for serialization.
+ * 
+ * Usage:
+ * @Serialize(UserResponseDto)
+ * @Get(":id")
+ * findOne(@Param("id") id: string) {
+ *   return this.userService.findOne(id); // Returns full User entity
+ * }
+ * 
+ * The response will only include fields defined in UserResponseDto.
+ */
+
+ 
+export function Serialize<T>(dto: ClassType<T>, options?: ClassTransformOptions) {
+  return (target: any, key?: string, descriptor?: PropertyDescriptor) => {
+    SetMetadata(SERIALIZE_TYPE_KEY, dto)(target, key, descriptor);
+    if (options) {
+      SetMetadata(SERIALIZE_OPTIONS_KEY, options)(target, key, descriptor);
+    }
+    UseInterceptors(SerializeInterceptor)(target, key, descriptor);
+  };
+}
+
+@Injectable()
+export class SerializeInterceptor implements NestInterceptor {
+  constructor(private reflector: Reflector) {}
+
+  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    const dto = this.reflector.get<ClassType>(
+      SERIALIZE_TYPE_KEY,
+      context.getHandler()
+    );
+
+    const options = this.reflector.get<ClassTransformOptions>(
+      SERIALIZE_OPTIONS_KEY,
+      context.getHandler()
+    ) || {
+      excludeExtraneousValues: true,
+      enableImplicitConversion: true,
+    };
+
+    if (!dto) {
+      return next.handle();
+    }
+
+    return next.handle().pipe(
+      map((data) => {
+        if (Array.isArray(data)) {
+          return data.map((item) => plainToInstance(dto, item, options));
+        }
+        return plainToInstance(dto, data, options);
+      })
+    );
+  }
+}
+
+// Example DTO with class-transformer decorators:
+/*
+import { Expose, Exclude, Transform } from "class-transformer";
+
+export class UserResponseDto {
+  @Expose()
+  id: string;
+
+  @Expose()
+  email: string;
+
+  @Expose()
+  name: string;
+
+  @Expose()
+  @Transform(({ obj }) => obj.firstName + " " + obj.lastName)
+  fullName: string;
+
+  @Exclude()
+  password: string; // Will not be included in response
+
+  @Expose()
+  @Transform(({ value }) => value?.toISOString())
+  createdAt: string;
+}
+*/

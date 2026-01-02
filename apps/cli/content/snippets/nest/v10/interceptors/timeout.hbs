@@ -1,0 +1,66 @@
+---
+name: timeout-interceptor
+description: Request timeout interceptor with configurable duration and custom timeout exception
+dependencies:
+  - "rxjs"
+devDependencies: []
+files:
+  - name: interceptors/timeout.interceptor.ts
+---
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+  RequestTimeoutException,
+  SetMetadata,
+} from "@nestjs/common";
+import { Observable, TimeoutError, throwError, timeout, catchError } from "rxjs";
+import { Reflector } from "@nestjs/core";
+
+export const TIMEOUT_KEY = "request_timeout";
+
+/**
+ * Set custom timeout for a route (in milliseconds).
+ * 
+ * Usage:
+ * @Timeout(60000) // 60 seconds
+ * @Post("upload")
+ * upload() {}
+ */
+
+ 
+export const Timeout = (ms: number) => SetMetadata(TIMEOUT_KEY, ms);
+
+@Injectable()
+export class TimeoutInterceptor implements NestInterceptor {
+  private readonly defaultTimeout: number;
+
+  constructor(private reflector: Reflector) {
+    this.defaultTimeout = parseInt(process.env.REQUEST_TIMEOUT || "30000", 10);
+  }
+
+  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    const timeoutValue =
+      this.reflector.getAllAndOverride<number>(TIMEOUT_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]) || this.defaultTimeout;
+
+    return next.handle().pipe(
+      timeout(timeoutValue),
+      catchError((err) => {
+        if (err instanceof TimeoutError) {
+          const request = context.switchToHttp().getRequest();
+          return throwError(
+            () =>
+              new RequestTimeoutException(
+                `Request to ${request.method} ${request.url} timed out after ${timeoutValue}ms`
+              )
+          );
+        }
+        return throwError(() => err);
+      })
+    );
+  }
+}

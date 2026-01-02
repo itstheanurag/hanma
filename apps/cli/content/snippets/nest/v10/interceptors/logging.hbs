@@ -1,0 +1,139 @@
+---
+name: logging-interceptor
+description: Request/response logging interceptor with timing, masking sensitive data, and structured output
+dependencies: []
+devDependencies: []
+files:
+  - name: interceptors/logging.interceptor.ts
+---
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+  Logger,
+} from "@nestjs/common";
+import { Observable, tap } from "rxjs";
+
+interface LogContext {
+  method: string;
+  url: string;
+  ip: string;
+  userId?: string;
+  userAgent?: string;
+  duration: number;
+  statusCode: number;
+}
+
+@Injectable()
+export class LoggingInterceptor implements NestInterceptor {
+  private readonly logger = new Logger("HTTP");
+
+  // Fields to mask in logs
+  private readonly sensitiveFields = [
+    "password",
+    "token",
+    "authorization",
+    "secret",
+    "apiKey",
+    "api_key",
+    "creditCard",
+    "ssn",
+  ];
+
+  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    const ctx = context.switchToHttp();
+    const request = ctx.getRequest();
+    const response = ctx.getResponse();
+    const startTime = Date.now();
+
+    const { method, url, ip, body, query, headers } = request;
+    const userAgent = headers["user-agent"] || "";
+    const userId = request.user?.id;
+
+    // Log request (only in development or debug mode)
+    if (process.env.NODE_ENV === "development" || process.env.LOG_REQUESTS === "true") {
+      this.logger.debug(
+        `→ ${method} ${url}`,
+        this.maskSensitiveData({
+          body: Object.keys(body || {}).length > 0 ? body : undefined,
+          query: Object.keys(query || {}).length > 0 ? query : undefined,
+          userId,
+        })
+      );
+    }
+
+    return next.handle().pipe(
+      tap({
+        next: (data) => {
+          const duration = Date.now() - startTime;
+          const statusCode = response.statusCode;
+
+          const logContext: LogContext = {
+            method,
+            url,
+            ip: this.getClientIp(request),
+            userId,
+            userAgent,
+            duration,
+            statusCode,
+          };
+
+          this.logResponse(logContext, data);
+        },
+        error: (error) => {
+          const duration = Date.now() - startTime;
+
+          this.logger.error(
+            `✗ ${method} ${url} - ${error.status || 500} - ${duration}ms`,
+            {
+              error: error.message,
+              stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+              userId,
+            }
+          );
+        },
+      })
+    );
+  }
+
+  private logResponse(ctx: LogContext, data?: any): void {
+    const statusEmoji = ctx.statusCode < 400 ? "✓" : "✗";
+    const message = `${statusEmoji} ${ctx.method} ${ctx.url} - ${ctx.statusCode} - ${ctx.duration}ms`;
+
+    if (ctx.statusCode >= 500) {
+      this.logger.error(message, ctx);
+    } else if (ctx.statusCode >= 400) {
+      this.logger.warn(message, ctx);
+    } else {
+      this.logger.log(message);
+    }
+  }
+
+  private getClientIp(request: any): string {
+    return (
+      request.headers["x-forwarded-for"]?.split(",")[0] ||
+      request.ip ||
+      request.connection?.remoteAddress ||
+      "unknown"
+    );
+  }
+
+  private maskSensitiveData(obj: any): any {
+    if (!obj || typeof obj !== "object") return obj;
+
+    const masked = Array.isArray(obj) ? [...obj] : { ...obj };
+
+    for (const key of Object.keys(masked)) {
+      if (this.sensitiveFields.some((field) =>
+        key.toLowerCase().includes(field.toLowerCase())
+      )) {
+        masked[key] = "[REDACTED]";
+      } else if (typeof masked[key] === "object") {
+        masked[key] = this.maskSensitiveData(masked[key]);
+      }
+    }
+
+    return masked;
+  }
+}

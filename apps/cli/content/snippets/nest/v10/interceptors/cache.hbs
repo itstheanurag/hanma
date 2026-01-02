@@ -1,0 +1,140 @@
+---
+name: cache-interceptor
+description: Response caching interceptor with TTL control and cache key generation
+dependencies:
+  - "@nestjs/cache-manager"
+  - "cache-manager"
+devDependencies: []
+files:
+  - name: interceptors/cache.interceptor.ts
+---
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+  Inject,
+  SetMetadata,
+} from "@nestjs/common";
+import { Observable, of, tap } from "rxjs";
+import { CACHE_MANAGER } from "@nestjs/cache-manager";
+import { Cache } from "cache-manager";
+import { Reflector } from "@nestjs/core";
+
+// Metadata keys
+export const CACHE_TTL_KEY = "cache_ttl";
+export const CACHE_KEY_PREFIX = "cache_key_prefix";
+export const NO_CACHE_KEY = "no_cache";
+
+/**
+ * Set cache TTL for a route (in seconds).
+ */
+export const CacheTTL = (ttl: number) => SetMetadata(CACHE_TTL_KEY, ttl);
+
+/**
+ * Set custom cache key prefix.
+ */
+export const CacheKey = (prefix: string) => SetMetadata(CACHE_KEY_PREFIX, prefix);
+
+/**
+ * Skip caching for a route.
+ */
+export const NoCache = () => SetMetadata(NO_CACHE_KEY, true);
+
+@Injectable()
+export class HttpCacheInterceptor implements NestInterceptor {
+  private readonly defaultTtl: number = 60; // seconds
+
+  constructor(
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private reflector: Reflector
+  ) {}
+
+  async intercept(
+    context: ExecutionContext,
+    next: CallHandler
+  ): Promise<Observable<any>> {
+    const request = context.switchToHttp().getRequest();
+
+    // Skip caching for non-GET requests
+    if (request.method !== "GET") {
+      return next.handle();
+    }
+
+    // Check if caching is disabled for this route
+    const noCache = this.reflector.getAllAndOverride<boolean>(NO_CACHE_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if (noCache) {
+      return next.handle();
+    }
+
+    // Generate cache key
+    const cacheKey = this.generateCacheKey(context, request);
+
+    // Try to get from cache
+    const cachedResponse = await this.cacheManager.get(cacheKey);
+    if (cachedResponse) {
+      return of(cachedResponse);
+    }
+
+    // Get TTL from decorator or use default
+    const ttl =
+      this.reflector.getAllAndOverride<number>(CACHE_TTL_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]) || this.defaultTtl;
+
+    // Execute handler and cache response
+    return next.handle().pipe(
+      tap(async (response) => {
+        await this.cacheManager.set(cacheKey, response, ttl * 1000);
+      })
+    );
+  }
+
+  private generateCacheKey(context: ExecutionContext, request: any): string {
+    const prefix =
+      this.reflector.get<string>(CACHE_KEY_PREFIX, context.getHandler()) ||
+      context.getClass().name;
+
+    const queryString = request.url.includes("?")
+      ? request.url.split("?")[1]
+      : "";
+
+    // Include user ID for authenticated requests
+    const userId = request.user?.id || "anonymous";
+
+    return `${prefix}:${request.method}:${request.path}:${queryString}:${userId}`;
+  }
+}
+
+// Cache invalidation helper
+@Injectable()
+export class CacheService {
+  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
+
+  async invalidate(pattern: string): Promise<void> {
+    // Note: Pattern-based deletion depends on cache store implementation
+    // For Redis, you might need to use scan + del
+    await this.cacheManager.del(pattern);
+  }
+
+  async invalidateByPrefix(prefix: string): Promise<void> {
+    const store = this.cacheManager.store;
+    if ("keys" in store && typeof store.keys === "function") {
+      const keys = await store.keys(`${prefix}*`);
+      await Promise.all(keys.map((key: string) => this.cacheManager.del(key)));
+    }
+  }
+
+  async get<T>(key: string): Promise<T | undefined> {
+    return this.cacheManager.get<T>(key);
+  }
+
+  async set(key: string, value: any, ttl?: number): Promise<void> {
+    await this.cacheManager.set(key, value, ttl);
+  }
+}

@@ -9,21 +9,40 @@
       "description": "Production-ready server implementations",
       "snippets": [
         {
-          "id": "nest-server",
-          "name": "nest-server",
-          "displayName": "NestJS Server",
-          "description": "Production-ready NestJS HTTP server bootstrap",
-          "purpose": "Start a NestJS application with proper production configuration. Includes validation pipes, CORS, and graceful shutdown.",
+          "id": "nest-express-server",
+          "name": "nest-express-server",
+          "displayName": "NestJS Express Server",
+          "description": "Production-ready NestJS HTTP server with Express adapter",
+          "purpose": "Start a NestJS application with Express adapter. Includes Swagger, versioning, CORS, Helmet, and request logging.",
           "features": [
-            "Global validation pipe with class-validator",
-            "CORS configuration",
-            "Graceful shutdown hooks",
-            "Global API prefix"
+            "Express adapter (familiar ecosystem)",
+            "Swagger API documentation",
+            "API versioning support",
+            "Class-based modular setup",
+            "Request/response logging"
           ],
-          "usage": "// Just run the bootstrap in main.ts\nnpm run start:dev",
+          "usage": "HttpServer.create(AppModule, {\\n  enableVersioning: true,\\n  enableApiDocumentation: true,\\n});",
           "output": "src/main.ts",
-          "dependencies": ["@nestjs/core", "@nestjs/common", "@nestjs/platform-express"],
-          "command": "npx hanma add nest-server --framework nest"
+          "dependencies": ["@nestjs/core", "@nestjs/common", "@nestjs/platform-express", "@nestjs/swagger", "helmet"],
+          "command": "npx hanma add nest-express-server --framework nest"
+        },
+        {
+          "id": "nest-fastify-server",
+          "name": "nest-fastify-server",
+          "displayName": "NestJS Fastify Server",
+          "description": "Production-ready NestJS HTTP server with Fastify adapter",
+          "purpose": "Start a NestJS application with Fastify adapter for higher performance. Includes Swagger, versioning, CORS, Helmet, and request logging.",
+          "features": [
+            "Fastify adapter (higher performance)",
+            "Swagger API documentation",
+            "API versioning support",
+            "Class-based modular setup",
+            "Request/response logging"
+          ],
+          "usage": "HttpServer.create(AppModule, {\\n  enableVersioning: true,\\n  enableApiDocumentation: true,\\n});",
+          "output": "src/main.ts",
+          "dependencies": ["@nestjs/core", "@nestjs/common", "@nestjs/platform-fastify", "@nestjs/swagger", "@fastify/helmet"],
+          "command": "npx hanma add nest-fastify-server --framework nest"
         },
         {
           "id": "nest-websocket",
@@ -63,17 +82,18 @@
           "id": "nest-microservice",
           "name": "nest-microservice",
           "displayName": "Microservice Bootstrap",
-          "description": "Hybrid application with TCP/Redis transport",
-          "purpose": "Create a hybrid application running both HTTP and microservice transports for distributed systems.",
+          "description": "Configurable microservice with multiple transports",
+          "purpose": "Create a hybrid application running HTTP and microservice transports. Fully configurable with type-safe options for TCP, Redis, RabbitMQ, and NATS.",
           "features": [
-            "TCP transport support",
-            "Redis transport support",
-            "Hybrid HTTP + microservice",
-            "Multiple transport configuration"
+            "Type-safe transport configuration",
+            "TCP/Redis/RabbitMQ/NATS support",
+            "Class-based MicroserviceServer setup",
+            "Hybrid or standalone modes",
+            "Graceful shutdown handling"
           ],
-          "usage": "// Configure transports in main.ts\nawait app.startAllMicroservices();",
-          "output": "src/main.ts",
-          "dependencies": ["@nestjs/microservices"],
+          "usage": "MicroserviceServer.create(AppModule, {\\n  transports: [{ type: 'tcp' }, { type: 'redis' }],\\n  enableHttp: true,\\n});",
+          "output": "src/microservice/microservice.setup.ts",
+          "dependencies": ["@nestjs/microservices", "@nestjs/config"],
           "command": "npx hanma add nest-microservice --framework nest"
         },
         {

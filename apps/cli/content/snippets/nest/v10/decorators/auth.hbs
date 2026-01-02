@@ -1,0 +1,66 @@
+---
+name: auth
+description: Authentication decorator combining JWT guard with optional role requirements
+dependencies: []
+devDependencies: []
+files:
+  - name: decorators/auth.decorator.ts
+---
+import { applyDecorators, UseGuards } from "@nestjs/common";
+import { ApiBearerAuth, ApiUnauthorizedResponse, ApiForbiddenResponse } from "@nestjs/swagger";
+import { JwtAuthGuard } from "../guards/jwt-auth.guard";
+import { RolesGuard } from "../guards/roles.guard";
+import { Roles, Role, ROLES_KEY } from "./roles.decorator";
+
+/**
+ * Combined authentication decorator.
+ * Applies JWT authentication and optionally enforces roles.
+ * 
+ * Usage:
+ * // Require authentication only
+ * @Auth()
+ * @Get("profile")
+ * getProfile() {}
+ * 
+ * // Require authentication + specific role
+ * @Auth(Role.ADMIN)
+ * @Get("admin")
+ * adminRoute() {}
+ * 
+ * // Multiple roles (any role grants access)
+ * @Auth(Role.ADMIN, Role.MODERATOR)
+ * @Get("staff")
+ * staffRoute() {}
+ */
+
+ 
+export function Auth(...roles: Role[]) {
+  const decorators = [
+    UseGuards(JwtAuthGuard, RolesGuard),
+    ApiBearerAuth(),
+    ApiUnauthorizedResponse({ description: "Unauthorized - Invalid or missing token" }),
+  ];
+
+  if (roles.length > 0) {
+    decorators.push(
+      Roles(...roles),
+      ApiForbiddenResponse({ description: "Forbidden - Insufficient permissions" })
+    );
+  }
+
+  return applyDecorators(...decorators);
+}
+
+/**
+ * Admin-only routes shorthand.
+ */
+export function AdminOnly() {
+  return Auth(Role.ADMIN, Role.SUPER_ADMIN);
+}
+
+/**
+ * Moderator and above shorthand.
+ */
+export function ModeratorOnly() {
+  return Auth(Role.MODERATOR, Role.ADMIN, Role.SUPER_ADMIN);
+}

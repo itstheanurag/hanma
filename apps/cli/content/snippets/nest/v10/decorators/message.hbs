@@ -1,0 +1,78 @@
+---
+name: message-pattern
+description: Custom decorators for microservice message patterns with metadata
+dependencies:
+  - "@nestjs/microservices"
+devDependencies: []
+files:
+  - name: decorators/message.decorator.ts
+---
+import { applyDecorators, SetMetadata } from "@nestjs/common";
+import { MessagePattern, EventPattern } from "@nestjs/microservices";
+
+export const MESSAGE_METADATA_KEY = "message_metadata";
+
+export interface MessageMetadata {
+  name: string;
+  description?: string;
+  version?: string;
+  deprecated?: boolean;
+}
+
+/**
+ * Enhanced message pattern with metadata for documentation.
+ * 
+ * Usage:
+ * @Message("user.create", { description: "Creates a new user" })
+ * async createUser(@Payload() data: CreateUserDto) {}
+ */
+export function Message(pattern: string, metadata?: Omit<MessageMetadata, "name">) {
+  return applyDecorators(
+    MessagePattern(pattern),
+    SetMetadata(MESSAGE_METADATA_KEY, { name: pattern, ...metadata })
+  );
+}
+
+/**
+ * Enhanced event pattern with metadata.
+ * Events are fire-and-forget (no response expected).
+ * 
+ * Usage:
+ * @Event("user.created")
+ * async onUserCreated(@Payload() data: UserCreatedEvent) {}
+ */
+export function Event(pattern: string, metadata?: Omit<MessageMetadata, "name">) {
+  return applyDecorators(
+    EventPattern(pattern),
+    SetMetadata(MESSAGE_METADATA_KEY, { name: pattern, ...metadata })
+  );
+}
+
+/**
+ * Versioned message pattern.
+ * 
+ * Usage:
+ * @VersionedMessage("user.create", "v2")
+ * async createUserV2(@Payload() data: CreateUserDtoV2) {}
+ */
+export function VersionedMessage(pattern: string, version: string) {
+  const versionedPattern = `${version}.${pattern}`;
+  return applyDecorators(
+    MessagePattern(versionedPattern),
+    SetMetadata(MESSAGE_METADATA_KEY, { name: pattern, version })
+  );
+}
+
+/**
+ * Mark a message handler as deprecated.
+ */
+export function DeprecatedMessage(pattern: string, replacement?: string) {
+  return applyDecorators(
+    MessagePattern(pattern),
+    SetMetadata(MESSAGE_METADATA_KEY, {
+      name: pattern,
+      deprecated: true,
+      description: replacement ? `Deprecated. Use ${replacement} instead.` : "Deprecated",
+    })
+  );
+}

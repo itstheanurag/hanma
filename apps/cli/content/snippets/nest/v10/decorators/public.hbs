@@ -1,0 +1,34 @@
+---
+name: public
+description: Mark routes as public to skip authentication in global guards
+dependencies: []
+devDependencies: []
+files:
+  - name: decorators/public.decorator.ts
+---
+import { SetMetadata } from "@nestjs/common";
+
+export const IS_PUBLIC_KEY = "isPublic";
+
+/**
+ * Mark a route as public, bypassing authentication guards.
+ * Useful when you have a global auth guard but need some endpoints public.
+ * 
+ * Usage:
+ * @Public()
+ * @Get("health")
+ * healthCheck() {
+ *   return { status: "ok" };
+ * }
+ * 
+ * // In your JwtAuthGuard:
+ * canActivate(context: ExecutionContext) {
+ *   const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+ *     context.getHandler(),
+ *     context.getClass(),
+ *   ]);
+ *   if (isPublic) return true;
+ *   // ... rest of auth logic
+ * }
+ */
+export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);

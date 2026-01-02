@@ -1,0 +1,40 @@
+---
+name: roles
+description: Role-based access control decorator for use with RolesGuard
+dependencies: []
+devDependencies: []
+files:
+  - name: decorators/roles.decorator.ts
+---
+import { SetMetadata } from "@nestjs/common";
+
+export const ROLES_KEY = "roles";
+
+export enum Role {
+  USER = "user",
+  ADMIN = "admin",
+  MODERATOR = "moderator",
+  SUPER_ADMIN = "super_admin",
+}
+
+/**
+ * Decorator to specify which roles can access a route.
+ * Must be used with RolesGuard.
+ * 
+ * Usage:
+ * @Roles(Role.ADMIN)
+ * @Get("admin-only")
+ * adminRoute() {}
+ * 
+ * // Multiple roles (OR logic - any role grants access)
+ * @Roles(Role.ADMIN, Role.MODERATOR)
+ * @Get("staff-only")
+ * staffRoute() {}
+ */
+export const Roles = (...roles: Role[]) => SetMetadata(ROLES_KEY, roles);
+
+/**
+ * Decorator requiring ALL specified roles (AND logic).
+ */
+export const ROLES_ALL_KEY = "roles_all";
+export const RolesAll = (...roles: Role[]) => SetMetadata(ROLES_ALL_KEY, roles);

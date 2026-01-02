@@ -1,0 +1,153 @@
+---
+name: api-response
+description: Custom Swagger/OpenAPI response decorators for consistent API documentation
+dependencies:
+  - "@nestjs/swagger"
+devDependencies: []
+files:
+  - name: decorators/api-response.decorator.ts
+---
+import { applyDecorators, Type } from "@nestjs/common";
+import {
+  ApiOkResponse,
+  ApiCreatedResponse,
+  ApiBadRequestResponse,
+  ApiUnauthorizedResponse,
+  ApiForbiddenResponse,
+  ApiNotFoundResponse,
+  ApiInternalServerErrorResponse,
+  getSchemaPath,
+  ApiExtraModels,
+} from "@nestjs/swagger";
+
+// Standard error response DTO
+class ErrorResponseDto {
+  statusCode: number;
+  message: string | string[];
+  error: string;
+}
+
+/**
+ * Decorator for paginated list responses.
+ * 
+ * Usage:
+ * @ApiPaginatedResponse(UserDto)
+ * @Get()
+ * findAll() {}
+ */
+export function ApiPaginatedResponse<TModel extends Type<unknown>>(
+  model: TModel
+) {
+  return applyDecorators(
+    ApiExtraModels(model),
+    ApiOkResponse({
+      description: "Paginated list response",
+      schema: {
+        allOf: [
+          {
+            properties: {
+              data: {
+                type: "array",
+                items: { $ref: getSchemaPath(model) },
+              },
+              meta: {
+                type: "object",
+                properties: {
+                  total: { type: "number" },
+                  page: { type: "number" },
+                  limit: { type: "number" },
+                  totalPages: { type: "number" },
+                  hasNext: { type: "boolean" },
+                  hasPrev: { type: "boolean" },
+                },
+              },
+            },
+          },
+        ],
+      },
+    })
+  );
+}
+
+/**
+ * Standard success response wrapper.
+ */
+export function ApiSuccessResponse<TModel extends Type<unknown>>(
+  model: TModel,
+  description = "Successful response"
+) {
+  return applyDecorators(
+    ApiExtraModels(model),
+    ApiOkResponse({
+      description,
+      schema: {
+        properties: {
+          success: { type: "boolean", example: true },
+          data: { $ref: getSchemaPath(model) },
+        },
+      },
+    })
+  );
+}
+
+/**
+ * Standard created response wrapper.
+ */
+export function ApiCreatedSuccessResponse<TModel extends Type<unknown>>(
+  model: TModel,
+  description = "Resource created successfully"
+) {
+  return applyDecorators(
+    ApiExtraModels(model),
+    ApiCreatedResponse({
+      description,
+      schema: {
+        properties: {
+          success: { type: "boolean", example: true },
+          data: { $ref: getSchemaPath(model) },
+        },
+      },
+    })
+  );
+}
+
+/**
+ * Apply common error responses to controller methods.
+ */
+export function ApiCommonErrors() {
+  return applyDecorators(
+    ApiBadRequestResponse({
+      description: "Bad Request - Invalid input",
+      type: ErrorResponseDto,
+    }),
+    ApiUnauthorizedResponse({
+      description: "Unauthorized - Authentication required",
+      type: ErrorResponseDto,
+    }),
+    ApiForbiddenResponse({
+      description: "Forbidden - Insufficient permissions",
+      type: ErrorResponseDto,
+    }),
+    ApiNotFoundResponse({
+      description: "Not Found - Resource does not exist",
+      type: ErrorResponseDto,
+    }),
+    ApiInternalServerErrorResponse({
+      description: "Internal Server Error",
+      type: ErrorResponseDto,
+    })
+  );
+}
+
+/**
+ * Combine success and error responses.
+ */
+export function ApiStandardResponse<TModel extends Type<unknown>>(
+  model: TModel,
+  description = "Successful response"
+) {
+  return applyDecorators(
+    ApiSuccessResponse(model, description),
+    ApiCommonErrors()
+  );
+}

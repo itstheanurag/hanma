@@ -1,8 +1,11 @@
 blank_issues_enabled: false
 contact_links:
   - name: Documentation
-    url: https://hanma.dev/docs
+    url: https://hanma-a2n.pages.dev/docs
     about: Check the documentation before opening an issue
   - name: Discussions
     url: https://github.com/itstheanurag/hanma/discussions
     about: Ask questions and share ideas in GitHub Discussions
+  - name: Author
+    url: https://x.com/itstheanurag
+    about: You can reach out to the author on X for any questions or feedback

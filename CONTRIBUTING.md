@@ -28,12 +28,60 @@ pnpm build
 # Run CLI in development
 pnpm dev
 
-# Generate registry
-pnpm generate:registry
+# Generate registry and sources
+pnpm build:scripts
 
 # Run web dev server
 cd apps/web && pnpm dev
 ```
+
+### Local Development with CLI
+
+#### Linking the CLI Globally
+
+To run the local CLI as the `hanma` command:
+
+```bash
+# Build the CLI first
+pnpm build
+
+# Link the CLI package globally
+cd apps/cli
+pnpm link --global
+
+# Now you can use 'hanma' command anywhere
+hanma --help
+```
+
+To unlink when done:
+
+```bash
+cd apps/cli
+pnpm unlink --global
+```
+
+#### Overriding the Base URL
+
+By default, the CLI points to the production URL. To test the CLI against your local web server, use environment variables:
+
+```bash
+# Override all URLs to point to local server
+HANMA_BASE_URL=http://localhost:5173 npx hanma <command>
+
+# Or export for the session
+export HANMA_BASE_URL=http://localhost:5173
+pnpm dev  # or npx hanma <command>
+```
+
+Available environment variables:
+
+| Variable | Description |
+|----------|-------------|
+| `HANMA_BASE_URL` | Override all URLs (registry, templates, modules, docs) |
+| `HANMA_REGISTRY_URL` | Override only the registry URL |
+| `HANMA_TEMPLATES_URL` | Override only the templates URL |
+| `HANMA_MODULES_URL` | Override only the modules URL |
+| `HANMA_DOCS_URL` | Override only the docs URL |
 
 ## Code Guidelines
 
@@ -46,9 +94,9 @@ cd apps/web && pnpm dev
 
 1. Create a `.hbs` template in `packages/snippets/<framework>/`
 2. Add metadata to the snippet registry
-3. Run `pnpm generate:registry`
-4. Update documentation in `apps/web/public/docs/`
-5. Test with `npx hanma add <snippet-name>`
+3. Run `pnpm run build:scripts`
+4. Update documentation in `apps/web/src/docs/`
+5. Test with `npx hanma <command> <options>`
 
 ## Pull Request Process
 

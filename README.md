@@ -19,19 +19,22 @@ Hanma is a powerful monorepo for sharing and managing backend code snippets, mod
 ### Setup
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/itstheanurag/hanma.git
    cd hanma
    ```
 
 2. Install dependencies:
+
    ```bash
-   pnpm install
+   pnpm install --frozen-lockfile
    ```
 
 ## Development
 
 Run the development server for all apps:
+
 ```bash
 pnpm dev
 ```
@@ -49,7 +52,14 @@ pnpm run build:modules
 
 # Build templates registry
 pnpm run build:templates
+
+# build all ( registry, sources, templates and modules)
+pnpm run build:scripts
 ```
+
+### CLI Development
+
+For local CLI development (linking globally, overriding base URLs), see [CONTRIBUTING.md](./CONTRIBUTING.md#local-development-with-cli).
 
 ## Contributing
 

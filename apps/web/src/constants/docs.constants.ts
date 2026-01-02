@@ -1,5 +1,6 @@
-import { SiExpress, SiFastify, SiHono } from "react-icons/si";
+import { SiExpress, SiFastify, SiHono, SiNestjs } from "react-icons/si";
 import { LuZap } from "react-icons/lu";
+
 import type { FrameworkType } from "@/types/docs";
 
 export const FRAMEWORKS = [
@@ -7,6 +8,7 @@ export const FRAMEWORKS = [
   { id: "hono" as FrameworkType, label: "Hono", icon: SiHono },
   { id: "elysia" as FrameworkType, label: "Elysia", icon: LuZap },
   { id: "fastify" as FrameworkType, label: "Fastify", icon: SiFastify },
+  { id: "nest" as FrameworkType, label: "NestJS", icon: SiNestjs },
 ] as const;
 
 export const TEMPLATE_FRAMEWORKS = [

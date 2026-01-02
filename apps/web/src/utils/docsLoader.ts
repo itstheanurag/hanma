@@ -1,225 +1,240 @@
 /**
- * Static imports for all docs JSON files.
- * This replaces the runtime fetch() calls since docs are now in src/docs.
+ * Unified docs loader with lazy loading via dynamic imports.
+ *
+ * This module provides async functions to load documentation data on demand,
+ * reducing initial bundle size by only loading framework docs when needed.
  */
 
-// Snippets - Express
-import expressIndex from "@/docs/snippets/express/index.json";
-import expressDocs from "@/docs/snippets/express/docs.json";
-import expressLibs from "@/docs/snippets/express/libs.json";
-import expressMiddleware from "@/docs/snippets/express/middleware.json";
-import expressRoutes from "@/docs/snippets/express/routes.json";
-import expressUtils from "@/docs/snippets/express/utils.json";
-
-// Snippets - Hono
-import honoIndex from "@/docs/snippets/hono/index.json";
-import honoLibs from "@/docs/snippets/hono/libs.json";
-import honoMiddleware from "@/docs/snippets/hono/middleware.json";
-
-// Snippets - Elysia
-import elysiaIndex from "@/docs/snippets/elysia/index.json";
-import elysiaLibs from "@/docs/snippets/elysia/libs.json";
-import elysiaPlugins from "@/docs/snippets/elysia/plugins.json";
-
-// Snippets - Fastify
-import fastifyIndex from "@/docs/snippets/fastify/index.json";
-import fastifyDocs from "@/docs/snippets/fastify/docs.json";
-import fastifyLibs from "@/docs/snippets/fastify/libs.json";
-import fastifyMiddleware from "@/docs/snippets/fastify/middleware.json";
-import fastifyUtils from "@/docs/snippets/fastify/utils.json";
-
-// Templates - Express
-import templatesExpressIndex from "@/docs/templates/express/index.json";
-import templatesExpressBase from "@/docs/templates/express/base.json";
-
-// Templates - Hono
-import templatesHonoIndex from "@/docs/templates/hono/index.json";
-import templatesHonoBase from "@/docs/templates/hono/base.json";
-
-// Templates - Elysia
-import templatesElysiaIndex from "@/docs/templates/elysia/index.json";
-import templatesElysiaBase from "@/docs/templates/elysia/base.json";
-
-// Add-ons (shared snippets - cross-framework)
-import sharedIndex from "@/docs/shared/index.json";
-import sharedDb from "@/docs/shared/db.json";
-import sharedLibs from "@/docs/shared/libs.json";
-import sharedMailers from "@/docs/shared/mailers.json";
-import sharedPasswords from "@/docs/shared/passwords.json";
-import sharedQueries from "@/docs/shared/queries.json";
-import sharedUploads from "@/docs/shared/uploads.json";
-import sharedUtils from "@/docs/shared/utils.json";
-
-// Modules
-import modulesIndex from "@/docs/modules/index.json";
-
-// Tooling
-import toolingIndex from "@/docs/tooling/index.json";
-import toolingFormatters from "@/docs/tooling/formatters.json";
-import toolingTypescript from "@/docs/tooling/typescript.json";
-
-// Sources (generated from scripts)
-import expressSourcesJson from "@/docs/sources/express/sources.json";
-import honoSourcesJson from "@/docs/sources/hono/sources.json";
-import elysiaSourcesJson from "@/docs/sources/elysia/sources.json";
-import fastifySourcesJson from "@/docs/sources/fastify/sources.json";
-import sharedSourcesJson from "@/docs/sources/shared/sources.json";
-import toolingSourcesJson from "@/docs/sources/tooling/sources.json";
-
 import type { FrameworkType } from "@/types/docs";
+import {
+  loadTemplatesIndex,
+  loadTemplateCategory,
+} from "./loaders/templatesLoader";
+import {
+  loadToolingIndex,
+  loadToolingCategory,
+  loadToolingSources,
+} from "./loaders/toolingLoader";
+import { loadModulesIndex } from "./loaders/modulesLoader";
+import {
+  loadExpressIndex,
+  loadHonoIndex,
+  loadElysiaIndex,
+  loadFastifyIndex,
+  loadNestIndex,
+  loadSharedIndex,
+  loadExpressCategory,
+  loadHonoCategory,
+  loadElysiaCategory,
+  loadFastifyCategory,
+  loadNestCategory,
+  loadSharedCategory,
+  loadExpressSources,
+  loadHonoSources,
+  loadElysiaSources,
+  loadFastifySources,
+  loadNestSources,
+  loadSharedSources,
+} from "./loaders";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-// Snippet index loaders
-export const snippetIndexes: Record<string, any> = {
-  express: expressIndex,
-  hono: honoIndex,
-  elysia: elysiaIndex,
-  fastify: fastifyIndex,
-  shared: sharedIndex,
+// Cache for loaded data to avoid repeated fetches
+const cache: Record<string, any> = {};
+
+function getCacheKey(type: string, ...args: string[]): string {
+  return [type, ...args].join(":");
+}
+
+async function withCache<T>(key: string, loader: () => Promise<T>): Promise<T> {
+  if (cache[key]) {
+    return cache[key] as T;
+  }
+  const data = await loader();
+  cache[key] = data;
+  return data;
+}
+
+// ============================================================================
+// Snippet Loaders
+// ============================================================================
+
+const indexLoaders: Record<string, () => Promise<any>> = {
+  express: loadExpressIndex,
+  hono: loadHonoIndex,
+  elysia: loadElysiaIndex,
+  fastify: loadFastifyIndex,
+  nest: loadNestIndex,
+  shared: loadSharedIndex,
 };
 
-// Snippet category loaders by framework
-const expressCategories: Record<string, any> = {
-  "docs.json": expressDocs,
-  "libs.json": expressLibs,
-  "middleware.json": expressMiddleware,
-  "routes.json": expressRoutes,
-  "utils.json": expressUtils,
+const categoryLoaders: Record<string, (fileName: string) => Promise<any>> = {
+  express: loadExpressCategory,
+  hono: loadHonoCategory,
+  elysia: loadElysiaCategory,
+  fastify: loadFastifyCategory,
+  nest: loadNestCategory,
+  shared: loadSharedCategory,
 };
 
-const honoCategories: Record<string, any> = {
-  "libs.json": honoLibs,
-  "middleware.json": honoMiddleware,
+const sourceLoaders: Record<string, () => Promise<Record<string, string>>> = {
+  express: loadExpressSources,
+  hono: loadHonoSources,
+  elysia: loadElysiaSources,
+  fastify: loadFastifySources,
+  nest: loadNestSources,
+  shared: loadSharedSources,
 };
 
-const elysiaCategories: Record<string, any> = {
-  "libs.json": elysiaLibs,
-  "plugins.json": elysiaPlugins,
-};
+/**
+ * Load snippet index for a framework
+ */
+export async function loadSnippetIndex(
+  framework: FrameworkType | "shared",
+): Promise<any> {
+  const key = getCacheKey("snippetIndex", framework);
+  const loader = indexLoaders[framework];
+  if (!loader) return null;
+  return withCache(key, loader);
+}
 
-const fastifyCategories: Record<string, any> = {
-  "docs.json": fastifyDocs,
-  "libs.json": fastifyLibs,
-  "middleware.json": fastifyMiddleware,
-  "utils.json": fastifyUtils,
-};
-
-const sharedCategories: Record<string, any> = {
-  "db.json": sharedDb,
-  "libs.json": sharedLibs,
-  "mailers.json": sharedMailers,
-  "passwords.json": sharedPasswords,
-  "queries.json": sharedQueries,
-  "uploads.json": sharedUploads,
-  "utils.json": sharedUtils,
-};
-
-const allCategories: Record<string, Record<string, any>> = {
-  express: expressCategories,
-  hono: honoCategories,
-  elysia: elysiaCategories,
-  fastify: fastifyCategories,
-  shared: sharedCategories,
-};
-
-// Dynamic category file loaders
-export function loadSnippetCategory(
-  framework: FrameworkType,
+/**
+ * Load a specific snippet category
+ */
+export async function loadSnippetCategory(
+  framework: FrameworkType | "shared",
   fileName: string,
-): any | null {
-  const categories = allCategories[framework];
-  return categories?.[fileName] || null;
+): Promise<any> {
+  const key = getCacheKey("snippetCategory", framework, fileName);
+  const loader = categoryLoaders[framework];
+  if (!loader) return null;
+  return withCache(key, () => loader(fileName));
 }
 
-// Template index loaders by framework
-export const templatesIndexes: Record<string, any> = {
-  express: templatesExpressIndex,
-  hono: templatesHonoIndex,
-  elysia: templatesElysiaIndex,
-};
-
-// For backwards compatibility
-export const templatesIndex: any = templatesExpressIndex;
-
-// Template category loaders by framework
-const templatesExpressCategories: Record<string, any> = {
-  "base.json": templatesExpressBase,
-};
-
-const templatesHonoCategories: Record<string, any> = {
-  "base.json": templatesHonoBase,
-};
-
-const templatesElysiaCategories: Record<string, any> = {
-  "base.json": templatesElysiaBase,
-};
-
-const allTemplatesCategories: Record<string, Record<string, any>> = {
-  express: templatesExpressCategories,
-  hono: templatesHonoCategories,
-  elysia: templatesElysiaCategories,
-};
-
-// Add-ons loader
-export const addonsIndexData: any = sharedIndex;
-
-export function loadAddonCategory(fileName: string): any | null {
-  return sharedCategories[fileName] || null;
-}
-
-export function loadTemplateCategory(
-  fileName: string,
-  framework: string = "express",
-): any | null {
-  const categories = allTemplatesCategories[framework];
-  return categories?.[fileName] || null;
-}
-
-// Modules loader
-export const modulesData: any = modulesIndex;
-
-// Tooling loader
-export const toolingIndexData: any = toolingIndex;
-
-const toolingCategories: Record<string, any> = {
-  "formatters.json": toolingFormatters,
-  "typescript.json": toolingTypescript,
-};
-
-export function loadToolingCategory(fileName: string): any | null {
-  return toolingCategories[fileName] || null;
-}
-
-// Sources loaders
-export const snippetSources: Record<string, Record<string, string>> = {
-  express: expressSourcesJson as Record<string, string>,
-  hono: honoSourcesJson as Record<string, string>,
-  elysia: elysiaSourcesJson as Record<string, string>,
-  fastify: fastifySourcesJson as Record<string, string>,
-  shared: sharedSourcesJson as Record<string, string>,
-};
-
-export const toolingSources: Record<string, string> =
-  toolingSourcesJson as Record<string, string>;
-
-export const addonSources: Record<string, string> = sharedSourcesJson as Record<
-  string,
-  string
->;
-
-export function getSnippetSource(
+/**
+ * Get snippet source code
+ */
+export async function getSnippetSource(
   framework: FrameworkType | "shared",
   snippetId: string,
-): string | null {
-  const sources = snippetSources[framework];
-  return sources?.[snippetId] || null;
+): Promise<string | null> {
+  const key = getCacheKey("snippetSources", framework);
+  const loader = sourceLoaders[framework];
+  if (!loader) return null;
+
+  const sources = await withCache(key, loader);
+  return sources[snippetId] || null;
 }
 
-export function getToolingSource(toolingId: string): string | null {
-  return toolingSources[toolingId] || null;
+// ============================================================================
+// Add-ons (Shared Snippets) Loaders
+// ============================================================================
+
+/**
+ * Load add-ons index
+ */
+export async function loadAddonsIndex(): Promise<any> {
+  return loadSnippetIndex("shared");
 }
 
-export function getAddonSource(addonId: string): string | null {
-  return addonSources[addonId] || null;
+/**
+ * Load add-on category
+ */
+export async function loadAddonCategory(fileName: string): Promise<any> {
+  return loadSnippetCategory("shared", fileName);
+}
+
+/**
+ * Get add-on source code
+ */
+export async function getAddonSource(addonId: string): Promise<string | null> {
+  return getSnippetSource("shared", addonId);
+}
+
+// ============================================================================
+// Templates Loaders
+// ============================================================================
+
+/**
+ * Load templates index for a framework
+ */
+export async function loadTemplatesIndexData(
+  framework: FrameworkType = "express",
+): Promise<any> {
+  const key = getCacheKey("templatesIndex", framework);
+  return withCache(key, () => loadTemplatesIndex(framework));
+}
+
+/**
+ * Load template category
+ */
+export async function loadTemplateCategoryData(
+  fileName: string,
+  framework: FrameworkType = "express",
+): Promise<any> {
+  const key = getCacheKey("templateCategory", framework, fileName);
+  return withCache(key, () => loadTemplateCategory(fileName, framework));
+}
+
+// ============================================================================
+// Modules Loader
+// ============================================================================
+
+/**
+ * Load modules data
+ */
+export async function loadModulesData(): Promise<any> {
+  const key = getCacheKey("modules");
+  return withCache(key, loadModulesIndex);
+}
+
+// ============================================================================
+// Tooling Loaders
+// ============================================================================
+
+/**
+ * Load tooling index
+ */
+export async function loadToolingIndexData(): Promise<any> {
+  const key = getCacheKey("toolingIndex");
+  return withCache(key, loadToolingIndex);
+}
+
+/**
+ * Load tooling category
+ */
+export async function loadToolingCategoryData(fileName: string): Promise<any> {
+  const key = getCacheKey("toolingCategory", fileName);
+  return withCache(key, () => loadToolingCategory(fileName));
+}
+
+/**
+ * Get tooling source code
+ */
+export async function getToolingSource(
+  toolingId: string,
+): Promise<string | null> {
+  const key = getCacheKey("toolingSources");
+  const sources = await withCache(key, loadToolingSources);
+  return sources[toolingId] || null;
+}
+
+// ============================================================================
+// Cache Management
+// ============================================================================
+
+/**
+ * Clear all cached data
+ */
+export function clearDocsCache(): void {
+  Object.keys(cache).forEach((key) => delete cache[key]);
+}
+
+/**
+ * Clear cache for a specific framework
+ */
+export function clearFrameworkCache(framework: FrameworkType | "shared"): void {
+  Object.keys(cache)
+    .filter((key) => key.includes(framework))
+    .forEach((key) => delete cache[key]);
 }

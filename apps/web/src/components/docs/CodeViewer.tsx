@@ -33,13 +33,13 @@ const CodeViewerComponent = ({ snippetId, framework }: CodeViewerProps) => {
       setError(null);
 
       try {
-        // Use static import from docsLoader
+        // Use async loader from docsLoader
         let code: string | null = null;
 
         if (framework === "tooling") {
-          code = getToolingSource(snippetId);
+          code = await getToolingSource(snippetId);
         } else {
-          code = getSnippetSource(framework, snippetId);
+          code = await getSnippetSource(framework, snippetId);
         }
 
         if (!code) {

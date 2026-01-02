@@ -142,7 +142,7 @@ export type TabType =
   | "modules"
   | "tooling";
 
-export type FrameworkType = "express" | "hono" | "elysia" | "fastify";
+export type FrameworkType = "express" | "hono" | "elysia" | "fastify" | "nest";
 
 export interface DocsState {
   activeTab: TabType;

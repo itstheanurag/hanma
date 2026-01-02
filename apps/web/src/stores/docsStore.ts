@@ -11,14 +11,13 @@ import type {
 } from "../types/docs";
 
 import {
-  snippetIndexes,
+  loadSnippetIndex,
   loadSnippetCategory,
-  templatesIndex,
-  templatesIndexes,
-  loadTemplateCategory,
-  addonsIndexData,
+  loadTemplatesIndexData,
+  loadTemplateCategoryData,
+  loadAddonsIndex,
   loadAddonCategory,
-  modulesData as modulesDataImport,
+  loadModulesData,
 } from "@/utils/docsLoader";
 
 interface DocsState {
@@ -96,17 +95,23 @@ export const useDocsStore = create<DocsState & DocsActions>((set, get) => ({
     set({ loading: true });
 
     try {
-      // Use static imports instead of fetch
-      const indexData = snippetIndexes[framework];
+      // Use async loader with dynamic imports
+      const indexData = await loadSnippetIndex(framework);
       if (!indexData) {
         throw new Error(`No index found for framework: ${framework}`);
       }
 
-      const categories: SnippetCategory[] = indexData.categoryFiles
-        .map((catFile: { id: string; file: string }) =>
-          loadSnippetCategory(framework, catFile.file),
-        )
-        .filter((cat: unknown): cat is SnippetCategory => cat !== null);
+      // Load all categories in parallel
+      const categoryPromises = indexData.categoryFiles.map(
+        async (catFile: { id: string; file: string }) => {
+          return loadSnippetCategory(framework, catFile.file);
+        },
+      );
+
+      const loadedCategories = await Promise.all(categoryPromises);
+      const categories: SnippetCategory[] = loadedCategories.filter(
+        (cat: unknown): cat is SnippetCategory => cat !== null,
+      );
 
       const mergedData: SnippetFramework = {
         framework: indexData.framework || framework,
@@ -152,18 +157,28 @@ export const useDocsStore = create<DocsState & DocsActions>((set, get) => ({
     set({ loading: true });
 
     try {
-      // Use static imports instead of fetch
-      const indexData = templatesIndexes[framework] || templatesIndex;
+      // Use async loader with dynamic imports
+      const indexData = await loadTemplatesIndexData(
+        framework as FrameworkType,
+      );
       if (!indexData) {
         throw new Error(`No templates index found for framework: ${framework}`);
       }
 
-      const categories: TemplateCategory[] = indexData.categoryFiles
-        .map(
-          (catFile: { id: string; file: string }) =>
-            loadTemplateCategory(catFile.file, framework) as TemplateCategory,
-        )
-        .filter((cat: unknown): cat is TemplateCategory => cat !== null);
+      // Load all categories in parallel
+      const categoryPromises = indexData.categoryFiles.map(
+        async (catFile: { id: string; file: string }) => {
+          return loadTemplateCategoryData(
+            catFile.file,
+            framework as FrameworkType,
+          );
+        },
+      );
+
+      const loadedCategories = await Promise.all(categoryPromises);
+      const categories: TemplateCategory[] = loadedCategories.filter(
+        (cat: unknown): cat is TemplateCategory => cat !== null,
+      );
 
       const mergedData: TemplatesData = {
         title: indexData.title || "",
@@ -195,17 +210,22 @@ export const useDocsStore = create<DocsState & DocsActions>((set, get) => ({
     set({ loading: true });
 
     try {
-      const indexData = addonsIndexData;
+      const indexData = await loadAddonsIndex();
       if (!indexData) {
         throw new Error("No add-ons index found");
       }
 
-      const categories: SnippetCategory[] = indexData.categoryFiles
-        .map(
-          (catFile: { id: string; file: string }) =>
-            loadAddonCategory(catFile.file) as SnippetCategory,
-        )
-        .filter((cat: unknown): cat is SnippetCategory => cat !== null);
+      // Load all categories in parallel
+      const categoryPromises = indexData.categoryFiles.map(
+        async (catFile: { id: string; file: string }) => {
+          return loadAddonCategory(catFile.file);
+        },
+      );
+
+      const loadedCategories = await Promise.all(categoryPromises);
+      const categories: SnippetCategory[] = loadedCategories.filter(
+        (cat: unknown): cat is SnippetCategory => cat !== null,
+      );
 
       const mergedData: SnippetFramework = {
         framework: indexData.framework || "shared",
@@ -236,8 +256,8 @@ export const useDocsStore = create<DocsState & DocsActions>((set, get) => ({
     set({ loading: true });
 
     try {
-      // Use static import instead of fetch
-      const data = modulesDataImport as ModulesData;
+      // Use async loader with dynamic imports
+      const data = (await loadModulesData()) as ModulesData;
       set({ modulesData: data, loading: false });
     } catch (err) {
       console.error("Failed to load modules:", err);

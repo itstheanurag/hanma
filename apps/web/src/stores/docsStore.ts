@@ -8,6 +8,7 @@ import type {
   ModulesData,
   TabType,
   FrameworkType,
+  SearchItem,
 } from "../types/docs";
 
 import {
@@ -18,6 +19,7 @@ import {
   loadAddonsIndex,
   loadAddonCategory,
   loadModulesData,
+  loadAllSearchableData,
 } from "@/utils/docsLoader";
 
 interface DocsState {
@@ -34,6 +36,10 @@ interface DocsState {
 
   // Loading state
   loading: boolean;
+
+  // Search
+  isSearchOpen: boolean;
+  searchIndex: SearchItem[];
 
   // Cache for framework data
   frameworkCache: Map<FrameworkType, SnippetFramework>;
@@ -53,6 +59,10 @@ interface DocsActions {
   fetchAddonsData: () => Promise<void>;
   fetchModulesData: () => Promise<void>;
 
+  // Search
+  setSearchOpen: (isOpen: boolean) => void;
+  initializeSearchIndex: () => Promise<void>;
+
   // Reset
   reset: () => void;
 }
@@ -66,6 +76,8 @@ const initialState: DocsState = {
   addonsData: null,
   modulesData: null,
   loading: false,
+  isSearchOpen: false,
+  searchIndex: [],
   frameworkCache: new Map(),
   templatesCache: new Map(),
 };
@@ -262,6 +274,29 @@ export const useDocsStore = create<DocsState & DocsActions>((set, get) => ({
     } catch (err) {
       console.error("Failed to load modules:", err);
       set({ loading: false });
+    }
+  },
+
+  // Search Actions
+  setSearchOpen: (isOpen: boolean) => {
+    set({ isSearchOpen: isOpen });
+    // Initialize index when opened if empty
+    if (isOpen && get().searchIndex.length === 0) {
+      get().initializeSearchIndex();
+    }
+  },
+
+  initializeSearchIndex: async () => {
+    // Avoid double loading
+    if (get().searchIndex.length > 0) return;
+
+    // Don't set global loading state as this can happen in background
+    // or while modal is opening
+    try {
+      const items = await loadAllSearchableData();
+      set({ searchIndex: items });
+    } catch (err) {
+      console.error("Failed to load search index:", err);
     }
   },
 

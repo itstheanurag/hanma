@@ -233,6 +233,211 @@ export function clearDocsCache(): void {
 /**
  * Clear cache for a specific framework
  */
+// ============================================================================
+// Search Loader
+// ============================================================================
+
+import type { SearchItem } from "@/types/docs";
+import { type SnippetDoc, type SnippetCategory } from "@/types/docs";
+
+/**
+ * Load ALL searchable data from all frameworks and sections.
+ * This is a heavy operation, so it should be called lazily.
+ */
+export async function loadAllSearchableData(): Promise<SearchItem[]> {
+  const searchItems: SearchItem[] = [];
+  const frameworks: FrameworkType[] = [
+    "express",
+    "hono",
+    "elysia",
+    "fastify",
+    "nest",
+  ];
+
+  // 1. Load Snippets for all frameworks
+  const snippetPromises = frameworks.map(async (fw) => {
+    try {
+      const index = await loadSnippetIndex(fw);
+      if (!index) return;
+
+      // Add concept if available
+      if (index.concept) {
+        searchItems.push({
+          id: `concept-${fw}`,
+          type: "concept",
+          title: `${index.title} - Concept`,
+          description: index.description,
+          framework: fw,
+          path: `/docs/snippets/${fw}`,
+        });
+      }
+
+      // Load all categories
+      const catPromises = index.categoryFiles.map(
+        (cf: { id: string; file: string }) => loadSnippetCategory(fw, cf.file),
+      );
+      const categories = await Promise.all(catPromises);
+
+      categories.forEach((cat: SnippetCategory | null) => {
+        if (!cat) return;
+        cat.subcategories.forEach((sub) => {
+          sub.snippets.forEach((snippet) => {
+            searchItems.push({
+              id: snippet.id,
+              type: "snippet",
+              title: snippet.name,
+              description: snippet.description,
+              framework: fw,
+              category: cat.title,
+              path: `/docs/snippets/${fw}/${cat.id}?item=${snippet.id}`,
+            });
+          });
+        });
+      });
+    } catch (e) {
+      console.warn(`Failed to load snippets for ${fw}`, e);
+    }
+  });
+
+  // 2. Load Templates
+  const templatePromises = frameworks.map(async (fw) => {
+    try {
+      const index = await loadTemplatesIndexData(fw);
+      if (!index) return;
+
+      const catPromises = index.categoryFiles.map(
+        (cf: { id: string; file: string }) =>
+          loadTemplateCategoryData(cf.file, fw),
+      );
+      const categories = await Promise.all(catPromises);
+
+      categories.forEach((cat: any) => {
+        // Type as any or TemplateCategory
+        if (!cat) return;
+        if (cat.templates) {
+          cat.templates.forEach((tmpl: any) => {
+            searchItems.push({
+              id: tmpl.id,
+              type: "template",
+              title: tmpl.name,
+              description: tmpl.description || "",
+              framework: fw,
+              category: cat.title,
+              path: `/docs/templates/${fw}/${cat.id}?item=${tmpl.id}`,
+            });
+          });
+        }
+        if (cat.subcategories) {
+          cat.subcategories.forEach((sub: any) => {
+            sub.templates.forEach((tmpl: any) => {
+              searchItems.push({
+                id: tmpl.id,
+                type: "template",
+                title: tmpl.name,
+                description: tmpl.description || "",
+                framework: fw,
+                category: cat.title,
+                path: `/docs/templates/${fw}/${cat.id}?item=${tmpl.id}`,
+              });
+            });
+          });
+        }
+      });
+    } catch (e) {
+      console.warn(`Failed to load templates for ${fw}`, e);
+    }
+  });
+
+  // 3. Load Modules
+  const modulePromise = (async () => {
+    try {
+      const modulesData = await loadModulesData();
+      if (modulesData && modulesData.modules) {
+        modulesData.modules.forEach((mod: any) => {
+          searchItems.push({
+            id: mod.id,
+            type: "module",
+            title: mod.name,
+            description: mod.description,
+            path: `/docs/modules?item=${mod.id}`,
+          });
+        });
+      }
+    } catch (e) {
+      console.warn("Failed to load modules", e);
+    }
+  })();
+
+  // 4. Load Addons
+  const addonPromise = (async () => {
+    try {
+      const index = await loadAddonsIndex();
+      if (index) {
+        const catPromises = index.categoryFiles.map(
+          (cf: { id: string; file: string }) => loadAddonCategory(cf.file),
+        );
+        const categories = await Promise.all(catPromises);
+        categories.forEach((cat: any) => {
+          if (!cat) return;
+          cat.subcategories.forEach((sub: any) => {
+            sub.snippets.forEach((snip: any) => {
+              searchItems.push({
+                id: snip.id,
+                type: "addon",
+                title: snip.name,
+                description: snip.description,
+                category: cat.title,
+                path: `/docs/addons/shared/${cat.id}?item=${snip.id}`,
+              });
+            });
+          });
+        });
+      }
+    } catch (e) {
+      console.warn("Failed to load addons", e);
+    }
+  })();
+
+  // 5. Load Tooling
+  const toolingPromise = (async () => {
+    try {
+      const index = await loadToolingIndexData();
+      if (index) {
+        const catPromises = index.categoryFiles.map(
+          (cf: { id: string; file: string }) =>
+            loadToolingCategoryData(cf.file),
+        );
+        const categories = await Promise.all(catPromises);
+        categories.forEach((cat: any) => {
+          if (!cat) return;
+          cat.items.forEach((item: any) => {
+            searchItems.push({
+              id: item.id,
+              type: "tooling",
+              title: item.name,
+              description: item.description,
+              category: cat.title,
+              path: `/docs/tooling?category=${cat.id}&item=${item.id}`,
+            });
+          });
+        });
+      }
+    } catch (e) {
+      console.warn("Failed to load tooling", e);
+    }
+  })();
+
+  await Promise.all([
+    ...snippetPromises,
+    ...templatePromises,
+    modulePromise,
+    addonPromise,
+    toolingPromise,
+  ]);
+
+  return searchItems;
+}
+
 export function clearFrameworkCache(framework: FrameworkType | "shared"): void {
   Object.keys(cache)
     .filter((key) => key.includes(framework))

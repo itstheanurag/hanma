@@ -151,4 +151,18 @@ export interface DocsState {
   templatesData: TemplatesData | null;
   modulesData: ModulesData | null;
   loading: boolean;
+
+  // Search
+  isSearchOpen: boolean;
+  searchIndex: SearchItem[];
+}
+
+export interface SearchItem {
+  id: string;
+  type: "snippet" | "template" | "module" | "addon" | "tooling" | "concept";
+  title: string;
+  description: string;
+  framework?: string;
+  category?: string;
+  path?: string;
 }

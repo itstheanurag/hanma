@@ -7,9 +7,17 @@ import TemplateBuilder from "./pages/TemplateBuilder";
 
 // Lazy load pages
 const LandingPage = lazy(() => import("./components/LandingPage"));
+const SearchModal = lazy(() =>
+  import("./components/ui/SearchModal").then((module) => ({
+    default: module.SearchModal,
+  })),
+);
 const Docs = lazy(() => import("./pages/Docs"));
 const Contributors = lazy(() => import("./pages/Contributors"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+
+import { useDocsStore } from "@/stores/docsStore";
+import { useEffect } from "react";
 
 // Simple loading fallback
 const LoadingFallback = () => (
@@ -19,10 +27,24 @@ const LoadingFallback = () => (
 );
 
 function App() {
+  const { setSearchOpen } = useDocsStore();
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [setSearchOpen]);
+
   return (
     <ThemeProvider>
       <div className="min-h-screen bg-background text-foreground selection:bg-secondary selection:text-black flex flex-col transition-colors duration-300">
         <Suspense fallback={<LoadingFallback />}>
+          <SearchModal />
           <Routes>
             <Route element={<AppLayout />}>
               <Route path="/" element={<LandingPage />} />

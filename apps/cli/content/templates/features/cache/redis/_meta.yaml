@@ -2,7 +2,6 @@ name: cache-redis
 category: feature
 featureType: cache
 description: Redis caching layer with ioredis
-framework: express
 
 includes:
   - snippet: shared/db/redis-client.hbs

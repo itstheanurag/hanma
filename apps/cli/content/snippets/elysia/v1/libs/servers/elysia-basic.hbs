@@ -2,7 +2,7 @@
 name: elysia-basic
 description: Production-ready Elysia server with Bun-native graceful shutdown, structured errors, and Swagger
 dependencies:
-  - elysia
+  - "elysia"
   - "@elysiajs/swagger"
 devDependencies:
   - "@types/bun"
@@ -32,8 +32,10 @@ const getErrorMessage = (error: unknown): string => {
   return "Unknown error";
 };
 
+// Store app instance for shutdown
+let appInstance: Elysia | null = null;
 
-export const startServer = () => {
+export const startServer = (): Elysia => {
   const app = new Elysia({ name: "production-api" })
 
     /* ----------------------------- */
@@ -81,8 +83,8 @@ export const startServer = () => {
       swagger({
         documentation: {
           info: {
-            title: "Production API",
-            version: "1.0.0",
+            title: process.env.npm_package_name,
+            version: process.env.npm_package_version,
           },
         },
       })
@@ -112,14 +114,24 @@ export const startServer = () => {
     }),
   });
 
+  // Store instance and start listening
+  appInstance = app;
+  
+  const PORT = Number(process.env.PORT) || 3000;
+  app.listen(PORT, () => {
+    console.log(`Elysia running on http://localhost:${PORT}`);
+    if (!isProd) {
+      console.log(`Swagger docs: http://localhost:${PORT}/swagger`);
+    }
+  });
+
   return app;
 };
 
 
-export const shutdown = async (app: Elysia, signal?: string) => {
-  if (signal) {
-    console.log(`${signal} received. Shutting down...`);
-  }
-
-  await app.stop();
+export const shutdown = async (signal: string) => {
+  if (!appInstance) return;
+  
+  console.log(`${signal} received. Shutting down...`);
+  await appInstance.stop();
 };

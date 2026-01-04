@@ -2,7 +2,6 @@ name: mailer-resend
 category: feature
 featureType: mailer
 description: Modern email API with Resend
-framework: express
 
 includes:
   - snippet: shared/mailers/resend.hbs

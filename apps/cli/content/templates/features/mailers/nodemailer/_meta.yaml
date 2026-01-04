@@ -2,7 +2,6 @@ name: mailer-nodemailer
 category: feature
 featureType: mailer
 description: Email sending with Nodemailer (SMTP)
-framework: express
 
 includes:
   - snippet: shared/mailers/nodemailer.hbs

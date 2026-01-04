@@ -155,26 +155,38 @@ function formatBytes(bytes: number): string {
   return `${bytes.toFixed(2)} ${units[i]}`;
 }
 
-// Start server
-const server = Bun.serve({
-  port: config.port,
-  fetch: app.fetch,
-  error(error) {
-    console.error("Unhandled server error:", error);
-    return new Response("Internal Server Error", { status: 500 });
-  },
-});
+// Server instance
+let server: ReturnType<typeof Bun.serve> | null = null;
 
-console.log(JSON.stringify({
-  level: "info",
-  message: "Server started",
-  port: server.port,
-  environment: config.env,
-  timestamp: new Date().toISOString(),
-}));
+// Start server
+export const startServer = () => {
+  if (server) {
+    console.log("Server already running");
+    return;
+  }
+
+  server = Bun.serve({
+    port: config.port,
+    fetch: app.fetch,
+    error(error) {
+      console.error("Unhandled server error:", error);
+      return new Response("Internal Server Error", { status: 500 });
+    },
+  });
+
+  console.log(JSON.stringify({
+    level: "info",
+    message: "Server started",
+    port: server.port,
+    environment: config.env,
+    timestamp: new Date().toISOString(),
+  }));
+};
 
 // Graceful shutdown
-const shutdown = (signal: string) => {
+export const shutdown = (signal: string) => {
+  if (!server) return;
+
   console.log(JSON.stringify({
     level: "info",
     message: `${signal} received, shutting down gracefully`,
@@ -193,6 +205,3 @@ const shutdown = (signal: string) => {
     process.exit(0);
   }, 5000);
 };
-
-process.on("SIGTERM", () => shutdown("SIGTERM"));
-process.on("SIGINT", () => shutdown("SIGINT"));

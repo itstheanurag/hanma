@@ -2,7 +2,6 @@ name: upload-s3
 category: feature
 featureType: upload
 description: AWS S3 file uploads with presigned URLs
-framework: express
 
 includes:
   - snippet: shared/uploads/aws-s3.hbs

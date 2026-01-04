@@ -1,0 +1,147 @@
+{
+  "id": "middleware",
+  "title": "Middleware",
+  "description": "Production middleware using Elysia's decorator patterns",
+  "subcategories": [
+    {
+      "id": "core-middleware",
+      "title": "Core Middleware",
+      "description": "Essential middleware for production applications",
+      "snippets": [
+        {
+          "id": "elysia-logger",
+          "name": "elysia-logger",
+          "displayName": "Logger Middleware",
+          "description": "HTTP request logging with timing and sensitive data masking",
+          "purpose": "Log all incoming requests and outgoing responses with configurable options.",
+          "features": [
+            "Request/response timing",
+            "Sensitive data masking",
+            "Configurable exclusion paths",
+            "Structured JSON output"
+          ],
+          "usage": "import { logger } from './middleware/logger';\n\napp.use(logger());",
+          "output": "src/middleware/logger.ts",
+          "dependencies": [],
+          "command": "npx hanma add elysia-logger --framework elysia"
+        },
+        {
+          "id": "elysia-rate-limiter",
+          "name": "elysia-rate-limiter",
+          "displayName": "Rate Limiter",
+          "description": "In-memory rate limiting with sliding window algorithm",
+          "purpose": "Protect your API from abuse with configurable rate limits.",
+          "features": [
+            "Sliding window algorithm",
+            "Per-IP limiting",
+            "Environment-driven config",
+            "Rate limit headers"
+          ],
+          "usage": "import { rateLimiter } from './middleware/rate-limiter';\n\napp.use(rateLimiter({ max: 100, windowMs: 60000 }));",
+          "output": "src/middleware/rate-limiter.ts",
+          "dependencies": [],
+          "command": "npx hanma add elysia-rate-limiter --framework elysia"
+        },
+        {
+          "id": "elysia-error-handler",
+          "name": "elysia-error-handler",
+          "displayName": "Error Handler",
+          "description": "Centralized error handling with custom error classes",
+          "purpose": "Provide consistent JSON error responses across your API.",
+          "features": [
+            "Custom error classes",
+            "Consistent JSON responses",
+            "Error logging",
+            "Production-safe messages"
+          ],
+          "usage": "import { errorHandler, NotFoundError } from './middleware/error-handler';\n\napp.use(errorHandler());\n\n// Throw errors anywhere\nthrow new NotFoundError('User not found');",
+          "output": "src/middleware/error-handler.ts",
+          "dependencies": [],
+          "command": "npx hanma add elysia-error-handler --framework elysia"
+        }
+      ]
+    },
+    {
+      "id": "security-middleware",
+      "title": "Security Middleware",
+      "description": "Security-focused middleware",
+      "snippets": [
+        {
+          "id": "elysia-security-headers",
+          "name": "elysia-security-headers",
+          "displayName": "Security Headers",
+          "description": "Security headers middleware with CSP, HSTS, and more",
+          "purpose": "Add essential security headers to all responses.",
+          "features": [
+            "Content-Security-Policy",
+            "Strict-Transport-Security",
+            "X-Frame-Options",
+            "Permissions-Policy"
+          ],
+          "usage": "import { securityHeaders } from './middleware/security-headers';\n\napp.use(securityHeaders());",
+          "output": "src/middleware/security-headers.ts",
+          "dependencies": [],
+          "command": "npx hanma add elysia-security-headers --framework elysia"
+        },
+        {
+          "id": "elysia-request-id",
+          "name": "elysia-request-id",
+          "displayName": "Request ID",
+          "description": "Request ID tracing for distributed systems",
+          "purpose": "Generate and propagate request IDs for logging correlation.",
+          "features": [
+            "Auto-generate request IDs",
+            "Propagate from headers",
+            "Logging correlation",
+            "Custom generators"
+          ],
+          "usage": "import { requestId } from './middleware/request-id';\n\napp.use(requestId());\n\n// Access in routes\napp.get('/', ({ requestId }) => ({ requestId }));",
+          "output": "src/middleware/request-id.ts",
+          "dependencies": [],
+          "command": "npx hanma add elysia-request-id --framework elysia"
+        }
+      ]
+    },
+    {
+      "id": "performance-middleware",
+      "title": "Performance Middleware",
+      "description": "Performance optimization middleware",
+      "snippets": [
+        {
+          "id": "elysia-compression",
+          "name": "elysia-compression",
+          "displayName": "Compression",
+          "description": "Response compression using Bun's native gzip",
+          "purpose": "Reduce response size for faster client loading.",
+          "features": [
+            "Bun native gzip",
+            "Configurable threshold",
+            "Content-type filtering",
+            "Automatic detection"
+          ],
+          "usage": "import { compression } from './middleware/compression';\n\napp.use(compression({ threshold: 1024 }));",
+          "output": "src/middleware/compression.ts",
+          "dependencies": [],
+          "command": "npx hanma add elysia-compression --framework elysia"
+        },
+        {
+          "id": "elysia-timeout",
+          "name": "elysia-timeout",
+          "displayName": "Timeout",
+          "description": "Request timeout with configurable duration",
+          "purpose": "Prevent long-running requests from blocking resources.",
+          "features": [
+            "Configurable duration",
+            "Path exclusions",
+            "Environment-driven config",
+            "Cleanup handling"
+          ],
+          "usage": "import { timeout } from './middleware/timeout';\n\napp.use(timeout({ duration: 30000 }));",
+          "output": "src/middleware/timeout.ts",
+          "dependencies": [],
+          "command": "npx hanma add elysia-timeout --framework elysia"
+        }
+      ]
+    }
+  ]
+}

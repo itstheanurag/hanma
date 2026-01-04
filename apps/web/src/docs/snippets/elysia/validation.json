@@ -1,0 +1,48 @@
+{
+  "id": "validation",
+  "title": "Validation",
+  "description": "Input validation patterns for Elysia applications",
+  "subcategories": [
+    {
+      "id": "schema-validation",
+      "title": "Schema Validation",
+      "description": "Schema-based validation utilities",
+      "snippets": [
+        {
+          "id": "elysia-typebox",
+          "name": "elysia-typebox",
+          "displayName": "TypeBox Patterns",
+          "description": "Advanced TypeBox validation patterns with custom validators",
+          "purpose": "Create reusable validation schemas with TypeBox.",
+          "features": [
+            "Custom validators",
+            "Reusable schemas",
+            "Schema composition",
+            "Common patterns"
+          ],
+          "usage": "import { str, num, schemas, compose } from './validation/typebox';\n\nconst UserSchema = t.Object({\n  email: str.email(),\n  age: num.positiveInt(),\n});\n\nconst CreateUserSchema = compose.omit(UserSchema, ['id']);",
+          "output": "src/validation/typebox.ts",
+          "dependencies": [],
+          "command": "npx hanma add elysia-typebox --framework elysia"
+        },
+        {
+          "id": "elysia-zod",
+          "name": "elysia-zod",
+          "displayName": "Zod Integration",
+          "description": "Zod schema integration with validation middleware",
+          "purpose": "Use Zod schemas for validation in Elysia routes.",
+          "features": [
+            "Zod integration",
+            "Error formatting",
+            "Validation middleware",
+            "Common schemas"
+          ],
+          "usage": "import { z } from 'zod';\nimport { validateBody, zodSchemas } from './validation/zod';\n\nconst CreateUserSchema = z.object({\n  email: zodSchemas.email,\n  password: z.string().min(8),\n});\n\napp.post('/users', () => {}, { beforeHandle: [validateBody(CreateUserSchema)] });",
+          "output": "src/validation/zod.ts",
+          "dependencies": ["zod"],
+          "command": "npx hanma add elysia-zod --framework elysia"
+        }
+      ]
+    }
+  ]
+}

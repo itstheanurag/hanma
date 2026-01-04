@@ -1,0 +1,137 @@
+{
+  "id": "utils",
+  "title": "Utilities",
+  "description": "Utility functions and helpers for Elysia applications",
+  "subcategories": [
+    {
+      "id": "api-helpers",
+      "title": "API Helpers",
+      "description": "Utilities for API responses and pagination",
+      "snippets": [
+        {
+          "id": "elysia-pagination",
+          "name": "elysia-pagination",
+          "displayName": "Pagination",
+          "description": "Cursor and offset pagination with TypeBox schemas",
+          "purpose": "Paginate database queries with type-safe helpers.",
+          "features": [
+            "Offset pagination",
+            "Cursor pagination",
+            "TypeBox schemas",
+            "Response builders"
+          ],
+          "usage": "import { parseOffsetParams, buildOffsetResponse } from './utils/pagination';\n\napp.get('/users', async ({ query }) => {\n  const { page, limit, offset } = parseOffsetParams(query);\n  const [users, total] = await Promise.all([...]);\n  return buildOffsetResponse(users, total, page, limit);\n});",
+          "output": "src/utils/pagination.ts",
+          "dependencies": [],
+          "command": "npx hanma add elysia-pagination --framework elysia"
+        },
+        {
+          "id": "elysia-response",
+          "name": "elysia-response",
+          "displayName": "Response Helpers",
+          "description": "Standardized API response builders with type-safe schemas",
+          "purpose": "Create consistent success/error responses across your API.",
+          "features": [
+            "Success/error builders",
+            "TypeBox schemas",
+            "Paginated responses",
+            "Common error helpers"
+          ],
+          "usage": "import { success, errors } from './utils/response';\n\napp.get('/users/:id', ({ params }) => {\n  const user = findUser(params.id);\n  if (!user) return errors.notFound('User not found');\n  return success(user);\n});",
+          "output": "src/utils/response.ts",
+          "dependencies": [],
+          "command": "npx hanma add elysia-response --framework elysia"
+        }
+      ]
+    },
+    {
+      "id": "config-helpers",
+      "title": "Configuration Helpers",
+      "description": "Environment and configuration utilities",
+      "snippets": [
+        {
+          "id": "elysia-env",
+          "name": "elysia-env",
+          "displayName": "Environment Config",
+          "description": "Type-safe environment configuration with validation",
+          "purpose": "Validate and type environment variables at startup.",
+          "features": [
+            "Type inference",
+            "Required validation",
+            "Default values",
+            "Common patterns"
+          ],
+          "usage": "import { createEnv, envPatterns } from './utils/env';\n\nconst env = createEnv({\n  PORT: envPatterns.port(3000),\n  DATABASE_URL: { type: 'string', required: true },\n  JWT_SECRET: envPatterns.secret(true),\n});\n\napp.listen(env.PORT);",
+          "output": "src/utils/env.ts",
+          "dependencies": [],
+          "command": "npx hanma add elysia-env --framework elysia"
+        }
+      ]
+    },
+    {
+      "id": "crypto-helpers",
+      "title": "Cryptography Helpers",
+      "description": "Security and cryptographic utilities",
+      "snippets": [
+        {
+          "id": "elysia-crypto",
+          "name": "elysia-crypto",
+          "displayName": "Crypto Utilities",
+          "description": "Cryptographic utilities using Bun's native APIs",
+          "purpose": "Hash passwords, generate tokens, and create signatures.",
+          "features": [
+            "Bun password hashing",
+            "Token generation",
+            "HMAC signatures",
+            "Secure comparison"
+          ],
+          "usage": "import { hashPassword, verifyPassword, generateToken } from './utils/crypto';\n\nconst hash = await hashPassword('secret');\nconst isValid = await verifyPassword('secret', hash);\nconst token = generateToken(32);",
+          "output": "src/utils/crypto.ts",
+          "dependencies": [],
+          "command": "npx hanma add elysia-crypto --framework elysia"
+        }
+      ]
+    },
+    {
+      "id": "string-helpers",
+      "title": "String Helpers",
+      "description": "String manipulation utilities",
+      "snippets": [
+        {
+          "id": "elysia-slug",
+          "name": "elysia-slug",
+          "displayName": "Slug Generator",
+          "description": "URL slug generation with transliteration support",
+          "purpose": "Generate URL-safe slugs from text with special character handling.",
+          "features": [
+            "Transliteration",
+            "Stop word removal",
+            "Unique slugs",
+            "Validation"
+          ],
+          "usage": "import { slugify, uniqueSlug } from './utils/slug';\n\nslugify('Hello World!'); // 'hello-world'\nuniqueSlug('My Blog Post'); // 'my-blog-post-x7k2m9'",
+          "output": "src/utils/slug.ts",
+          "dependencies": [],
+          "command": "npx hanma add elysia-slug --framework elysia"
+        },
+        {
+          "id": "elysia-date",
+          "name": "elysia-date",
+          "displayName": "Date Utilities",
+          "description": "Date formatting and timezone utilities for API responses",
+          "purpose": "Format dates consistently across your API.",
+          "features": [
+            "ISO formatting",
+            "Relative time",
+            "Timezone support",
+            "Date math"
+          ],
+          "usage": "import { toISO, toRelative, dateMath } from './utils/date';\n\ntoISO(new Date()); // '2024-01-15T10:30:00.000Z'\ntoRelative(lastWeek); // '7 days ago'\ndateMath.addDays(new Date(), 7); // Next week",
+          "output": "src/utils/date.ts",
+          "dependencies": [],
+          "command": "npx hanma add elysia-date --framework elysia"
+        }
+      ]
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "id": "plugins",
   "title": "Plugins",
-  "description": "Reusable Elysia plugins",
+  "description": "Reusable Elysia plugins for common functionality",
   "subcategories": [
     {
       "id": "core-plugins",
@@ -12,37 +12,92 @@
           "id": "elysia-cors",
           "name": "elysia-cors",
           "displayName": "CORS Plugin",
-          "description": "CORS configuration for Elysia",
+          "description": "CORS configuration with environment-aware origins",
           "purpose": "Enable cross-origin requests with configurable options.",
-          "features": ["Origin whitelist", "Credentials support", "Methods config"],
-          "usage": "import { corsPlugin } from './plugins/cors';\n\napp.use(corsPlugin);",
+          "features": ["Origin whitelist", "Credentials support", "Methods config", "Environment-driven"],
+          "usage": "import { setupCors } from './plugins/cors';\n\napp.use(setupCors);",
           "output": "src/plugins/cors.ts",
-          "dependencies": ["elysia", "@elysiajs/cors"],
+          "dependencies": ["@elysiajs/cors"],
           "command": "npx hanma add elysia-cors --framework elysia"
         },
         {
           "id": "elysia-jwt",
           "name": "elysia-jwt",
           "displayName": "JWT Plugin",
-          "description": "JWT authentication for Elysia",
+          "description": "JWT authentication with role-based access control",
           "purpose": "Add JWT authentication to your Elysia app.",
-          "features": ["JWT sign/verify", "Protected routes", "Token refresh"],
-          "usage": "import { jwtPlugin } from './plugins/jwt';\n\napp.use(jwtPlugin);",
+          "features": ["JWT sign/verify", "Role-based access", "Token validation", "Environment config"],
+          "usage": "import { setupJwt, authenticateJWT } from './plugins/jwt';\n\napp.use(setupJwt);",
           "output": "src/plugins/jwt.ts",
-          "dependencies": ["elysia", "@elysiajs/jwt"],
+          "dependencies": ["@elysiajs/jwt"],
           "command": "npx hanma add elysia-jwt --framework elysia"
         },
         {
           "id": "elysia-swagger",
           "name": "elysia-swagger",
           "displayName": "Swagger Plugin",
-          "description": "Swagger documentation for Elysia",
+          "description": "Swagger/OpenAPI documentation for Elysia",
           "purpose": "Auto-generate API documentation.",
-          "features": ["Auto-docs", "Schema inference", "OpenAPI spec"],
-          "usage": "import { swaggerPlugin } from './plugins/swagger';\n\napp.use(swaggerPlugin);",
+          "features": ["Auto-docs", "Schema inference", "OpenAPI spec", "Dev-only mode"],
+          "usage": "import { setupSwagger } from './plugins/swagger';\n\napp.use(setupSwagger);",
           "output": "src/plugins/swagger.ts",
-          "dependencies": ["elysia", "@elysiajs/swagger"],
+          "dependencies": ["@elysiajs/swagger"],
           "command": "npx hanma add elysia-swagger --framework elysia"
+        }
+      ]
+    },
+    {
+      "id": "additional-plugins",
+      "title": "Additional Plugins",
+      "description": "Extended functionality plugins",
+      "snippets": [
+        {
+          "id": "elysia-bearer",
+          "name": "elysia-bearer",
+          "displayName": "Bearer Token Plugin",
+          "description": "Bearer token extraction from multiple sources",
+          "purpose": "Extract bearer tokens from headers, query params, or cookies.",
+          "features": ["Multi-source extraction", "Custom extractors", "Require guard", "Header/query/cookie"],
+          "usage": "import { setupBearer, requireBearer } from './plugins/bearer';\n\napp.use(setupBearer())\n   .get('/protected', () => {}, { beforeHandle: [requireBearer] });",
+          "output": "src/plugins/bearer.ts",
+          "dependencies": ["@elysiajs/bearer"],
+          "command": "npx hanma add elysia-bearer --framework elysia"
+        },
+        {
+          "id": "elysia-static",
+          "name": "elysia-static",
+          "displayName": "Static Files Plugin",
+          "description": "Static file serving with caching and SPA support",
+          "purpose": "Serve static files and single-page applications.",
+          "features": ["File serving", "Cache headers", "SPA fallback", "Ignore patterns"],
+          "usage": "import { setupStatic, setupSPA } from './plugins/static';\n\napp.use(setupStatic({ prefix: '/public' }));\n// Or for SPA:\napp.use(setupSPA({ assets: 'dist' }));",
+          "output": "src/plugins/static.ts",
+          "dependencies": ["@elysiajs/static"],
+          "command": "npx hanma add elysia-static --framework elysia"
+        },
+        {
+          "id": "elysia-html",
+          "name": "elysia-html",
+          "displayName": "HTML Plugin",
+          "description": "HTML response helpers for server-side rendering",
+          "purpose": "Send HTML responses with templating support.",
+          "features": ["HTML responses", "Template helpers", "Element builders", "XSS protection"],
+          "usage": "import { setupHtml, htmlTemplate } from './plugins/html';\n\napp.use(setupHtml())\n   .get('/', ({ html }) => html('<h1>Hello</h1>'));",
+          "output": "src/plugins/html.ts",
+          "dependencies": ["@elysiajs/html"],
+          "command": "npx hanma add elysia-html --framework elysia"
+        },
+        {
+          "id": "elysia-stream",
+          "name": "elysia-stream",
+          "displayName": "Streaming Plugin",
+          "description": "Server-sent events and streaming responses",
+          "purpose": "Send real-time data via SSE or streaming.",
+          "features": ["Server-sent events", "Stream helpers", "Keep-alive", "JSON streaming"],
+          "usage": "import { createSSEResponse } from './plugins/stream';\n\napp.get('/events', () => createSSEResponse(async (sse) => {\n  sse.send({ message: 'Hello' }, 'greeting');\n}));",
+          "output": "src/plugins/stream.ts",
+          "dependencies": ["@elysiajs/stream"],
+          "command": "npx hanma add elysia-stream --framework elysia"
         }
       ]
     }

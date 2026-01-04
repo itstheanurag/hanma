@@ -2,7 +2,7 @@
   "framework": "elysia",
   "version": "v1",
   "title": "Elysia v1 Snippets",
-  "description": "Production-ready code snippets for Elysia.js v1 applications.",
+  "description": "Production-ready code snippets for Elysia.js v1 applications. Includes middleware, guards, utilities, validation, plugins, and route patterns.",
   "installNote": "Install snippets with: npx hanma add <snippet-name> [snippet-name...] (supports multiple)",
   "concept": {
     "whatIsASnippet": "A snippet is a single, self-contained code file that provides a specific utility, middleware, or integration. Snippets are designed to be dropped into your project and customized as needed.",
@@ -26,7 +26,17 @@
     {
       "title": "Add multiple snippets",
       "description": "Add several related snippets at once",
-      "command": "npx hanma add elysia-cors elysia-swagger"
+      "command": "npx hanma add elysia-cors elysia-swagger elysia-logger"
+    },
+    {
+      "title": "Add middleware stack",
+      "description": "Add common production middleware",
+      "command": "npx hanma add elysia-logger elysia-rate-limiter elysia-error-handler"
+    },
+    {
+      "title": "Add authentication",
+      "description": "Add JWT authentication with guards",
+      "command": "npx hanma add elysia-auth-guard elysia-role-guard"
     },
     {
       "title": "Interactive selection",
@@ -36,6 +46,11 @@
   ],
   "categoryFiles": [
     { "id": "libs", "file": "libs.json", "title": "Libraries", "description": "Core libraries and server setups" },
-    { "id": "plugins", "file": "plugins.json", "title": "Plugins", "description": "Reusable Elysia plugins" }
+    { "id": "plugins", "file": "plugins.json", "title": "Plugins", "description": "Reusable Elysia plugins" },
+    { "id": "middleware", "file": "middleware.json", "title": "Middleware", "description": "Request/response middleware" },
+    { "id": "guards", "file": "guards.json", "title": "Guards", "description": "Authentication and authorization" },
+    { "id": "utils", "file": "utils.json", "title": "Utilities", "description": "Helper functions and utilities" },
+    { "id": "validation", "file": "validation.json", "title": "Validation", "description": "Input validation patterns" },
+    { "id": "routes", "file": "routes.json", "title": "Routes", "description": "Route patterns and factories" }
   ]
 }

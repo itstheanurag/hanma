@@ -1,0 +1,48 @@
+{
+  "id": "routes",
+  "title": "Routes",
+  "description": "Common route patterns and factories for Elysia applications",
+  "subcategories": [
+    {
+      "id": "common-routes",
+      "title": "Common Routes",
+      "description": "Reusable route patterns",
+      "snippets": [
+        {
+          "id": "elysia-health",
+          "name": "elysia-health",
+          "displayName": "Health Check Routes",
+          "description": "Comprehensive health checks for liveness, readiness, and dependencies",
+          "purpose": "Add Kubernetes-compatible health check endpoints.",
+          "features": [
+            "Liveness probe",
+            "Readiness probe",
+            "Dependency checks",
+            "Memory monitoring"
+          ],
+          "usage": "import { healthRoutes, commonChecks } from './routes/health';\n\napp.use(healthRoutes({\n  version: process.env.npm_package_version,\n  checks: {\n    database: commonChecks.database(prisma),\n    memory: commonChecks.memory(500),\n  },\n}));\n\n// GET /health, /health/live, /health/ready",
+          "output": "src/routes/health.ts",
+          "dependencies": [],
+          "command": "npx hanma add elysia-health --framework elysia"
+        },
+        {
+          "id": "elysia-crud",
+          "name": "elysia-crud",
+          "displayName": "CRUD Route Factory",
+          "description": "Generic CRUD route factory with service pattern and hooks",
+          "purpose": "Generate standard CRUD endpoints with minimal boilerplate.",
+          "features": [
+            "Full CRUD operations",
+            "Pagination built-in",
+            "Service pattern",
+            "Lifecycle hooks"
+          ],
+          "usage": "import { createCrudRoutes } from './routes/crud';\n\napp.use(createCrudRoutes({\n  prefix: '/users',\n  entityName: 'User',\n  entitySchema: UserSchema,\n  createSchema: CreateUserSchema,\n  updateSchema: UpdateUserSchema,\n  service: userService,\n}));\n\n// GET /users, GET /users/:id, POST /users, PUT/PATCH/DELETE /users/:id",
+          "output": "src/routes/crud.ts",
+          "dependencies": [],
+          "command": "npx hanma add elysia-crud --framework elysia"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "id": "guards",
+  "title": "Guards",
+  "description": "Authentication and authorization guards using Elysia's beforeHandle hooks",
+  "subcategories": [
+    {
+      "id": "authentication",
+      "title": "Authentication Guards",
+      "description": "Guards for verifying user identity",
+      "snippets": [
+        {
+          "id": "elysia-auth-guard",
+          "name": "elysia-auth-guard",
+          "displayName": "JWT Auth Guard",
+          "description": "JWT authentication guard with type-safe user context",
+          "purpose": "Protect routes with JWT authentication and inject user context.",
+          "features": [
+            "JWT verification",
+            "Type-safe user context",
+            "Token extraction",
+            "Optional auth mode"
+          ],
+          "usage": "import { authGuard, requireAuth } from './guards/auth';\n\napp.use(authGuard)\n   .get('/profile', ({ user }) => user, { beforeHandle: [requireAuth] });",
+          "output": "src/guards/auth.ts",
+          "dependencies": ["@elysiajs/jwt"],
+          "command": "npx hanma add elysia-auth-guard --framework elysia"
+        },
+        {
+          "id": "elysia-api-key-guard",
+          "name": "elysia-api-key-guard",
+          "displayName": "API Key Guard",
+          "description": "API key authentication with constant-time comparison",
+          "purpose": "Authenticate requests using API keys from headers or query params.",
+          "features": [
+            "Constant-time comparison",
+            "Multiple key support",
+            "Environment-driven keys",
+            "Custom validators"
+          ],
+          "usage": "import { apiKeyGuard, requireApiKey } from './guards/api-key';\n\napp.use(apiKeyGuard())\n   .get('/api/data', () => data, { beforeHandle: [requireApiKey] });",
+          "output": "src/guards/api-key.ts",
+          "dependencies": [],
+          "command": "npx hanma add elysia-api-key-guard --framework elysia"
+        }
+      ]
+    },
+    {
+      "id": "authorization",
+      "title": "Authorization Guards",
+      "description": "Guards for verifying permissions",
+      "snippets": [
+        {
+          "id": "elysia-role-guard",
+          "name": "elysia-role-guard",
+          "displayName": "Role Guard",
+          "description": "Role-based access control with role hierarchy",
+          "purpose": "Restrict access based on user roles with hierarchical support.",
+          "features": [
+            "Role hierarchy",
+            "Multiple role check",
+            "Minimum role level",
+            "Flexible configuration"
+          ],
+          "usage": "import { requireRoles, requireMinRole } from './guards/role';\n\n// Admin only\napp.get('/admin', () => {}, { beforeHandle: [requireRoles(['admin'])] });\n\n// Moderator or higher\napp.delete('/posts/:id', () => {}, { beforeHandle: [requireMinRole('moderator')] });",
+          "output": "src/guards/role.ts",
+          "dependencies": [],
+          "command": "npx hanma add elysia-role-guard --framework elysia"
+        },
+        {
+          "id": "elysia-ownership-guard",
+          "name": "elysia-ownership-guard",
+          "displayName": "Ownership Guard",
+          "description": "Resource ownership validation for user-specific access",
+          "purpose": "Ensure users can only access their own resources.",
+          "features": [
+            "Generic resource support",
+            "Bypass roles for admins",
+            "Flexible owner field",
+            "404 handling"
+          ],
+          "usage": "import { createOwnershipGuard, requireOwnership } from './guards/ownership';\n\nconst postGuard = createOwnershipGuard({\n  getResource: (id) => db.posts.find(id),\n});\n\napp.use(postGuard)\n   .put('/posts/:id', () => {}, { beforeHandle: [requireOwnership()] });",
+          "output": "src/guards/ownership.ts",
+          "dependencies": [],
+          "command": "npx hanma add elysia-ownership-guard --framework elysia"
+        }
+      ]
+    }
+  ]
+}

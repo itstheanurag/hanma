@@ -12,6 +12,11 @@ export const loadElysiaCategory = async (fileName: string) => {
   const categoryMap: Record<string, () => Promise<any>> = {
     "libs.json": () => import("@/docs/snippets/elysia/libs.json"),
     "plugins.json": () => import("@/docs/snippets/elysia/plugins.json"),
+    "middleware.json": () => import("@/docs/snippets/elysia/middleware.json"),
+    "guards.json": () => import("@/docs/snippets/elysia/guards.json"),
+    "utils.json": () => import("@/docs/snippets/elysia/utils.json"),
+    "validation.json": () => import("@/docs/snippets/elysia/validation.json"),
+    "routes.json": () => import("@/docs/snippets/elysia/routes.json"),
   };
 
   const loader = categoryMap[fileName];

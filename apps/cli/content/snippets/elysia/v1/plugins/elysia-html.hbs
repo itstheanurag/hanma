@@ -1,0 +1,172 @@
+---
+name: elysia-html
+description: HTML response helper plugin for server-side rendering
+dependencies:
+  - "@elysiajs/html"
+devDependencies: []
+files:
+  - name: src/plugins/html.ts
+---
+import { Elysia } from "elysia";
+import { html } from "@elysiajs/html";
+
+/**
+ * HTML response helper plugin
+ */
+export const setupHtml = () => {
+  return new Elysia({ name: "html-plugin" }).use(html());
+};
+
+/**
+ * Simple HTML template helper
+ */
+export const htmlTemplate = (
+  content: string,
+  options: {
+    title?: string;
+    description?: string;
+    styles?: string[];
+    scripts?: string[];
+    head?: string;
+  } = {}
+): string => {
+  const {
+    title = "Elysia App",
+    description = "",
+    styles = [],
+    scripts = [],
+    head = "",
+  } = options;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="${escapeHtml(description)}">
+  <title>${escapeHtml(title)}</title>
+  ${styles.map((s) => `<link rel="stylesheet" href="${s}">`).join("\n  ")}
+  ${head}
+</head>
+<body>
+  ${content}
+  ${scripts.map((s) => `<script src="${s}"></script>`).join("\n  ")}
+</body>
+</html>`;
+};
+
+/**
+ * Escape HTML special characters
+ */
+export const escapeHtml = (str: string): string => {
+  const escapeMap: Record<string, string> = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  };
+  return str.replace(/[&<>"']/g, (char) => escapeMap[char]);
+};
+
+/**
+ * Create an HTML element string
+ */
+export const createElement = (
+  tag: string,
+  attrs: Record<string, string | boolean | undefined> = {},
+  children: string | string[] = ""
+): string => {
+  const attrString = Object.entries(attrs)
+    .filter(([, v]) => v !== undefined && v !== false)
+    .map(([k, v]) => (v === true ? k : `${k}="${escapeHtml(String(v))}"`))
+    .join(" ");
+
+  const childString = Array.isArray(children) ? children.join("") : children;
+
+  // Self-closing tags
+  if (["br", "hr", "img", "input", "meta", "link"].includes(tag)) {
+    return `<${tag}${attrString ? " " + attrString : ""} />`;
+  }
+
+  return `<${tag}${attrString ? " " + attrString : ""}>${childString}</${tag}>`;
+};
+
+/**
+ * Shorthand element creators
+ */
+export const el = {
+  div: (attrs: Record<string, string | boolean | undefined>, children: string | string[] = "") =>
+    createElement("div", attrs, children),
+  p: (content: string, attrs: Record<string, string | boolean | undefined> = {}) =>
+    createElement("p", attrs, content),
+  a: (href: string, content: string, attrs: Record<string, string | boolean | undefined> = {}) =>
+    createElement("a", { ...attrs, href }, content),
+  img: (src: string, alt: string, attrs: Record<string, string | boolean | undefined> = {}) =>
+    createElement("img", { ...attrs, src, alt }),
+  button: (content: string, attrs: Record<string, string | boolean | undefined> = {}) =>
+    createElement("button", attrs, content),
+  input: (attrs: Record<string, string | boolean | undefined>) =>
+    createElement("input", attrs),
+  form: (attrs: Record<string, string | boolean | undefined>, children: string | string[]) =>
+    createElement("form", attrs, children),
+  ul: (items: string[], attrs: Record<string, string | boolean | undefined> = {}) =>
+    createElement("ul", attrs, items.map((item) => createElement("li", {}, item))),
+};
+
+/* USAGE:
+
+import { Elysia } from "elysia";
+import { setupHtml, htmlTemplate, el, escapeHtml } from "./plugins/html";
+
+const app = new Elysia()
+  .use(setupHtml())
+  
+  // Using @elysiajs/html
+  .get("/", ({ html }) =>
+    html(`
+      <html>
+        <body>
+          <h1>Hello World</h1>
+        </body>
+      </html>
+    `)
+  )
+
+  // Using template helper
+  .get("/page", () => {
+    const content = `
+      <main>
+        <h1>Welcome</h1>
+        <p>This is a page.</p>
+      </main>
+    `;
+
+    return new Response(
+      htmlTemplate(content, {
+        title: "My Page",
+        description: "A simple page",
+        styles: ["/styles.css"],
+      }),
+      {
+        headers: { "Content-Type": "text/html" },
+      }
+    );
+  })
+
+  // Using element helpers
+  .get("/users", () => {
+    const users = ["Alice", "Bob", "Charlie"];
+
+    const content = el.div({ class: "container" }, [
+      createElement("h1", {}, "Users"),
+      el.ul(users.map((u) => escapeHtml(u))),
+    ]);
+
+    return new Response(htmlTemplate(content, { title: "Users" }), {
+      headers: { "Content-Type": "text/html" },
+    });
+  })
+  .listen(3000);
+
+*/

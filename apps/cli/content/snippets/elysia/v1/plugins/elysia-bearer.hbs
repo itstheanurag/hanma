@@ -1,0 +1,127 @@
+---
+name: elysia-bearer
+description: Bearer token extraction plugin for Elysia
+dependencies:
+  - "@elysiajs/bearer"
+devDependencies: []
+files:
+  - name: src/plugins/bearer.ts
+---
+import { Elysia } from "elysia";
+import { bearer } from "@elysiajs/bearer";
+
+/**
+ * Bearer token plugin configuration
+ */
+export interface BearerConfig {
+  /** Custom header name (default: Authorization) */
+  header?: string;
+  /** Custom extraction pattern */
+  extract?: (request: Request) => string | null;
+}
+
+/**
+ * Bearer token plugin with optional configuration
+ */
+export const setupBearer = (config: BearerConfig = {}) => {
+  return new Elysia({ name: "bearer-plugin" }).use(bearer());
+};
+
+/**
+ * Create a guard that requires a valid bearer token
+ */
+export const requireBearer = ({ bearer, set }: {
+  bearer: string | undefined;
+  set: { status: number };
+}) => {
+  if (!bearer) {
+    set.status = 401;
+    return {
+      success: false,
+      error: {
+        code: "UNAUTHORIZED",
+        message: "Bearer token is required",
+      },
+    };
+  }
+};
+
+/**
+ * Extract bearer token from multiple sources
+ */
+export const extractToken = (request: Request): string | null => {
+  // 1. Authorization header
+  const authHeader = request.headers.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    return authHeader.slice(7);
+  }
+
+  // 2. Query parameter (for WebSocket connections)
+  const url = new URL(request.url);
+  const queryToken = url.searchParams.get("token");
+  if (queryToken) {
+    return queryToken;
+  }
+
+  // 3. Cookie (optional)
+  const cookies = request.headers.get("cookie");
+  if (cookies) {
+    const match = cookies.match(/access_token=([^;]+)/);
+    if (match) {
+      return match[1];
+    }
+  }
+
+  return null;
+};
+
+/**
+ * Custom bearer plugin with multi-source extraction
+ */
+export const advancedBearer = new Elysia({ name: "advanced-bearer" })
+  .derive({ as: "global" }, ({ request }) => {
+    const token = extractToken(request);
+    return { bearer: token };
+  });
+
+/* USAGE:
+
+import { Elysia } from "elysia";
+import { setupBearer, requireBearer, advancedBearer } from "./plugins/bearer";
+
+// Basic usage with @elysiajs/bearer
+const app = new Elysia()
+  .use(setupBearer())
+  .get("/protected", ({ bearer }) => {
+    return { token: bearer };
+  }, {
+    beforeHandle: [requireBearer],
+  })
+  .listen(3000);
+
+// Advanced usage with multi-source extraction
+const app = new Elysia()
+  .use(advancedBearer)
+  .get("/api", ({ bearer }) => {
+    // Token can come from header, query param, or cookie
+    if (!bearer) {
+      return { error: "No token" };
+    }
+    return { token: bearer };
+  })
+  .listen(3000);
+
+// Combined with JWT verification
+import { jwt } from "@elysiajs/jwt";
+
+const app = new Elysia()
+  .use(jwt({ secret: process.env.JWT_SECRET! }))
+  .use(setupBearer())
+  .get("/me", async ({ bearer, jwt }) => {
+    const payload = await jwt.verify(bearer!);
+    return { user: payload };
+  }, {
+    beforeHandle: [requireBearer],
+  });
+
+*/

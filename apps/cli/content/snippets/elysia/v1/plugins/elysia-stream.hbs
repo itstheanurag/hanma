@@ -1,0 +1,236 @@
+---
+name: elysia-stream
+description: Server-sent events and streaming responses for real-time data
+dependencies:
+  - "@elysiajs/stream"
+devDependencies: []
+files:
+  - name: src/plugins/stream.ts
+---
+import { Elysia } from "elysia";
+import { Stream } from "@elysiajs/stream";
+
+/**
+ * Server-Sent Events (SSE) helper
+ */
+export class SSEStream {
+  private controller: ReadableStreamDefaultController<Uint8Array> | null = null;
+  private encoder = new TextEncoder();
+  private isClosed = false;
+
+  /**
+   * Create a readable stream for SSE
+   */
+  createStream(): ReadableStream<Uint8Array> {
+    return new ReadableStream({
+      start: (controller) => {
+        this.controller = controller;
+      },
+      cancel: () => {
+        this.isClosed = true;
+        this.controller = null;
+      },
+    });
+  }
+
+  /**
+   * Send an SSE event
+   */
+  send(data: unknown, event?: string, id?: string): void {
+    if (this.isClosed || !this.controller) return;
+
+    let message = "";
+
+    if (id) {
+      message += `id: ${id}\n`;
+    }
+
+    if (event) {
+      message += `event: ${event}\n`;
+    }
+
+    const dataStr = typeof data === "string" ? data : JSON.stringify(data);
+    message += `data: ${dataStr}\n\n`;
+
+    this.controller.enqueue(this.encoder.encode(message));
+  }
+
+  /**
+   * Send a comment (for keep-alive)
+   */
+  comment(text: string): void {
+    if (this.isClosed || !this.controller) return;
+    this.controller.enqueue(this.encoder.encode(`: ${text}\n\n`));
+  }
+
+  /**
+   * Close the stream
+   */
+  close(): void {
+    if (this.isClosed || !this.controller) return;
+    this.isClosed = true;
+    this.controller.close();
+    this.controller = null;
+  }
+
+  /**
+   * Check if stream is still open
+   */
+  get isOpen(): boolean {
+    return !this.isClosed;
+  }
+}
+
+/**
+ * Create an SSE response
+ */
+export const createSSEResponse = (
+  handler: (sse: SSEStream) => void | Promise<void>
+): Response => {
+  const sse = new SSEStream();
+  const stream = sse.createStream();
+
+  // Run handler asynchronously
+  Promise.resolve(handler(sse)).catch((err) => {
+    console.error("SSE handler error:", err);
+    sse.close();
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
+};
+
+/**
+ * Setup stream plugin using @elysiajs/stream
+ */
+export const setupStream = () => {
+  return new Elysia({ name: "stream-plugin" });
+};
+
+/**
+ * Create a generator-based stream
+ */
+export async function* generatorStream<T>(
+  items: T[],
+  delayMs = 100
+): AsyncGenerator<T> {
+  for (const item of items) {
+    yield item;
+    await Bun.sleep(delayMs);
+  }
+}
+
+/**
+ * Stream JSON array items one by one
+ */
+export const streamJsonArray = <T>(
+  items: T[],
+  delayMs = 0
+): ReadableStream<Uint8Array> => {
+  const encoder = new TextEncoder();
+  let index = 0;
+
+  return new ReadableStream({
+    async pull(controller) {
+      if (index >= items.length) {
+        controller.close();
+        return;
+      }
+
+      const item = items[index++];
+      const chunk = JSON.stringify(item) + "\n";
+      controller.enqueue(encoder.encode(chunk));
+
+      if (delayMs > 0) {
+        await Bun.sleep(delayMs);
+      }
+    },
+  });
+};
+
+/* USAGE:
+
+import { Elysia } from "elysia";
+import { Stream } from "@elysiajs/stream";
+import { createSSEResponse, SSEStream, streamJsonArray, generatorStream } from "./plugins/stream";
+
+const app = new Elysia()
+  // Using @elysiajs/stream
+  .get("/stream/generator", () =>
+    new Stream(async function* () {
+      for (let i = 0; i < 10; i++) {
+        yield { count: i };
+        await Bun.sleep(100);
+      }
+    })
+  )
+
+  // Server-Sent Events
+  .get("/events", () =>
+    createSSEResponse(async (sse) => {
+      // Send events
+      sse.send({ message: "Connected" }, "connected");
+
+      // Simulate real-time updates
+      for (let i = 0; i < 10; i++) {
+        if (!sse.isOpen) break;
+        
+        sse.send({ count: i, timestamp: Date.now() }, "update", String(i));
+        await Bun.sleep(1000);
+      }
+
+      sse.send({ message: "Done" }, "complete");
+      sse.close();
+    })
+  )
+
+  // Stream large JSON array
+  .get("/users/stream", () => {
+    const users = Array.from({ length: 1000 }, (_, i) => ({
+      id: i,
+      name: `User ${i}`,
+    }));
+
+    return new Response(streamJsonArray(users, 10), {
+      headers: {
+        "Content-Type": "application/x-ndjson",
+      },
+    });
+  })
+
+  // Real-time notifications example
+  .get("/notifications/:userId", ({ params }) =>
+    createSSEResponse(async (sse) => {
+      // Keep-alive every 30 seconds
+      const keepAlive = setInterval(() => {
+        if (sse.isOpen) {
+          sse.comment("keep-alive");
+        } else {
+          clearInterval(keepAlive);
+        }
+      }, 30000);
+
+      // Subscribe to notifications (example)
+      // In real app, this would be a pub/sub subscription
+      let running = true;
+      while (running && sse.isOpen) {
+        // Check for new notifications...
+        await Bun.sleep(1000);
+      }
+
+      clearInterval(keepAlive);
+      sse.close();
+    })
+  )
+  .listen(3000);
+
+// Client-side usage:
+// const eventSource = new EventSource('/events');
+// eventSource.addEventListener('update', (e) => console.log(JSON.parse(e.data)));
+
+*/

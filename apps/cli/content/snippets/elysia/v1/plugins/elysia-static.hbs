@@ -1,0 +1,136 @@
+---
+name: elysia-static
+description: Static file serving plugin with caching and security options
+dependencies:
+  - "@elysiajs/static"
+devDependencies: []
+files:
+  - name: src/plugins/static.ts
+---
+import { Elysia } from "elysia";
+import { staticPlugin } from "@elysiajs/static";
+
+/**
+ * Static file serving configuration
+ */
+export interface StaticConfig {
+  /** Base path for static files (default: /public) */
+  prefix?: string;
+  /** Directory to serve files from (default: public) */
+  assets?: string;
+  /** Enable directory listing (default: false) */
+  alwaysStatic?: boolean;
+  /** Ignore patterns */
+  ignorePatterns?: string[];
+  /** Cache control max age in seconds (default: 86400 = 1 day) */
+  maxAge?: number;
+  /** Enable etag (default: true) */
+  etag?: boolean;
+}
+
+/**
+ * Setup static file serving with production-ready defaults
+ */
+export const setupStatic = (config: StaticConfig = {}) => {
+  const isProd = process.env.NODE_ENV === "production";
+  const maxAge = config.maxAge ?? (isProd ? 86400 : 0);
+
+  return new Elysia({ name: "static-plugin" })
+    .use(
+      staticPlugin({
+        prefix: config.prefix ?? "/public",
+        assets: config.assets ?? "public",
+        alwaysStatic: config.alwaysStatic ?? false,
+        ignorePatterns: config.ignorePatterns ?? [
+          ".*",
+          "*.ts",
+          "*.tsx",
+          "node_modules/**",
+        ],
+      })
+    )
+    .onAfterHandle(({ set, request }) => {
+      const url = new URL(request.url);
+      
+      // Add cache headers for static assets
+      if (url.pathname.startsWith(config.prefix ?? "/public")) {
+        if (maxAge > 0) {
+          set.headers["Cache-Control"] = `public, max-age=${maxAge}`;
+        } else {
+          set.headers["Cache-Control"] = "no-cache";
+        }
+      }
+    });
+};
+
+/**
+ * Serve single page application (SPA)
+ */
+export const setupSPA = (config: {
+  /** Directory containing the SPA build (default: dist) */
+  assets?: string;
+  /** Fallback file for client-side routing (default: index.html) */
+  fallback?: string;
+} = {}) => {
+  const assets = config.assets ?? "dist";
+  const fallback = config.fallback ?? "index.html";
+
+  return new Elysia({ name: "spa-plugin" })
+    .use(
+      staticPlugin({
+        assets,
+        prefix: "/",
+        alwaysStatic: false,
+      })
+    )
+    .get("*", async ({ set }) => {
+      const file = Bun.file(`${assets}/${fallback}`);
+      if (await file.exists()) {
+        set.headers["Content-Type"] = "text/html";
+        return file;
+      }
+      set.status = 404;
+      return { error: "Not found" };
+    });
+};
+
+/* USAGE:
+
+import { Elysia } from "elysia";
+import { setupStatic, setupSPA } from "./plugins/static";
+
+// Basic static file serving
+const app = new Elysia()
+  .use(setupStatic())
+  .get("/", () => "Hello World")
+  .listen(3000);
+
+// Files in /public directory are served at /public/*
+// e.g., public/images/logo.png -> /public/images/logo.png
+
+// Custom configuration
+const app = new Elysia()
+  .use(setupStatic({
+    prefix: "/assets",
+    assets: "static",
+    maxAge: 604800, // 1 week
+    ignorePatterns: ["*.md", "*.txt"],
+  }))
+  .listen(3000);
+
+// Serve SPA (React, Vue, etc.)
+const app = new Elysia()
+  // API routes first
+  .group("/api", (app) =>
+    app
+      .get("/users", () => [])
+      .get("/posts", () => [])
+  )
+  // Then SPA fallback
+  .use(setupSPA({
+    assets: "dist",
+    fallback: "index.html",
+  }))
+  .listen(3000);
+
+*/

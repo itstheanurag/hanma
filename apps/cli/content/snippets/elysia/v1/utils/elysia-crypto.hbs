@@ -1,0 +1,195 @@
+---
+name: elysia-crypto
+description: Cryptographic utilities using Bun's native APIs for password hashing and token generation
+dependencies: []
+devDependencies: []
+files:
+  - name: src/utils/crypto.ts
+---
+/**
+ * Password hashing options
+ */
+export interface HashOptions {
+  /** Algorithm: argon2id (default), argon2i, argon2d, or bcrypt */
+  algorithm?: "argon2id" | "argon2i" | "argon2d" | "bcrypt";
+  /** Memory cost for Argon2 in KiB (default: 65536 = 64MB) */
+  memoryCost?: number;
+  /** Time cost for Argon2 (default: 3) */
+  timeCost?: number;
+  /** Cost factor for bcrypt (default: 10) */
+  cost?: number;
+}
+
+/**
+ * Hash a password using Bun's native password API (Argon2 or bcrypt)
+ */
+export const hashPassword = async (
+  password: string,
+  options: HashOptions = {}
+): Promise<string> => {
+  const algorithm = options.algorithm ?? "argon2id";
+
+  if (algorithm === "bcrypt") {
+    return Bun.password.hash(password, {
+      algorithm: "bcrypt",
+      cost: options.cost ?? 10,
+    });
+  }
+
+  return Bun.password.hash(password, {
+    algorithm,
+    memoryCost: options.memoryCost ?? 65536,
+    timeCost: options.timeCost ?? 3,
+  });
+};
+
+/**
+ * Verify a password against a hash
+ */
+export const verifyPassword = async (
+  password: string,
+  hash: string
+): Promise<boolean> => {
+  try {
+    return await Bun.password.verify(password, hash);
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Generate a random token
+ */
+export const generateToken = (length = 32): string => {
+  const bytes = crypto.getRandomValues(new Uint8Array(length));
+  return Buffer.from(bytes).toString("base64url");
+};
+
+/**
+ * Generate a random hex string
+ */
+export const generateHex = (length = 32): string => {
+  const bytes = crypto.getRandomValues(new Uint8Array(Math.ceil(length / 2)));
+  return Buffer.from(bytes).toString("hex").slice(0, length);
+};
+
+/**
+ * Generate a UUID v4
+ */
+export const generateUUID = (): string => {
+  return crypto.randomUUID();
+};
+
+/**
+ * Generate a short ID (URL-safe, 8 chars by default)
+ */
+export const generateShortId = (length = 8): string => {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const bytes = crypto.getRandomValues(new Uint8Array(length));
+  return Array.from(bytes)
+    .map((b) => chars[b % chars.length])
+    .join("");
+};
+
+/**
+ * Constant-time string comparison (timing-attack safe)
+ */
+export const secureCompare = (a: string, b: string): boolean => {
+  if (a.length !== b.length) {
+    return false;
+  }
+
+  const aBytes = new TextEncoder().encode(a);
+  const bBytes = new TextEncoder().encode(b);
+
+  return crypto.subtle.timingSafeEqual(aBytes, bBytes);
+};
+
+/**
+ * Hash data using SHA-256
+ */
+export const sha256 = async (data: string): Promise<string> => {
+  const encoder = new TextEncoder();
+  const dataBuffer = encoder.encode(data);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", dataBuffer);
+  return Buffer.from(hashBuffer).toString("hex");
+};
+
+/**
+ * Hash data using SHA-512
+ */
+export const sha512 = async (data: string): Promise<string> => {
+  const encoder = new TextEncoder();
+  const dataBuffer = encoder.encode(data);
+  const hashBuffer = await crypto.subtle.digest("SHA-512", dataBuffer);
+  return Buffer.from(hashBuffer).toString("hex");
+};
+
+/**
+ * Create HMAC signature
+ */
+export const hmacSign = async (
+  data: string,
+  secret: string,
+  algorithm: "SHA-256" | "SHA-512" = "SHA-256"
+): Promise<string> => {
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(secret);
+  const dataBuffer = encoder.encode(data);
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    keyData,
+    { name: "HMAC", hash: algorithm },
+    false,
+    ["sign"]
+  );
+
+  const signature = await crypto.subtle.sign("HMAC", key, dataBuffer);
+  return Buffer.from(signature).toString("hex");
+};
+
+/**
+ * Verify HMAC signature
+ */
+export const hmacVerify = async (
+  data: string,
+  signature: string,
+  secret: string,
+  algorithm: "SHA-256" | "SHA-512" = "SHA-256"
+): Promise<boolean> => {
+  const expectedSignature = await hmacSign(data, secret, algorithm);
+  return secureCompare(signature, expectedSignature);
+};
+
+/* USAGE:
+
+import {
+  hashPassword,
+  verifyPassword,
+  generateToken,
+  generateShortId,
+  sha256,
+  hmacSign,
+  hmacVerify,
+} from "./utils/crypto";
+
+// Password hashing
+const hash = await hashPassword("my-password");
+const isValid = await verifyPassword("my-password", hash); // true
+
+// with bcrypt
+const bcryptHash = await hashPassword("my-password", { algorithm: "bcrypt", cost: 12 });
+
+// Token generation
+const token = generateToken(); // vN7Hk9mJ_xPqL2wR5tYbC8...
+const shortId = generateShortId(); // "xK9mP2qL"
+
+// Hashing
+const hash256 = await sha256("data");
+
+// HMAC
+const signature = await hmacSign("payload", "secret");
+const valid = await hmacVerify("payload", signature, "secret");
+
+*/

@@ -1,0 +1,259 @@
+---
+name: elysia-date
+description: Date formatting and timezone utilities for API responses
+dependencies: []
+devDependencies: []
+files:
+  - name: src/utils/date.ts
+---
+/**
+ * Date format options
+ */
+export type DateFormat =
+  | "iso"
+  | "date"
+  | "time"
+  | "datetime"
+  | "relative"
+  | "unix"
+  | "unixMs";
+
+export interface FormatOptions {
+  /** Timezone for output (default: UTC) */
+  timezone?: string;
+  /** Locale for formatting (default: en-US) */
+  locale?: string;
+}
+
+/**
+ * Parse a date from various input types
+ */
+export const parseDate = (input: Date | string | number): Date => {
+  if (input instanceof Date) return input;
+  if (typeof input === "number") return new Date(input);
+  return new Date(input);
+};
+
+/**
+ * Format date to ISO string (UTC)
+ */
+export const toISO = (date: Date | string | number): string => {
+  return parseDate(date).toISOString();
+};
+
+/**
+ * Format date to Unix timestamp (seconds)
+ */
+export const toUnix = (date: Date | string | number): number => {
+  return Math.floor(parseDate(date).getTime() / 1000);
+};
+
+/**
+ * Format date to Unix timestamp (milliseconds)
+ */
+export const toUnixMs = (date: Date | string | number): number => {
+  return parseDate(date).getTime();
+};
+
+/**
+ * Format date to localized date string
+ */
+export const toDateString = (
+  date: Date | string | number,
+  options: FormatOptions = {}
+): string => {
+  const d = parseDate(date);
+  return d.toLocaleDateString(options.locale ?? "en-US", {
+    timeZone: options.timezone ?? "UTC",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+};
+
+/**
+ * Format date to localized time string
+ */
+export const toTimeString = (
+  date: Date | string | number,
+  options: FormatOptions = {}
+): string => {
+  const d = parseDate(date);
+  return d.toLocaleTimeString(options.locale ?? "en-US", {
+    timeZone: options.timezone ?? "UTC",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+};
+
+/**
+ * Format date to localized datetime string
+ */
+export const toDateTimeString = (
+  date: Date | string | number,
+  options: FormatOptions = {}
+): string => {
+  const d = parseDate(date);
+  return d.toLocaleString(options.locale ?? "en-US", {
+    timeZone: options.timezone ?? "UTC",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+/**
+ * Calculate relative time (e.g., "2 hours ago", "in 3 days")
+ */
+export const toRelative = (
+  date: Date | string | number,
+  options: FormatOptions = {}
+): string => {
+  const d = parseDate(date);
+  const now = new Date();
+  const diffMs = d.getTime() - now.getTime();
+  const diffSec = Math.round(diffMs / 1000);
+  const diffMin = Math.round(diffSec / 60);
+  const diffHour = Math.round(diffMin / 60);
+  const diffDay = Math.round(diffHour / 24);
+  const diffWeek = Math.round(diffDay / 7);
+  const diffMonth = Math.round(diffDay / 30);
+  const diffYear = Math.round(diffDay / 365);
+
+  const rtf = new Intl.RelativeTimeFormat(options.locale ?? "en-US", {
+    numeric: "auto",
+  });
+
+  if (Math.abs(diffSec) < 60) return rtf.format(diffSec, "second");
+  if (Math.abs(diffMin) < 60) return rtf.format(diffMin, "minute");
+  if (Math.abs(diffHour) < 24) return rtf.format(diffHour, "hour");
+  if (Math.abs(diffDay) < 7) return rtf.format(diffDay, "day");
+  if (Math.abs(diffWeek) < 4) return rtf.format(diffWeek, "week");
+  if (Math.abs(diffMonth) < 12) return rtf.format(diffMonth, "month");
+  return rtf.format(diffYear, "year");
+};
+
+/**
+ * Format date using specified format
+ */
+export const formatDate = (
+  date: Date | string | number,
+  format: DateFormat = "iso",
+  options: FormatOptions = {}
+): string | number => {
+  switch (format) {
+    case "iso":
+      return toISO(date);
+    case "date":
+      return toDateString(date, options);
+    case "time":
+      return toTimeString(date, options);
+    case "datetime":
+      return toDateTimeString(date, options);
+    case "relative":
+      return toRelative(date, options);
+    case "unix":
+      return toUnix(date);
+    case "unixMs":
+      return toUnixMs(date);
+    default:
+      return toISO(date);
+  }
+};
+
+/**
+ * Date math utilities
+ */
+export const dateMath = {
+  addSeconds: (date: Date | string | number, seconds: number): Date => {
+    const d = parseDate(date);
+    return new Date(d.getTime() + seconds * 1000);
+  },
+
+  addMinutes: (date: Date | string | number, minutes: number): Date => {
+    return dateMath.addSeconds(date, minutes * 60);
+  },
+
+  addHours: (date: Date | string | number, hours: number): Date => {
+    return dateMath.addMinutes(date, hours * 60);
+  },
+
+  addDays: (date: Date | string | number, days: number): Date => {
+    return dateMath.addHours(date, days * 24);
+  },
+
+  addWeeks: (date: Date | string | number, weeks: number): Date => {
+    return dateMath.addDays(date, weeks * 7);
+  },
+
+  addMonths: (date: Date | string | number, months: number): Date => {
+    const d = parseDate(date);
+    return new Date(d.setMonth(d.getMonth() + months));
+  },
+
+  addYears: (date: Date | string | number, years: number): Date => {
+    const d = parseDate(date);
+    return new Date(d.setFullYear(d.getFullYear() + years));
+  },
+
+  startOfDay: (date: Date | string | number): Date => {
+    const d = parseDate(date);
+    return new Date(d.setHours(0, 0, 0, 0));
+  },
+
+  endOfDay: (date: Date | string | number): Date => {
+    const d = parseDate(date);
+    return new Date(d.setHours(23, 59, 59, 999));
+  },
+
+  isAfter: (date1: Date | string | number, date2: Date | string | number): boolean => {
+    return parseDate(date1).getTime() > parseDate(date2).getTime();
+  },
+
+  isBefore: (date1: Date | string | number, date2: Date | string | number): boolean => {
+    return parseDate(date1).getTime() < parseDate(date2).getTime();
+  },
+
+  diffInSeconds: (date1: Date | string | number, date2: Date | string | number): number => {
+    return Math.floor((parseDate(date1).getTime() - parseDate(date2).getTime()) / 1000);
+  },
+};
+
+/* USAGE:
+
+import { toISO, toRelative, formatDate, dateMath } from "./utils/date";
+
+// Basic formatting
+toISO(new Date()); // "2024-01-15T10:30:00.000Z"
+toRelative(new Date(Date.now() - 3600000)); // "1 hour ago"
+
+// Format with options
+formatDate(new Date(), "datetime", { 
+  timezone: "America/New_York",
+  locale: "en-US" 
+}); // "January 15, 2024, 05:30 AM"
+
+// Date math
+const tomorrow = dateMath.addDays(new Date(), 1);
+const nextWeek = dateMath.addWeeks(new Date(), 1);
+const startOfToday = dateMath.startOfDay(new Date());
+
+// Comparisons
+dateMath.isAfter(tomorrow, new Date()); // true
+dateMath.diffInSeconds(tomorrow, new Date()); // 86400
+
+// In Elysia responses
+import { Elysia } from "elysia";
+
+const app = new Elysia()
+  .get("/posts/:id", () => ({
+    id: "1",
+    title: "Hello",
+    createdAt: toISO(new Date()),
+    createdAtRelative: toRelative(new Date()),
+  }));
+
+*/

@@ -1,0 +1,209 @@
+---
+name: elysia-pagination
+description: Cursor and offset pagination utilities with type-safe query parsing
+dependencies: []
+devDependencies: []
+files:
+  - name: src/utils/pagination.ts
+---
+import { t } from "elysia";
+
+/**
+ * Offset pagination result
+ */
+export interface OffsetPaginationResult<T> {
+  data: T[];
+  meta: {
+    total: number;
+    page: number;
+    perPage: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+}
+
+/**
+ * Cursor pagination result
+ */
+export interface CursorPaginationResult<T> {
+  data: T[];
+  meta: {
+    nextCursor: string | null;
+    prevCursor: string | null;
+    hasMore: boolean;
+    total?: number;
+  };
+}
+
+/**
+ * TypeBox schema for offset pagination query params
+ */
+export const offsetPaginationQuery = t.Object({
+  page: t.Optional(t.Numeric({ minimum: 1, default: 1 })),
+  perPage: t.Optional(t.Numeric({ minimum: 1, maximum: 100, default: 20 })),
+  limit: t.Optional(t.Numeric({ minimum: 1, maximum: 100 })),
+});
+
+/**
+ * TypeBox schema for cursor pagination query params
+ */
+export const cursorPaginationQuery = t.Object({
+  cursor: t.Optional(t.String()),
+  limit: t.Optional(t.Numeric({ minimum: 1, maximum: 100, default: 20 })),
+  direction: t.Optional(t.Union([t.Literal("next"), t.Literal("prev")])),
+});
+
+/**
+ * Parse offset pagination params
+ */
+export const parseOffsetParams = (query: {
+  page?: number;
+  perPage?: number;
+  limit?: number;
+}) => {
+  const page = Math.max(1, query.page ?? 1);
+  const limit = Math.min(100, Math.max(1, query.limit ?? query.perPage ?? 20));
+  const offset = (page - 1) * limit;
+
+  return { page, limit, offset };
+};
+
+/**
+ * Build offset pagination response
+ */
+export const buildOffsetResponse = <T>(
+  data: T[],
+  total: number,
+  page: number,
+  limit: number
+): OffsetPaginationResult<T> => {
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    data,
+    meta: {
+      total,
+      page,
+      perPage: limit,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
+  };
+};
+
+/**
+ * Parse cursor pagination params
+ */
+export const parseCursorParams = (query: {
+  cursor?: string;
+  limit?: number;
+  direction?: "next" | "prev";
+}) => {
+  const cursor = query.cursor ?? null;
+  const limit = Math.min(100, Math.max(1, query.limit ?? 20));
+  const direction = query.direction ?? "next";
+
+  return { cursor, limit, direction };
+};
+
+/**
+ * Encode cursor (base64url)
+ */
+export const encodeCursor = (value: string | number | Date): string => {
+  const str = value instanceof Date ? value.toISOString() : String(value);
+  return Buffer.from(str).toString("base64url");
+};
+
+/**
+ * Decode cursor (base64url)
+ */
+export const decodeCursor = (cursor: string): string => {
+  try {
+    return Buffer.from(cursor, "base64url").toString("utf8");
+  } catch {
+    throw new Error("Invalid cursor");
+  }
+};
+
+/**
+ * Build cursor pagination response
+ * @param data - Query results (should include +1 extra item to detect hasMore)
+ * @param limit - Requested limit
+ * @param cursorField - Field to use for cursor (e.g., 'id', 'createdAt')
+ */
+export const buildCursorResponse = <T extends Record<string, unknown>>(
+  data: T[],
+  limit: number,
+  cursorField: keyof T,
+  total?: number
+): CursorPaginationResult<T> => {
+  const hasMore = data.length > limit;
+  const items = hasMore ? data.slice(0, limit) : data;
+
+  const nextCursor =
+    hasMore && items.length > 0
+      ? encodeCursor(items[items.length - 1][cursorField] as string | number)
+      : null;
+
+  const prevCursor =
+    items.length > 0
+      ? encodeCursor(items[0][cursorField] as string | number)
+      : null;
+
+  return {
+    data: items,
+    meta: {
+      nextCursor,
+      prevCursor,
+      hasMore,
+      total,
+    },
+  };
+};
+
+/* USAGE:
+
+import { Elysia, t } from "elysia";
+import {
+  offsetPaginationQuery,
+  cursorPaginationQuery,
+  parseOffsetParams,
+  parseCursorParams,
+  buildOffsetResponse,
+  buildCursorResponse,
+} from "./utils/pagination";
+
+const app = new Elysia()
+  // Offset pagination
+  .get("/users", async ({ query }) => {
+    const { page, limit, offset } = parseOffsetParams(query);
+
+    const [users, total] = await Promise.all([
+      db.user.findMany({ skip: offset, take: limit }),
+      db.user.count(),
+    ]);
+
+    return buildOffsetResponse(users, total, page, limit);
+  }, {
+    query: offsetPaginationQuery,
+  })
+
+  // Cursor pagination
+  .get("/posts", async ({ query }) => {
+    const { cursor, limit } = parseCursorParams(query);
+
+    const posts = await db.post.findMany({
+      take: limit + 1, // +1 to detect hasMore
+      cursor: cursor ? { id: cursor } : undefined,
+      orderBy: { createdAt: "desc" },
+    });
+
+    return buildCursorResponse(posts, limit, "id");
+  }, {
+    query: cursorPaginationQuery,
+  })
+  .listen(3000);
+
+*/

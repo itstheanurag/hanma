@@ -1,0 +1,192 @@
+---
+name: elysia-response
+description: Standardized API response helpers with type-safe schemas
+dependencies: []
+devDependencies: []
+files:
+  - name: src/utils/response.ts
+---
+import { t, Static } from "elysia";
+
+/**
+ * Success response schema
+ */
+export const successSchema = <T extends ReturnType<typeof t.Object>>(dataSchema: T) =>
+  t.Object({
+    success: t.Literal(true),
+    data: dataSchema,
+    meta: t.Optional(
+      t.Object({
+        timestamp: t.String(),
+        requestId: t.Optional(t.String()),
+      })
+    ),
+  });
+
+/**
+ * Error response schema
+ */
+export const errorSchema = t.Object({
+  success: t.Literal(false),
+  error: t.Object({
+    code: t.String(),
+    message: t.String(),
+    details: t.Optional(t.Unknown()),
+  }),
+  meta: t.Optional(
+    t.Object({
+      timestamp: t.String(),
+      requestId: t.Optional(t.String()),
+    })
+  ),
+});
+
+/**
+ * Paginated response schema
+ */
+export const paginatedSchema = <T extends ReturnType<typeof t.Object>>(itemSchema: T) =>
+  t.Object({
+    success: t.Literal(true),
+    data: t.Array(itemSchema),
+    meta: t.Object({
+      total: t.Number(),
+      page: t.Number(),
+      perPage: t.Number(),
+      totalPages: t.Number(),
+      hasNextPage: t.Boolean(),
+      hasPrevPage: t.Boolean(),
+    }),
+  });
+
+/**
+ * Build success response
+ */
+export const success = <T>(data: T, requestId?: string) => ({
+  success: true as const,
+  data,
+  meta: {
+    timestamp: new Date().toISOString(),
+    ...(requestId && { requestId }),
+  },
+});
+
+/**
+ * Build error response
+ */
+export const error = (
+  code: string,
+  message: string,
+  details?: unknown,
+  requestId?: string
+) => ({
+  success: false as const,
+  error: {
+    code,
+    message,
+    ...(details && { details }),
+  },
+  meta: {
+    timestamp: new Date().toISOString(),
+    ...(requestId && { requestId }),
+  },
+});
+
+/**
+ * Build paginated response
+ */
+export const paginated = <T>(
+  data: T[],
+  meta: {
+    total: number;
+    page: number;
+    perPage: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  },
+  requestId?: string
+) => ({
+  success: true as const,
+  data,
+  meta: {
+    ...meta,
+    timestamp: new Date().toISOString(),
+    ...(requestId && { requestId }),
+  },
+});
+
+/**
+ * Common error responses
+ */
+export const errors = {
+  badRequest: (message = "Bad request", details?: unknown) =>
+    error("BAD_REQUEST", message, details),
+
+  unauthorized: (message = "Unauthorized") =>
+    error("UNAUTHORIZED", message),
+
+  forbidden: (message = "Forbidden") =>
+    error("FORBIDDEN", message),
+
+  notFound: (message = "Not found") =>
+    error("NOT_FOUND", message),
+
+  conflict: (message = "Conflict", details?: unknown) =>
+    error("CONFLICT", message, details),
+
+  validationError: (message = "Validation failed", details?: unknown) =>
+    error("VALIDATION_ERROR", message, details),
+
+  internalError: (message = "Internal server error") =>
+    error("INTERNAL_SERVER_ERROR", message),
+};
+
+/**
+ * Type helpers
+ */
+export type SuccessResponse<T> = ReturnType<typeof success<T>>;
+export type ErrorResponse = ReturnType<typeof error>;
+export type PaginatedResponse<T> = ReturnType<typeof paginated<T>>;
+
+/* USAGE:
+
+import { Elysia, t } from "elysia";
+import { success, error, errors, paginated, successSchema, errorSchema } from "./utils/response";
+
+const UserSchema = t.Object({
+  id: t.String(),
+  email: t.String(),
+  name: t.String(),
+});
+
+const app = new Elysia()
+  .get("/users/:id", ({ params, requestId }) => {
+    const user = findUser(params.id);
+    
+    if (!user) {
+      return errors.notFound("User not found");
+    }
+    
+    return success(user, requestId);
+  }, {
+    response: {
+      200: successSchema(UserSchema),
+      404: errorSchema,
+    },
+  })
+
+  .get("/users", ({ query }) => {
+    const { data, total, page, perPage } = getUsers(query);
+    
+    return paginated(data, {
+      total,
+      page,
+      perPage,
+      totalPages: Math.ceil(total / perPage),
+      hasNextPage: page * perPage < total,
+      hasPrevPage: page > 1,
+    });
+  })
+  .listen(3000);
+
+*/

@@ -1,0 +1,197 @@
+---
+name: elysia-env
+description: Type-safe environment configuration with validation and defaults
+dependencies: []
+devDependencies: []
+files:
+  - name: src/utils/env.ts
+---
+/**
+ * Environment variable types
+ */
+type EnvType = "string" | "number" | "boolean" | "array";
+
+interface EnvVarConfig<T = unknown> {
+  type: EnvType;
+  required?: boolean;
+  default?: T;
+  validate?: (value: T) => boolean;
+  transform?: (value: string) => T;
+}
+
+type EnvConfig = Record<string, EnvVarConfig>;
+
+type InferEnvType<T extends EnvVarConfig> = T["type"] extends "number"
+  ? number
+  : T["type"] extends "boolean"
+    ? boolean
+    : T["type"] extends "array"
+      ? string[]
+      : string;
+
+type InferEnvConfig<T extends EnvConfig> = {
+  [K in keyof T]: T[K]["required"] extends true
+    ? InferEnvType<T[K]>
+    : T[K]["default"] extends undefined
+      ? InferEnvType<T[K]> | undefined
+      : InferEnvType<T[K]>;
+};
+
+/**
+ * Parse environment variable value based on type
+ */
+const parseValue = (
+  value: string | undefined,
+  config: EnvVarConfig
+): unknown => {
+  if (value === undefined) {
+    return config.default;
+  }
+
+  if (config.transform) {
+    return config.transform(value);
+  }
+
+  switch (config.type) {
+    case "number": {
+      const num = Number(value);
+      if (isNaN(num)) {
+        throw new Error(`Invalid number value: ${value}`);
+      }
+      return num;
+    }
+    case "boolean":
+      return value.toLowerCase() === "true" || value === "1";
+    case "array":
+      return value.split(",").map((v) => v.trim());
+    default:
+      return value;
+  }
+};
+
+/**
+ * Create type-safe environment configuration
+ */
+export const createEnv = <T extends EnvConfig>(config: T): InferEnvConfig<T> => {
+  const env: Record<string, unknown> = {};
+  const errors: string[] = [];
+
+  for (const [key, varConfig] of Object.entries(config)) {
+    const rawValue = process.env[key];
+
+    // Check required
+    if (varConfig.required && rawValue === undefined) {
+      errors.push(`Missing required environment variable: ${key}`);
+      continue;
+    }
+
+    try {
+      const value = parseValue(rawValue, varConfig);
+
+      // Validate if validator provided
+      if (value !== undefined && varConfig.validate && !varConfig.validate(value as never)) {
+        errors.push(`Validation failed for environment variable: ${key}`);
+        continue;
+      }
+
+      env[key] = value;
+    } catch (e) {
+      errors.push(`Error parsing ${key}: ${(e as Error).message}`);
+    }
+  }
+
+  if (errors.length > 0) {
+    console.error("Environment validation errors:");
+    errors.forEach((e) => console.error(`  - ${e}`));
+    process.exit(1);
+  }
+
+  return env as InferEnvConfig<T>;
+};
+
+/**
+ * Common environment variable patterns
+ */
+export const envPatterns = {
+  port: (defaultPort = 3000) => ({
+    type: "number" as const,
+    default: defaultPort,
+    validate: (v: number) => v > 0 && v < 65536,
+  }),
+
+  url: (required = false) => ({
+    type: "string" as const,
+    required,
+    validate: (v: string) => {
+      try {
+        new URL(v);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+  }),
+
+  nodeEnv: () => ({
+    type: "string" as const,
+    default: "development",
+    validate: (v: string) =>
+      ["development", "production", "test"].includes(v),
+  }),
+
+  secret: (required = true) => ({
+    type: "string" as const,
+    required,
+    validate: (v: string) => v.length >= 32,
+  }),
+
+  csvList: (defaultValue: string[] = []) => ({
+    type: "array" as const,
+    default: defaultValue,
+  }),
+};
+
+/* USAGE:
+
+import { createEnv, envPatterns } from "./utils/env";
+
+// Define your environment schema
+const env = createEnv({
+  // Server
+  PORT: envPatterns.port(3000),
+  NODE_ENV: envPatterns.nodeEnv(),
+  HOST: { type: "string", default: "0.0.0.0" },
+
+  // Database
+  DATABASE_URL: { type: "string", required: true },
+
+  // Auth
+  JWT_SECRET: envPatterns.secret(true),
+  JWT_EXPIRES_IN: { type: "string", default: "7d" },
+
+  // CORS
+  CORS_ORIGINS: envPatterns.csvList(["http://localhost:3000"]),
+
+  // Feature flags
+  ENABLE_SWAGGER: { type: "boolean", default: true },
+
+  // Rate limiting
+  RATE_LIMIT_MAX: { type: "number", default: 100 },
+  RATE_LIMIT_WINDOW_MS: { type: "number", default: 60000 },
+});
+
+// Type-safe access
+console.log(env.PORT); // number
+console.log(env.CORS_ORIGINS); // string[]
+console.log(env.DATABASE_URL); // string (required, never undefined)
+
+export { env };
+
+// In your app
+import { Elysia } from "elysia";
+import { env } from "./utils/env";
+
+const app = new Elysia()
+  .listen(env.PORT);
+
+*/

@@ -1,0 +1,188 @@
+---
+name: elysia-slug
+description: URL slug generation and validation utilities with transliteration support
+dependencies: []
+devDependencies: []
+files:
+  - name: src/utils/slug.ts
+---
+/**
+ * Character replacements for transliteration
+ */
+const TRANSLITERATION_MAP: Record<string, string> = {
+  // Latin extended
+  ae: "ae", oe: "oe", ue: "ue",
+  // German
+  "\u00e4": "ae", "\u00f6": "oe", "\u00fc": "ue", "\u00df": "ss",
+  // French
+  "\u00e0": "a", "\u00e2": "a", "\u00e7": "c", "\u00e8": "e", "\u00e9": "e",
+  "\u00ea": "e", "\u00eb": "e", "\u00ee": "i", "\u00ef": "i", "\u00f4": "o",
+  "\u00f9": "u", "\u00fb": "u", "\u00ff": "y",
+  // Spanish
+  "\u00f1": "n", "\u00e1": "a", "\u00ed": "i", "\u00f3": "o", "\u00fa": "u",
+  // Polish
+  "\u0142": "l", "\u0144": "n", "\u015b": "s", "\u017a": "z", "\u017c": "z",
+  // Czech
+  "\u0159": "r", "\u010d": "c", "\u010f": "d", "\u0148": "n", "\u0165": "t",
+  // Nordic
+  "\u00e5": "a", "\u00f8": "o", "\u00e6": "ae",
+};
+
+export interface SlugOptions {
+  /** Maximum length of slug (default: 100) */
+  maxLength?: number;
+  /** Separator character (default: "-") */
+  separator?: string;
+  /** Convert to lowercase (default: true) */
+  lowercase?: boolean;
+  /** Remove stop words (default: false) */
+  removeStopWords?: boolean;
+  /** Custom stop words to remove */
+  stopWords?: string[];
+}
+
+const DEFAULT_STOP_WORDS = [
+  "a", "an", "and", "are", "as", "at", "be", "by", "for",
+  "from", "has", "he", "in", "is", "it", "its", "of", "on",
+  "that", "the", "to", "was", "were", "will", "with",
+];
+
+/**
+ * Transliterate special characters
+ */
+const transliterate = (text: string): string => {
+  let result = text;
+
+  for (const [char, replacement] of Object.entries(TRANSLITERATION_MAP)) {
+    result = result.replace(new RegExp(char, "gi"), replacement);
+  }
+
+  // Remove remaining diacritics using Unicode normalization
+  result = result.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  return result;
+};
+
+/**
+ * Generate a URL-safe slug from text
+ */
+export const slugify = (text: string, options: SlugOptions = {}): string => {
+  const config = {
+    maxLength: options.maxLength ?? 100,
+    separator: options.separator ?? "-",
+    lowercase: options.lowercase ?? true,
+    removeStopWords: options.removeStopWords ?? false,
+    stopWords: options.stopWords ?? DEFAULT_STOP_WORDS,
+  };
+
+  let slug = text;
+
+  // Transliterate special characters
+  slug = transliterate(slug);
+
+  // Convert to lowercase if needed
+  if (config.lowercase) {
+    slug = slug.toLowerCase();
+  }
+
+  // Remove stop words if enabled
+  if (config.removeStopWords) {
+    const stopWordsPattern = new RegExp(
+      `\\b(${config.stopWords.join("|")})\\b`,
+      "gi"
+    );
+    slug = slug.replace(stopWordsPattern, "");
+  }
+
+  // Replace non-alphanumeric characters with separator
+  slug = slug
+    .replace(/[^a-zA-Z0-9]+/g, config.separator)
+    .replace(new RegExp(`${config.separator}+`, "g"), config.separator)
+    .replace(new RegExp(`^${config.separator}|${config.separator}$`, "g"), "");
+
+  // Truncate to max length (at word boundary if possible)
+  if (slug.length > config.maxLength) {
+    slug = slug.substring(0, config.maxLength);
+    const lastSeparator = slug.lastIndexOf(config.separator);
+    if (lastSeparator > config.maxLength * 0.7) {
+      slug = slug.substring(0, lastSeparator);
+    }
+  }
+
+  return slug;
+};
+
+/**
+ * Generate a unique slug by appending a short ID
+ */
+export const uniqueSlug = (
+  text: string,
+  options: SlugOptions = {}
+): string => {
+  const baseSlug = slugify(text, options);
+  const shortId = Math.random().toString(36).slice(2, 8);
+
+  const maxBaseLength = (options.maxLength ?? 100) - shortId.length - 1;
+  const truncatedBase = baseSlug.slice(0, maxBaseLength);
+
+  return `${truncatedBase}-${shortId}`;
+};
+
+/**
+ * Validate if a string is a valid slug
+ */
+export const isValidSlug = (slug: string, separator = "-"): boolean => {
+  if (!slug || slug.length === 0) return false;
+
+  const pattern = new RegExp(`^[a-z0-9]+(?:${separator}[a-z0-9]+)*$`);
+  return pattern.test(slug);
+};
+
+/**
+ * Parse a slug back to readable text
+ */
+export const deslugify = (slug: string, separator = "-"): string => {
+  return slug
+    .split(separator)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
+/* USAGE:
+
+import { slugify, uniqueSlug, isValidSlug, deslugify } from "./utils/slug";
+
+// Basic usage
+slugify("Hello World!"); // "hello-world"
+slugify("Cafe au lait"); // "cafe-au-lait"
+
+// With options
+slugify("Hello World", { uppercase: false, separator: "_" }); // "hello_world"
+slugify("The Quick Brown Fox", { removeStopWords: true }); // "quick-brown-fox"
+
+// Unique slugs for database entries
+uniqueSlug("My Blog Post"); // "my-blog-post-x7k2m9"
+
+// Validation
+isValidSlug("hello-world"); // true
+isValidSlug("Hello World"); // false
+
+// Reverse
+deslugify("hello-world"); // "Hello World"
+
+// Example with Elysia
+import { Elysia, t } from "elysia";
+
+const app = new Elysia()
+  .post("/posts", async ({ body }) => {
+    const slug = uniqueSlug(body.title, { maxLength: 80 });
+    // Save post with slug...
+    return { slug };
+  }, {
+    body: t.Object({
+      title: t.String(),
+      content: t.String(),
+    }),
+  });
+
+*/

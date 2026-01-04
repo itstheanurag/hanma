@@ -2,7 +2,6 @@ name: upload-gcp
 category: feature
 featureType: upload
 description: Google Cloud Storage uploads with signed URLs
-framework: express
 
 includes:
   - snippet: shared/uploads/gcp-storage.hbs

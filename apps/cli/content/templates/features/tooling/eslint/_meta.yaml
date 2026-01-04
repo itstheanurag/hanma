@@ -2,7 +2,6 @@ name: tooling-eslint
 category: feature
 featureType: tooling
 description: ESLint for linting
-framework: express
 
 includes:
   - snippet: tooling/eslint/express.hbs

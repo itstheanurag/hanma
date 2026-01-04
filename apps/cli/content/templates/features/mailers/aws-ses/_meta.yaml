@@ -2,7 +2,6 @@ name: mailer-ses
 category: feature
 featureType: mailer
 description: Email sending with AWS SES
-framework: express
 
 includes:
   - snippet: shared/mailers/aws-ses.hbs

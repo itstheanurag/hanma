@@ -13,7 +13,7 @@ const Features = () => {
         </p>
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border rounded-xl overflow-hidden">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-border/60 border border-border/60 rounded-xl overflow-hidden [transform:translateZ(0)]">
         {features.map((feature, idx) => (
           <div
             key={idx}

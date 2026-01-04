@@ -1,23 +1,23 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./components/theme/ThemeContext";
 import DocsLayout from "./layout/DocLayout";
 import AppLayout from "./layout/AppLayout";
-import TemplateBuilder from "./pages/TemplateBuilder";
+import { useDocsStore } from "@/stores/docsStore";
 
-// Lazy load pages
+// Lazy load pages to reduce initial bundle size
 const LandingPage = lazy(() => import("./components/LandingPage"));
+const TemplateBuilder = lazy(() => import("./pages/TemplateBuilder"));
+const Docs = lazy(() => import("./pages/Docs"));
+const Contributors = lazy(() => import("./pages/Contributors"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+// Lazy load SearchModal so it doesn't block main interaction
 const SearchModal = lazy(() =>
   import("./components/ui/SearchModal").then((module) => ({
     default: module.SearchModal,
   })),
 );
-const Docs = lazy(() => import("./pages/Docs"));
-const Contributors = lazy(() => import("./pages/Contributors"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-
-import { useDocsStore } from "@/stores/docsStore";
-import { useEffect } from "react";
 
 // Simple loading fallback
 const LoadingFallback = () => (
@@ -27,8 +27,9 @@ const LoadingFallback = () => (
 );
 
 function App() {
-  const { setSearchOpen } = useDocsStore();
+  const { isSearchOpen, setSearchOpen } = useDocsStore();
 
+  // Keyboard shortcut listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -40,11 +41,41 @@ function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [setSearchOpen]);
 
+  // Background preloading of routes to ensure snappy navigation
+  // "First load the page as it is, and populate the routes in the background"
+  useEffect(() => {
+    const prefetchRoutes = async () => {
+      try {
+        await Promise.all([
+          import("./components/LandingPage"),
+          import("./pages/TemplateBuilder"),
+          import("./pages/Docs"),
+          import("./pages/Contributors"),
+          // Prefetch search modal so it's ready when needed
+          import("./components/ui/SearchModal"),
+        ]);
+      } catch (e) {
+        // Ignore prefetch errors
+      }
+    };
+
+    // Start prefetching after a short delay to prioritize initial render
+    const timer = setTimeout(prefetchRoutes, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <ThemeProvider>
-      <div className="min-h-screen bg-background text-foreground selection:bg-secondary selection:text-black flex flex-col transition-colors duration-300">
+      <div className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground flex flex-col transition-colors duration-300">
+        {/* Search Modal in separate Suspense so it never blocks main content */}
+        {isSearchOpen && (
+          <Suspense fallback={null}>
+            <SearchModal />
+          </Suspense>
+        )}
+
+        {/* Main Routes with fallback */}
         <Suspense fallback={<LoadingFallback />}>
-          <SearchModal />
           <Routes>
             <Route element={<AppLayout />}>
               <Route path="/" element={<LandingPage />} />

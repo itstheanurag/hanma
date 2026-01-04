@@ -2,7 +2,6 @@ name: upload-r2
 category: feature
 featureType: upload
 description: Cloudflare R2 uploads (S3-compatible)
-framework: express
 
 includes:
   - snippet: shared/uploads/cloudflare-r2.hbs

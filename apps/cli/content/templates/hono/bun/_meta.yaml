@@ -8,6 +8,8 @@ version: "4"
 includes:
   - snippet: hono/v4/libs/servers/hono-bun.hbs
     path: src/libs/server.ts
+  - snippet: tooling/tsconfig/hono/hono.hbs
+    path: tsconfig.json
     
 dependencies:
   - hono

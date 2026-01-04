@@ -8,13 +8,18 @@ files:
 ---
 {
   "compilerOptions": {
+    "target": "ES2021",
+    "module": "ES2022",
+    "moduleResolution": "node",
+    "types": ["bun-types"],
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
     "strict": true,
-    "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx",
+    "skipLibCheck": true,
+
     "baseUrl": ".",
     "paths": {
-      "@src/*": ["./src/*"],
-      "config": ["config/index.ts"]
+      "@/*": ["src/*"]
     }
   }
 }

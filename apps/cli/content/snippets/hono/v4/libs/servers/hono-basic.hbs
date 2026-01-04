@@ -160,35 +160,39 @@ function formatBytes(bytes: number): string {
   return `${bytes.toFixed(2)} ${units[i]}`;
 }
 
-// Start server
-const server = serve({
-  fetch: app.fetch,
-  port: config.port,
-}, (info) => {
-  console.log(JSON.stringify({
-    level: "info",
-    message: "Server started",
-    port: info.port,
-    environment: config.env,
-    timestamp: new Date().toISOString(),
-  }));
-});
-
-// Graceful shutdown
+// Server instance
+let server: ReturnType<typeof serve> | null = null;
 let isShuttingDown = false;
 
-const shutdown = (signal: string) => {
-  if (isShuttingDown) return;
+// Start server
+export const startServer = () => {
+  if (server) {
+    console.log("Server already running");
+    return;
+  }
+
+  server = serve({
+    fetch: app.fetch,
+    port: config.port,
+  }, (info) => {
+    console.log(`Hono running on http://localhost:${info.port}`, JSON.stringify({
+      level: "info",
+      message: "Server started",
+      environment: config.env,
+      timestamp: new Date().toISOString(),
+    }));
+  });
+};
+
+// Graceful shutdown
+export const shutdown = (signal: string) => {
+  if (isShuttingDown || !server) return;
   isShuttingDown = true;
   
-  console.log(JSON.stringify({
-    level: "info",
-    message: `${signal} received, shutting down gracefully`,
-    timestamp: new Date().toISOString(),
-  }));
+  console.log(`${signal} received. Shutting down...`);
   
   server.close(() => {
-    console.log(JSON.stringify({
+    console.log("Server stopped", JSON.stringify({
       level: "info",
       message: "Server stopped",
       timestamp: new Date().toISOString(),
@@ -198,7 +202,7 @@ const shutdown = (signal: string) => {
   
   // Force shutdown after timeout
   setTimeout(() => {
-    console.error(JSON.stringify({
+    console.error("Forced shutdown due to timeout", JSON.stringify({
       level: "error",
       message: "Forced shutdown due to timeout",
       timestamp: new Date().toISOString(),
@@ -206,6 +210,3 @@ const shutdown = (signal: string) => {
     process.exit(1);
   }, config.shutdownTimeout).unref();
 };
-
-process.on("SIGTERM", () => shutdown("SIGTERM"));
-process.on("SIGINT", () => shutdown("SIGINT"));

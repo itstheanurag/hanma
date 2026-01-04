@@ -155,44 +155,39 @@ function formatBytes(bytes: number): string {
   return `${bytes.toFixed(2)} ${units[i]}`;
 }
 
-// Start server
-const server = Bun.serve({
-  port: config.port,
-  fetch: app.fetch,
-  error(error) {
-    console.error("Unhandled server error:", error);
-    return new Response("Internal Server Error", { status: 500 });
-  },
-});
+// Server instance
+let server: ReturnType<typeof Bun.serve> | null = null;
 
-console.log(JSON.stringify({
-  level: "info",
-  message: "Server started",
-  port: server.port,
-  environment: config.env,
-  timestamp: new Date().toISOString(),
-}));
+// Start server
+export const startServer = () => {
+  if (server) {
+    console.log("Server already running");
+    return;
+  }
+
+  server = Bun.serve({
+    port: config.port,
+    fetch: app.fetch,
+    error(error) {
+      console.error("Unhandled server error:", error);
+      return new Response("Internal Server Error", { status: 500 });
+    },
+  });
+
+  console.log(`Hono running on http://localhost:${server.port}`);
+};
 
 // Graceful shutdown
-const shutdown = (signal: string) => {
-  console.log(JSON.stringify({
-    level: "info",
-    message: `${signal} received, shutting down gracefully`,
-    timestamp: new Date().toISOString(),
-  }));
+let isShuttingDown = false;
+
+export const shutdown = (signal: string) => {
+  if (isShuttingDown || !server) return;
+  isShuttingDown = true;
+
+  console.log(`${signal} received. Shutting down...`);
   
   server.stop();
   
-  // Allow pending requests to complete
-  setTimeout(() => {
-    console.log(JSON.stringify({
-      level: "info",
-      message: "Server stopped",
-      timestamp: new Date().toISOString(),
-    }));
-    process.exit(0);
-  }, 5000);
+  console.log("Server stopped");
+  process.exit(0);
 };
-
-process.on("SIGTERM", () => shutdown("SIGTERM"));
-process.on("SIGINT", () => shutdown("SIGINT"));

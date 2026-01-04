@@ -1,0 +1,305 @@
+---
+name: elysia-health
+description: Comprehensive health check routes for liveness, readiness, and dependency checks
+dependencies: []
+devDependencies: []
+files:
+  - name: src/routes/health.ts
+---
+import { Elysia, t } from "elysia";
+
+/**
+ * Health check status
+ */
+export type HealthStatus = "healthy" | "degraded" | "unhealthy";
+
+/**
+ * Individual check result
+ */
+export interface CheckResult {
+  status: HealthStatus;
+  message?: string;
+  latencyMs?: number;
+}
+
+/**
+ * Health check response
+ */
+export interface HealthResponse {
+  status: HealthStatus;
+  timestamp: string;
+  uptime: number;
+  version?: string;
+  checks?: Record<string, CheckResult>;
+}
+
+/**
+ * Health check configuration
+ */
+export interface HealthCheckConfig {
+  /** Application version */
+  version?: string;
+  /** Custom health checks (e.g., database, redis, external APIs) */
+  checks?: Record<string, () => Promise<CheckResult> | CheckResult>;
+}
+
+/**
+ * Calculate overall status from individual checks
+ */
+const calculateOverallStatus = (
+  checks: Record<string, CheckResult>
+): HealthStatus => {
+  const statuses = Object.values(checks).map((c) => c.status);
+
+  if (statuses.some((s) => s === "unhealthy")) {
+    return "unhealthy";
+  }
+
+  if (statuses.some((s) => s === "degraded")) {
+    return "degraded";
+  }
+
+  return "healthy";
+};
+
+/**
+ * Run a health check with timeout
+ */
+const runCheckWithTimeout = async (
+  check: () => Promise<CheckResult> | CheckResult,
+  timeoutMs = 5000
+): Promise<CheckResult> => {
+  const start = Date.now();
+
+  try {
+    const result = await Promise.race([
+      Promise.resolve(check()),
+      new Promise<CheckResult>((_, reject) =>
+        setTimeout(() => reject(new Error("Check timeout")), timeoutMs)
+      ),
+    ]);
+
+    return {
+      ...result,
+      latencyMs: Date.now() - start,
+    };
+  } catch (error) {
+    return {
+      status: "unhealthy",
+      message: error instanceof Error ? error.message : "Check failed",
+      latencyMs: Date.now() - start,
+    };
+  }
+};
+
+/**
+ * Get application uptime in seconds
+ */
+const getUptime = (): number => {
+  return Math.floor(process.uptime());
+};
+
+/**
+ * Create health check routes
+ */
+export const healthRoutes = (config: HealthCheckConfig = {}) => {
+  const { version, checks = {} } = config;
+
+  return new Elysia({ name: "health-routes", prefix: "/health" })
+    /**
+     * Basic liveness probe
+     * Returns 200 if application is running
+     */
+    .get("/", () => {
+      const response: HealthResponse = {
+        status: "healthy",
+        timestamp: new Date().toISOString(),
+        uptime: getUptime(),
+        ...(version && { version }),
+      };
+
+      return response;
+    }, {
+      response: t.Object({
+        status: t.String(),
+        timestamp: t.String(),
+        uptime: t.Number(),
+        version: t.Optional(t.String()),
+      }),
+    })
+
+    /**
+     * Kubernetes-style liveness probe
+     * Returns 200 if the process is alive
+     */
+    .get("/live", () => ({
+      status: "ok",
+    }), {
+      response: t.Object({
+        status: t.String(),
+      }),
+    })
+
+    /**
+     * Readiness probe with dependency checks
+     * Returns 200 only if all dependencies are healthy
+     */
+    .get("/ready", async ({ set }) => {
+      const checkResults: Record<string, CheckResult> = {};
+
+      // Run all health checks in parallel
+      const checkPromises = Object.entries(checks).map(
+        async ([name, check]) => {
+          checkResults[name] = await runCheckWithTimeout(check);
+        }
+      );
+
+      await Promise.all(checkPromises);
+
+      const overallStatus = Object.keys(checkResults).length > 0
+        ? calculateOverallStatus(checkResults)
+        : "healthy";
+
+      const response: HealthResponse = {
+        status: overallStatus,
+        timestamp: new Date().toISOString(),
+        uptime: getUptime(),
+        ...(version && { version }),
+        checks: checkResults,
+      };
+
+      if (overallStatus === "unhealthy") {
+        set.status = 503;
+      }
+
+      return response;
+    })
+
+    /**
+     * Detailed health check endpoint
+     */
+    .get("/detailed", async ({ set }) => {
+      const checkResults: Record<string, CheckResult> = {};
+
+      const checkPromises = Object.entries(checks).map(
+        async ([name, check]) => {
+          checkResults[name] = await runCheckWithTimeout(check);
+        }
+      );
+
+      await Promise.all(checkPromises);
+
+      const overallStatus = Object.keys(checkResults).length > 0
+        ? calculateOverallStatus(checkResults)
+        : "healthy";
+
+      const response = {
+        status: overallStatus,
+        timestamp: new Date().toISOString(),
+        uptime: getUptime(),
+        version,
+        environment: process.env.NODE_ENV ?? "development",
+        memory: {
+          used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+          total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
+          unit: "MB",
+        },
+        checks: checkResults,
+      };
+
+      if (overallStatus === "unhealthy") {
+        set.status = 503;
+      }
+
+      return response;
+    });
+};
+
+/**
+ * Common health check implementations
+ */
+export const commonChecks = {
+  /**
+   * Database check (Prisma example)
+   */
+  database: (prisma: { $queryRaw: (query: TemplateStringsArray) => Promise<unknown> }) => async (): Promise<CheckResult> => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      return { status: "healthy" };
+    } catch {
+      return { status: "unhealthy", message: "Database connection failed" };
+    }
+  },
+
+  /**
+   * Redis check
+   */
+  redis: (redis: { ping: () => Promise<string> }) => async (): Promise<CheckResult> => {
+    try {
+      const result = await redis.ping();
+      return { status: result === "PONG" ? "healthy" : "unhealthy" };
+    } catch {
+      return { status: "unhealthy", message: "Redis connection failed" };
+    }
+  },
+
+  /**
+   * External API check
+   */
+  externalApi: (url: string) => async (): Promise<CheckResult> => {
+    try {
+      const response = await fetch(url, { method: "HEAD" });
+      return {
+        status: response.ok ? "healthy" : "degraded",
+        message: response.ok ? undefined : `HTTP ${response.status}`,
+      };
+    } catch {
+      return { status: "unhealthy", message: "External API unreachable" };
+    }
+  },
+
+  /**
+   * Memory check
+   */
+  memory: (thresholdMB = 500) => (): CheckResult => {
+    const used = process.memoryUsage().heapUsed / 1024 / 1024;
+    if (used > thresholdMB) {
+      return {
+        status: "degraded",
+        message: `Memory usage high: ${Math.round(used)}MB`,
+      };
+    }
+    return { status: "healthy" };
+  },
+};
+
+/* USAGE:
+
+import { Elysia } from "elysia";
+import { healthRoutes, commonChecks } from "./routes/health";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+const app = new Elysia()
+  .use(healthRoutes({
+    version: process.env.npm_package_version,
+    checks: {
+      database: commonChecks.database(prisma),
+      memory: commonChecks.memory(500),
+      // Custom check
+      myService: async () => {
+        // Check your service...
+        return { status: "healthy" };
+      },
+    },
+  }))
+  .listen(3000);
+
+// Endpoints:
+// GET /health         - Basic liveness
+// GET /health/live    - Kubernetes liveness probe
+// GET /health/ready   - Readiness with dependency checks
+// GET /health/detailed - Full details with memory info
+
+*/

@@ -1,0 +1,433 @@
+---
+name: elysia-crud
+description: Generic CRUD route factory with pagination and validation
+dependencies: []
+devDependencies: []
+files:
+  - name: src/routes/crud.ts
+---
+import { Elysia, t, Static } from "elysia";
+
+/**
+ * Base entity with ID and timestamps
+ */
+export const BaseEntitySchema = t.Object({
+  id: t.String(),
+  createdAt: t.String(),
+  updatedAt: t.String(),
+});
+
+export type BaseEntity = Static<typeof BaseEntitySchema>;
+
+/**
+ * Pagination meta schema
+ */
+export const PaginationMetaSchema = t.Object({
+  total: t.Number(),
+  page: t.Number(),
+  perPage: t.Number(),
+  totalPages: t.Number(),
+});
+
+/**
+ * CRUD service interface
+ */
+export interface CrudService<T extends BaseEntity, CreateDTO, UpdateDTO> {
+  findAll: (options: {
+    page: number;
+    perPage: number;
+    filters?: Record<string, unknown>;
+  }) => Promise<{ data: T[]; total: number }>;
+  findById: (id: string) => Promise<T | null>;
+  create: (data: CreateDTO) => Promise<T>;
+  update: (id: string, data: UpdateDTO) => Promise<T | null>;
+  delete: (id: string) => Promise<boolean>;
+}
+
+/**
+ * CRUD route configuration
+ */
+export interface CrudRouteConfig<T extends BaseEntity, CreateDTO, UpdateDTO> {
+  /** Route prefix (e.g., "/users") */
+  prefix: string;
+  /** Entity name for error messages */
+  entityName: string;
+  /** TypeBox schema for the entity */
+  entitySchema: ReturnType<typeof t.Object>;
+  /** TypeBox schema for create DTO */
+  createSchema: ReturnType<typeof t.Object>;
+  /** TypeBox schema for update DTO */
+  updateSchema: ReturnType<typeof t.Object>;
+  /** CRUD service implementation */
+  service: CrudService<T, CreateDTO, UpdateDTO>;
+  /** Optional hooks */
+  hooks?: {
+    beforeCreate?: (data: CreateDTO) => Promise<CreateDTO>;
+    afterCreate?: (entity: T) => Promise<void>;
+    beforeUpdate?: (id: string, data: UpdateDTO) => Promise<UpdateDTO>;
+    afterUpdate?: (entity: T) => Promise<void>;
+    beforeDelete?: (id: string) => Promise<void>;
+    afterDelete?: (id: string) => Promise<void>;
+  };
+}
+
+/**
+ * Create CRUD routes for an entity
+ */
+export const createCrudRoutes = <
+  T extends BaseEntity,
+  CreateDTO,
+  UpdateDTO
+>(
+  config: CrudRouteConfig<T, CreateDTO, UpdateDTO>
+) => {
+  const {
+    prefix,
+    entityName,
+    entitySchema,
+    createSchema,
+    updateSchema,
+    service,
+    hooks = {},
+  } = config;
+
+  return new Elysia({ name: `crud-${entityName}`, prefix })
+    /**
+     * List all entities with pagination
+     */
+    .get("/", async ({ query }) => {
+      const page = Math.max(1, Number(query.page) || 1);
+      const perPage = Math.min(100, Math.max(1, Number(query.perPage) || 20));
+
+      const { data, total } = await service.findAll({ page, perPage });
+
+      return {
+        success: true,
+        data,
+        meta: {
+          total,
+          page,
+          perPage,
+          totalPages: Math.ceil(total / perPage),
+        },
+      };
+    }, {
+      query: t.Object({
+        page: t.Optional(t.Numeric()),
+        perPage: t.Optional(t.Numeric()),
+      }),
+    })
+
+    /**
+     * Get single entity by ID
+     */
+    .get("/:id", async ({ params, set }) => {
+      const entity = await service.findById(params.id);
+
+      if (!entity) {
+        set.status = 404;
+        return {
+          success: false,
+          error: {
+            code: "NOT_FOUND",
+            message: `${entityName} not found`,
+          },
+        };
+      }
+
+      return {
+        success: true,
+        data: entity,
+      };
+    }, {
+      params: t.Object({
+        id: t.String(),
+      }),
+    })
+
+    /**
+     * Create new entity
+     */
+    .post("/", async ({ body, set }) => {
+      try {
+        let createData = body as CreateDTO;
+
+        if (hooks.beforeCreate) {
+          createData = await hooks.beforeCreate(createData);
+        }
+
+        const entity = await service.create(createData);
+
+        if (hooks.afterCreate) {
+          await hooks.afterCreate(entity);
+        }
+
+        set.status = 201;
+        return {
+          success: true,
+          data: entity,
+        };
+      } catch (error) {
+        set.status = 400;
+        return {
+          success: false,
+          error: {
+            code: "CREATE_FAILED",
+            message: error instanceof Error ? error.message : "Failed to create",
+          },
+        };
+      }
+    }, {
+      body: createSchema,
+    })
+
+    /**
+     * Update entity
+     */
+    .put("/:id", async ({ params, body, set }) => {
+      const existing = await service.findById(params.id);
+
+      if (!existing) {
+        set.status = 404;
+        return {
+          success: false,
+          error: {
+            code: "NOT_FOUND",
+            message: `${entityName} not found`,
+          },
+        };
+      }
+
+      try {
+        let updateData = body as UpdateDTO;
+
+        if (hooks.beforeUpdate) {
+          updateData = await hooks.beforeUpdate(params.id, updateData);
+        }
+
+        const entity = await service.update(params.id, updateData);
+
+        if (entity && hooks.afterUpdate) {
+          await hooks.afterUpdate(entity);
+        }
+
+        return {
+          success: true,
+          data: entity,
+        };
+      } catch (error) {
+        set.status = 400;
+        return {
+          success: false,
+          error: {
+            code: "UPDATE_FAILED",
+            message: error instanceof Error ? error.message : "Failed to update",
+          },
+        };
+      }
+    }, {
+      params: t.Object({
+        id: t.String(),
+      }),
+      body: updateSchema,
+    })
+
+    /**
+     * Partial update entity
+     */
+    .patch("/:id", async ({ params, body, set }) => {
+      const existing = await service.findById(params.id);
+
+      if (!existing) {
+        set.status = 404;
+        return {
+          success: false,
+          error: {
+            code: "NOT_FOUND",
+            message: `${entityName} not found`,
+          },
+        };
+      }
+
+      try {
+        let updateData = body as UpdateDTO;
+
+        if (hooks.beforeUpdate) {
+          updateData = await hooks.beforeUpdate(params.id, updateData);
+        }
+
+        const entity = await service.update(params.id, updateData);
+
+        if (entity && hooks.afterUpdate) {
+          await hooks.afterUpdate(entity);
+        }
+
+        return {
+          success: true,
+          data: entity,
+        };
+      } catch (error) {
+        set.status = 400;
+        return {
+          success: false,
+          error: {
+            code: "UPDATE_FAILED",
+            message: error instanceof Error ? error.message : "Failed to update",
+          },
+        };
+      }
+    }, {
+      params: t.Object({
+        id: t.String(),
+      }),
+      body: t.Partial(updateSchema),
+    })
+
+    /**
+     * Delete entity
+     */
+    .delete("/:id", async ({ params, set }) => {
+      const existing = await service.findById(params.id);
+
+      if (!existing) {
+        set.status = 404;
+        return {
+          success: false,
+          error: {
+            code: "NOT_FOUND",
+            message: `${entityName} not found`,
+          },
+        };
+      }
+
+      try {
+        if (hooks.beforeDelete) {
+          await hooks.beforeDelete(params.id);
+        }
+
+        await service.delete(params.id);
+
+        if (hooks.afterDelete) {
+          await hooks.afterDelete(params.id);
+        }
+
+        return {
+          success: true,
+          message: `${entityName} deleted successfully`,
+        };
+      } catch (error) {
+        set.status = 400;
+        return {
+          success: false,
+          error: {
+            code: "DELETE_FAILED",
+            message: error instanceof Error ? error.message : "Failed to delete",
+          },
+        };
+      }
+    }, {
+      params: t.Object({
+        id: t.String(),
+      }),
+    });
+};
+
+/* USAGE:
+
+import { Elysia, t } from "elysia";
+import { createCrudRoutes, CrudService, BaseEntity } from "./routes/crud";
+
+// Define your entity
+interface User extends BaseEntity {
+  email: string;
+  name: string;
+}
+
+interface CreateUserDTO {
+  email: string;
+  name: string;
+}
+
+interface UpdateUserDTO {
+  email?: string;
+  name?: string;
+}
+
+// Define schemas
+const UserSchema = t.Object({
+  id: t.String(),
+  email: t.String(),
+  name: t.String(),
+  createdAt: t.String(),
+  updatedAt: t.String(),
+});
+
+const CreateUserSchema = t.Object({
+  email: t.String({ format: "email" }),
+  name: t.String({ minLength: 2 }),
+});
+
+const UpdateUserSchema = t.Object({
+  email: t.Optional(t.String({ format: "email" })),
+  name: t.Optional(t.String({ minLength: 2 })),
+});
+
+// Implement service (example with in-memory store)
+const users = new Map<string, User>();
+
+const userService: CrudService<User, CreateUserDTO, UpdateUserDTO> = {
+  findAll: async ({ page, perPage }) => {
+    const all = Array.from(users.values());
+    const start = (page - 1) * perPage;
+    return {
+      data: all.slice(start, start + perPage),
+      total: all.length,
+    };
+  },
+  findById: async (id) => users.get(id) ?? null,
+  create: async (data) => {
+    const user: User = {
+      id: crypto.randomUUID(),
+      ...data,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    users.set(user.id, user);
+    return user;
+  },
+  update: async (id, data) => {
+    const user = users.get(id);
+    if (!user) return null;
+    const updated = { ...user, ...data, updatedAt: new Date().toISOString() };
+    users.set(id, updated);
+    return updated;
+  },
+  delete: async (id) => users.delete(id),
+};
+
+// Create routes
+const app = new Elysia()
+  .use(createCrudRoutes({
+    prefix: "/users",
+    entityName: "User",
+    entitySchema: UserSchema,
+    createSchema: CreateUserSchema,
+    updateSchema: UpdateUserSchema,
+    service: userService,
+    hooks: {
+      afterCreate: async (user) => {
+        console.log("User created:", user.id);
+      },
+    },
+  }))
+  .listen(3000);
+
+// Endpoints:
+// GET    /users         - List with pagination
+// GET    /users/:id     - Get by ID
+// POST   /users         - Create
+// PUT    /users/:id     - Full update
+// PATCH  /users/:id     - Partial update
+// DELETE /users/:id     - Delete
+
+*/

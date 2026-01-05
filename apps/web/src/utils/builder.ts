@@ -1,10 +1,10 @@
-import type { TemplateRegistry } from "@/types/builder";
+import type { TemplateRegistry } from "@repo/schemas";
 
 export const getFeaturesByType = (
   registry: TemplateRegistry,
   type?: string,
 ) => {
-  return registry.features.filter((f) => {
+  return (registry.features || []).filter((f) => {
     if (type === "other") return !f.featureType;
     return f.featureType === type;
   });

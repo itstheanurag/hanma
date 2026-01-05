@@ -1,54 +1,18 @@
-export interface TemplateFile {
-  path: string;
-  content: string;
-}
+/**
+ * CLI-specific template types
+ *
+ * These extend or complement the shared types from @repo/schemas
+ */
 
-export interface TemplateBlock {
-  name: string;
-  category: string;
-  description: string;
-  framework?: string;
-  version?: string;
-  dependencies?: string[];
-  devDependencies?: string[];
-  scripts?: Record<string, string>;
-  envVars?: string[];
-  files: TemplateFile[];
-  featureType?:
-    | "mailer"
-    | "upload"
-    | "cache"
-    | "queue"
-    | "logging"
-    | "monitoring"
-    | "tooling";
-}
+import type { TemplateFile, TemplateBlock, ModuleBlock } from "@repo/schemas";
 
-export interface TemplateRegistry {
-  base: TemplateBlock[];
-  features?: TemplateBlock[];
-  presets?: TemplateBlock[];
-  extra?: TemplateBlock[];
-}
+// Re-export shared types for convenience
+export type { TemplateFile, TemplateBlock, ModuleBlock } from "@repo/schemas";
 
-export interface ModuleBlock {
-  name: string;
-  description: string;
-  category: string;
-  framework?: string;
-  version?: string;
-  dependencies: string[];
-  devDependencies: string[];
-  scripts?: Record<string, string>;
-  envVars?: string[];
-  files: TemplateFile[];
-}
-
-export interface ModulesRegistry {
-  categories: string[];
-  modules: Record<string, ModuleBlock[]>;
-}
-
+/**
+ * Collected data from processing template/module blocks
+ * Used during project scaffolding
+ */
 export interface CollectedBlockData {
   files: TemplateFile[];
   dependencies: Record<string, string>;

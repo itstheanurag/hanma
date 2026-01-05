@@ -1,18 +1,11 @@
-export interface TemplateBlock {
-  name: string;
-  category: string;
-  description: string;
-  framework?: string;
-  featureType?: string;
-}
+/**
+ * Re-export shared types from @repo/schemas
+ */
+export type { TemplateBlock, TemplateRegistry } from "@repo/schemas";
 
-export interface TemplateRegistry {
-  base: TemplateBlock[];
-  database: TemplateBlock[];
-  auth: TemplateBlock[];
-  features: TemplateBlock[];
-  presets: TemplateBlock[];
-}
+/**
+ * Web-specific builder UI types
+ */
 
 export interface TerminalDockProps {
   projectName: string;

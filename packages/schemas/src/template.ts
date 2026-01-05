@@ -1,9 +1,19 @@
 import { z } from "zod";
 
-// Template Block Schema (for _meta.yaml files)
+/**
+ * Schema for a file within a template or module
+ */
+export const templateFileSchema = z.object({
+  path: z.string(),
+  content: z.string(),
+});
+
+/**
+ * Schema for template blocks (base, database, auth, features, etc.)
+ */
 export const templateBlockSchema = z.object({
   name: z.string(),
-  category: z.enum(["base", "database", "auth", "feature", "preset", "extra"]),
+  category: z.string(), // Flexible: "base", "database", "auth", "feature", "mailer", "upload", etc.
   description: z.string(),
   framework: z.string().optional(),
   version: z.string().optional(),
@@ -11,7 +21,7 @@ export const templateBlockSchema = z.object({
   devDependencies: z.array(z.string()).optional(),
   scripts: z.record(z.string()).optional(),
   envVars: z.array(z.string()).optional(),
-  // Feature-specific fields
+  files: z.array(templateFileSchema).optional(),
   featureType: z
     .enum([
       "mailer",
@@ -31,7 +41,6 @@ export const templateBlockSchema = z.object({
       }),
     )
     .optional(),
-  // Include snippets from snippets directory
   includes: z
     .array(
       z.object({
@@ -42,15 +51,29 @@ export const templateBlockSchema = z.object({
     .optional(),
 });
 
-// Template Registry (available blocks by category)
+/**
+ * Schema for the template registry structure
+ */
 export const templateRegistrySchema = z.object({
   base: z.array(templateBlockSchema),
-  database: z.array(templateBlockSchema),
-  auth: z.array(templateBlockSchema),
+  database: z.array(templateBlockSchema).optional(),
+  auth: z.array(templateBlockSchema).optional(),
   features: z.array(templateBlockSchema).optional(),
   presets: z.array(templateBlockSchema).optional(),
   extra: z.array(templateBlockSchema).optional(),
 });
 
+/**
+ * A file within a template or module
+ */
+export type TemplateFile = z.infer<typeof templateFileSchema>;
+
+/**
+ * A template block (base, feature, preset, etc.)
+ */
 export type TemplateBlock = z.infer<typeof templateBlockSchema>;
+
+/**
+ * The template registry structure
+ */
 export type TemplateRegistry = z.infer<typeof templateRegistrySchema>;

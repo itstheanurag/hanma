@@ -1,4 +1,5 @@
-import { registrySchema } from "../schemas/registry";
+import { registrySchema } from "@repo/schemas";
+
 import { REGISTRY_URL, TEMPLATES_URL, MODULES_URL } from "../constants";
 import { Registry, TemplateRegistry, ModulesRegistry } from "../types";
 

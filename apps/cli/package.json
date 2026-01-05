@@ -22,13 +22,13 @@
     "README.md"
   ],
   "dependencies": {
+    "@repo/schemas": "workspace:*",
     "chalk": "^5.3.0",
     "commander": "^11.1.0",
     "execa": "^9.6.1",
     "fs-extra": "^11.3.2",
     "ora": "^7.0.1",
-    "prompts": "^2.4.2",
-    "zod": "^3.22.4"
+    "prompts": "^2.4.2"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:^",

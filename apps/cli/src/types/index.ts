@@ -1,10 +1,11 @@
 /**
- * Re-export shared types from @repo/schemas
+ * CLI Types
+ *
+ * Re-exports Zod schemas and CLI-specific types
  */
-export * from "@repo/schemas";
 
-/**
- * CLI-specific types that extend or complement the shared schemas
- */
+// Export inlined schemas (no external @repo/schemas dependency)
+export * from "./schemas";
+
+// CLI-specific types
 export * from "./template";
-

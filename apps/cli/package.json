@@ -1,6 +1,6 @@
 {
   "name": "hanma",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "CLI to download backend snippets",
   "type": "module",
   "main": "./dist/index.js",
@@ -22,12 +22,12 @@
     "README.md"
   ],
   "dependencies": {
-    "@repo/schemas": "workspace:*",
     "chalk": "^5.3.0",
     "commander": "^11.1.0",
     "fs-extra": "^11.3.2",
     "ora": "^7.0.1",
-    "prompts": "^2.4.2"
+    "prompts": "^2.4.2",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:^",

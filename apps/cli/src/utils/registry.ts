@@ -29,12 +29,23 @@ async function fetchRegistryData<T>(
   return result.data as T;
 }
 
-export async function fetchFrameworks(): Promise<string[]> {
-  const res = await fetch(`${REGISTRY_URL}/index.json`);
-  if (!res.ok) {
-    throw new Error(`Failed to fetch frameworks index: ${res.statusText}`);
-  }
-  return (await res.json()) as string[];
+/**
+ * Get frameworks that actually have templates available.
+ * This derives frameworks from the templates registry instead of a static index.
+ */
+export async function fetchAvailableFrameworks(): Promise<string[]> {
+  const res = await fetch(`${TEMPLATES_URL}/index.json`);
+  if (!res.ok) return [];
+
+  const registry = (await res.json()) as TemplateRegistry;
+  const frameworks = new Set<string>();
+
+  // Extract unique frameworks from base templates
+  registry.base?.forEach((t) => {
+    if (t.framework) frameworks.add(t.framework);
+  });
+
+  return Array.from(frameworks);
 }
 
 export async function fetchRegistry(framework: string): Promise<Registry> {

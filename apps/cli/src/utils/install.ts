@@ -1,4 +1,4 @@
-import { execa } from "execa";
+import { spawn } from "child_process";
 import { getUserPkgManager } from "./get-user-pkg-manager";
 
 export async function installDependencies(
@@ -9,11 +9,15 @@ export async function installDependencies(
 
   const pkgManager = getUserPkgManager();
   const args = [pkgManager === "npm" ? "install" : "add", ...dependencies];
-  if (dev) {
-    args.push("-D");
-  }
+  if (dev) args.push("-D");
 
-  await execa(pkgManager, args, { stdio: "inherit" });
+  return new Promise<void>((resolve, reject) => {
+    const child = spawn(pkgManager, args, { stdio: "inherit", shell: true });
+    child.on("close", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`Install failed with code ${code}`));
+    });
+  });
 }
 
 /**

@@ -2,7 +2,7 @@ import chalk from "chalk";
 import ora from "ora";
 import fs from "fs-extra";
 import path from "path";
-import { fetchFrameworks } from "./registry";
+import { fetchAvailableFrameworks } from "./registry";
 import { promptFramework } from "../helpers";
 
 /**
@@ -24,7 +24,7 @@ export async function fetchFrameworkWithPrompt(
   let frameworks: string[] = [];
 
   try {
-    frameworks = await fetchFrameworks();
+    frameworks = await fetchAvailableFrameworks();
     spinner.succeed("Frameworks fetched");
   } catch (error) {
     spinner.fail("Failed to fetch frameworks");

@@ -22,10 +22,6 @@ import {
   createShowSubcommand,
 } from "../helpers";
 
-// ============================================================================
-// Snippets Subcommand (requires framework selection)
-// ============================================================================
-
 const showSnippets = new Command()
   .name("snippets")
   .description("Show available snippets for a framework")
@@ -89,8 +85,8 @@ const showSnippets = new Command()
       if (options.json) {
         console.log(JSON.stringify(snippets, null, 2));
       } else {
-        console.log();
         console.log(
+          "\n",
           chalk.bold.hex("#ea580c")(
             `Snippets for ${selectedFramework.charAt(0).toUpperCase() + selectedFramework.slice(1)}`,
           ),
@@ -99,10 +95,6 @@ const showSnippets = new Command()
       }
     }
   });
-
-// ============================================================================
-// Templates Subcommand (requires framework selection)
-// ============================================================================
 
 const showTemplates = new Command()
   .name("templates")
@@ -168,10 +160,6 @@ const showTemplates = new Command()
     }
   });
 
-// ============================================================================
-// Tooling Subcommand (using factory - no framework needed)
-// ============================================================================
-
 const showTooling = createShowSubcommand({
   name: "tooling",
   description: "Show available tooling configurations",
@@ -180,10 +168,6 @@ const showTooling = createShowSubcommand({
   headerTitle: "Tooling Configurations",
 });
 
-// ============================================================================
-// Addons Subcommand (using factory - no framework needed)
-// ============================================================================
-
 const showAddons = createShowSubcommand({
   name: "addons",
   description: "Show available addons (cross-framework snippets)",
@@ -191,10 +175,6 @@ const showAddons = createShowSubcommand({
   fetchRegistry: fetchAddonsRegistry,
   headerTitle: "Addons (Cross-Framework Snippets)",
 });
-
-// ============================================================================
-// Modules Subcommand (special handling for categories)
-// ============================================================================
 
 const showModules = new Command()
   .name("modules")
@@ -245,11 +225,16 @@ const showModules = new Command()
       if (options.json) {
         console.log(JSON.stringify(module, null, 2));
       } else {
-        console.log();
-        console.log(chalk.bold.hex("#ea580c")(module.name));
-        console.log(chalk.dim(module.description));
-        console.log();
-        console.log(chalk.bold("Category:"), module.category);
+        console.log(
+          "\n",
+          chalk.bold.hex("#ea580c")(module.name),
+          "\n",
+          chalk.dim(module.description),
+          "\n",
+          chalk.bold("Category:"),
+          module.category,
+          "\n",
+        );
         if (module.framework) {
           console.log(chalk.bold("Framework:"), module.framework);
         }
@@ -278,10 +263,7 @@ const showModules = new Command()
       if (options.json) {
         console.log(JSON.stringify(registry, null, 2));
       } else {
-        console.log();
-        console.log(chalk.bold.hex("#ea580c")("Available Modules"));
-        console.log();
-
+        console.log("\n", chalk.bold.hex("#ea580c")("Available Modules"), "\n");
         for (const category of categoriesToShow) {
           const modules = registry.modules[category] || [];
           if (modules.length === 0) continue;

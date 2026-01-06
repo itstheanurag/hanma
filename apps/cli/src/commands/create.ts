@@ -4,17 +4,10 @@ import ora from "ora";
 import prompts from "prompts";
 import fs from "fs-extra";
 import path from "path";
-import {
-  TemplateBlock,
-  TemplateRegistry,
-  CollectedBlockData,
-  ModuleBlock,
-  ModulesRegistry,
-} from "../types";
+import { TemplateBlock, CollectedBlockData } from "../types";
 import {
   promptProjectName,
   promptBlockSelection,
-  promptMultiSelectFeatures,
   promptPackageManager,
   collectBlockData,
   writeProjectFiles,

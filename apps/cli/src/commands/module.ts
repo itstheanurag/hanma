@@ -2,7 +2,8 @@ import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
 import path from "path";
-import { ModuleBlock, ModulesRegistry } from "../types";
+import prompts from "prompts";
+import { ModuleBlock } from "../types";
 import {
   fetchModulesRegistry,
   getConfig,
@@ -146,7 +147,6 @@ export const module = new Command()
         process.exit(1);
       }
     } else {
-      const prompts = (await import("prompts")).default;
       const choices = categories.flatMap((cat) => {
         const mods =
           registry.modules[cat]?.filter(

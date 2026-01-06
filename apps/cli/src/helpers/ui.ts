@@ -1,5 +1,7 @@
 import prompts from "prompts";
+import chalk from "chalk";
 import { RegistryItem, TemplateBlock } from "../types";
+import { getInstalledPackageManagers, PackageManager } from "../utils";
 
 /**
  * Prompt for project name if not provided via CLI argument
@@ -219,23 +221,41 @@ export async function promptMultiSelectFeatures(
 }
 
 /**
- * Prompt for package manager selection
+ * Prompt for package manager selection - only shows installed package managers
  */
 export async function promptPackageManager(
   cliOption?: string,
 ): Promise<string | null> {
-  if (cliOption) return cliOption;
+  const installed = getInstalledPackageManagers();
+
+  // If CLI option provided, validate it's installed
+  if (cliOption) {
+    if (installed.includes(cliOption as PackageManager)) {
+      return cliOption;
+    }
+    console.log(
+      chalk.yellow(`⚠ ${cliOption} is not installed on your system.`),
+    );
+    // Fall through to prompt
+  }
+
+  if (installed.length === 0) {
+    console.log(
+      chalk.red(
+        "No package managers found. Please install npm, pnpm, yarn, or bun.",
+      ),
+    );
+    return null;
+  }
 
   const { pm } = await prompts({
     type: "select",
     name: "pm",
     message: "Select package manager:",
-    choices: [
-      { title: "npm", value: "npm" },
-      { title: "pnpm", value: "pnpm" },
-      { title: "yarn", value: "yarn" },
-      { title: "bun", value: "bun" },
-    ],
+    choices: installed.map((pm) => ({
+      title: pm,
+      value: pm,
+    })),
     initial: 0,
   });
 

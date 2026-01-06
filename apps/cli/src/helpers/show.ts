@@ -1,205 +1,77 @@
 import chalk from "chalk";
 import { RegistryItem, TemplateRegistry } from "../types";
+import { createBox, createTable, padEnd } from "./console";
 
 /**
  * Display snippets in a table format
  */
 export function displaySnippetsTable(snippets: RegistryItem[]): void {
-  // Group by category
-  const categories = new Map<string, RegistryItem[]>();
-  for (const snippet of snippets) {
-    const cat = snippet.category || "uncategorized";
-    if (!categories.has(cat)) {
-      categories.set(cat, []);
-    }
-    categories.get(cat)!.push(snippet);
-  }
-
-  // Calculate column widths
-  const nameWidth = Math.max(
-    ...snippets.map((s) => s.name.length),
-    "Name".length,
-  );
-  const descWidth = Math.min(
-    Math.max(
-      ...snippets.map((s) => s.description.length),
-      "Description".length,
-    ),
-    50,
-  );
-  const catWidth = Math.max(
-    ...snippets.map((s) => (s.category || "uncategorized").length),
-    "Category".length,
-  );
-
-  // Header
   console.log();
-  console.log(
-    chalk.dim("┌") +
-      chalk.dim("─".repeat(nameWidth + 2)) +
-      chalk.dim("┬") +
-      chalk.dim("─".repeat(descWidth + 2)) +
-      chalk.dim("┬") +
-      chalk.dim("─".repeat(catWidth + 2)) +
-      chalk.dim("┐"),
-  );
-  console.log(
-    chalk.dim("│ ") +
-      chalk.bold("Name".padEnd(nameWidth)) +
-      chalk.dim(" │ ") +
-      chalk.bold("Description".padEnd(descWidth)) +
-      chalk.dim(" │ ") +
-      chalk.bold("Category".padEnd(catWidth)) +
-      chalk.dim(" │"),
-  );
-  console.log(
-    chalk.dim("├") +
-      chalk.dim("─".repeat(nameWidth + 2)) +
-      chalk.dim("┼") +
-      chalk.dim("─".repeat(descWidth + 2)) +
-      chalk.dim("┼") +
-      chalk.dim("─".repeat(catWidth + 2)) +
-      chalk.dim("┤"),
-  );
+  createTable({
+    columns: [
+      { key: "name", header: "Name", color: chalk.cyan },
+      { key: "description", header: "Description", maxWidth: 50 },
+      { key: "category", header: "Category", color: chalk.yellow },
+    ],
+    data: snippets.map((s) => ({
+      name: s.name,
+      description: s.description,
+      category: s.category || "uncategorized",
+    })),
+  }).forEach((line) => console.log(line));
 
-  // Rows
-  for (const snippet of snippets) {
-    const desc =
-      snippet.description.length > descWidth
-        ? snippet.description.slice(0, descWidth - 3) + "..."
-        : snippet.description;
-    const cat = snippet.category || "uncategorized";
-
-    console.log(
-      chalk.dim("│ ") +
-        chalk.cyan(snippet.name.padEnd(nameWidth)) +
-        chalk.dim(" │ ") +
-        desc.padEnd(descWidth) +
-        chalk.dim(" │ ") +
-        chalk.yellow(cat.padEnd(catWidth)) +
-        chalk.dim(" │"),
-    );
-  }
-
-  // Footer
-  console.log(
-    chalk.dim("└") +
-      chalk.dim("─".repeat(nameWidth + 2)) +
-      chalk.dim("┴") +
-      chalk.dim("─".repeat(descWidth + 2)) +
-      chalk.dim("┴") +
-      chalk.dim("─".repeat(catWidth + 2)) +
-      chalk.dim("┘"),
-  );
-  console.log();
-  console.log(chalk.dim(`  Total: ${snippets.length} snippets`));
-  console.log();
+  console.log("\n", chalk.dim(`  Total: ${snippets.length} snippets`), "\n");
 }
 
 /**
  * Display detailed info for a single snippet
  */
 export function displaySnippetDetails(snippet: RegistryItem): void {
-  console.log();
+  const box = createBox();
+
+  console.log("\n", box.top());
   console.log(
-    chalk.hex("#ea580c")("╔") +
-      chalk.hex("#ea580c")("═".repeat(68)) +
-      chalk.hex("#ea580c")("╗"),
-  );
-  console.log(
-    chalk.hex("#ea580c")("║  ") +
+    box.row(
       chalk.bold.white(snippet.name) +
-      chalk.dim(" - ") +
-      snippet.description.slice(0, 50).padEnd(50) +
-      chalk.hex("#ea580c")("  ║"),
+        chalk.dim(" - ") +
+        snippet.description.slice(0, 50),
+    ),
   );
-  console.log(
-    chalk.hex("#ea580c")("╠") +
-      chalk.hex("#ea580c")("═".repeat(68)) +
-      chalk.hex("#ea580c")("╣"),
-  );
+  console.log(box.divider());
 
-  // Details
-  const line = (label: string, value: string) => {
-    const content = `  ${chalk.dim(label.padEnd(14))} ${value}`;
-    const padding = 68 - label.length - value.length - 17;
-    console.log(
-      chalk.hex("#ea580c")("║") +
-        content +
-        " ".repeat(Math.max(0, padding)) +
-        chalk.hex("#ea580c")("║"),
-    );
-  };
+  // Basic info
+  console.log(box.labelValue("Category:", snippet.category || "uncategorized"));
+  console.log(box.labelValue("Framework:", snippet.framework || "unknown"));
+  console.log(box.labelValue("Version:", snippet.version || "latest"));
 
-  line("Category:", snippet.category || "uncategorized");
-  line("Framework:", snippet.framework || "unknown");
-  line("Version:", snippet.version || "latest");
-
+  // Dependencies
   if (snippet.dependencies && snippet.dependencies.length > 0) {
-    console.log(
-      chalk.hex("#ea580c")("║") + " ".repeat(68) + chalk.hex("#ea580c")("║"),
-    );
-    console.log(
-      chalk.hex("#ea580c")("║  ") +
-        chalk.dim("Dependencies:") +
-        " ".repeat(53) +
-        chalk.hex("#ea580c")("║"),
-    );
+    console.log(box.empty());
+    console.log(box.section("Dependencies:"));
     for (const dep of snippet.dependencies) {
-      console.log(
-        chalk.hex("#ea580c")("║    ") +
-          chalk.green("• " + dep) +
-          " ".repeat(Math.max(0, 62 - dep.length)) +
-          chalk.hex("#ea580c")("║"),
-      );
+      console.log(box.listItem(dep, chalk.green));
     }
   }
 
+  // Dev Dependencies
   if (snippet.devDependencies && snippet.devDependencies.length > 0) {
-    console.log(
-      chalk.hex("#ea580c")("║") + " ".repeat(68) + chalk.hex("#ea580c")("║"),
-    );
-    console.log(
-      chalk.hex("#ea580c")("║  ") +
-        chalk.dim("Dev Dependencies:") +
-        " ".repeat(49) +
-        chalk.hex("#ea580c")("║"),
-    );
+    console.log(box.empty());
+    console.log(box.section("Dev Dependencies:"));
     for (const dep of snippet.devDependencies) {
-      console.log(
-        chalk.hex("#ea580c")("║    ") +
-          chalk.blue("• " + dep) +
-          " ".repeat(Math.max(0, 62 - dep.length)) +
-          chalk.hex("#ea580c")("║"),
-      );
+      console.log(box.listItem(dep, chalk.blue));
     }
   }
 
+  // Files
   if (snippet.files && snippet.files.length > 0) {
-    console.log(
-      chalk.hex("#ea580c")("║") + " ".repeat(68) + chalk.hex("#ea580c")("║"),
-    );
-    console.log(
-      chalk.hex("#ea580c")("║  ") +
-        chalk.dim("Files:") +
-        " ".repeat(60) +
-        chalk.hex("#ea580c")("║"),
-    );
+    console.log(box.empty());
+    console.log(box.section("Files:"));
     for (const file of snippet.files) {
-      console.log(
-        chalk.hex("#ea580c")("║    ") +
-          chalk.cyan("• " + file.name) +
-          " ".repeat(Math.max(0, 62 - file.name.length)) +
-          chalk.hex("#ea580c")("║"),
-      );
+      console.log(box.listItem(file.name, chalk.cyan));
     }
   }
 
-  console.log(
-    chalk.hex("#ea580c")("╚") +
-      chalk.hex("#ea580c")("═".repeat(68)) +
-      chalk.hex("#ea580c")("╝"),
-  );
+  console.log(box.bottom());
   console.log();
 }
 
@@ -251,131 +123,63 @@ export function displayTemplateDetails(template: {
   envVars?: string[];
   files: { path: string }[];
 }): void {
-  console.log();
-  console.log(
-    chalk.hex("#ea580c")("╔") +
-      chalk.hex("#ea580c")("═".repeat(68)) +
-      chalk.hex("#ea580c")("╗"),
-  );
-  console.log(
-    chalk.hex("#ea580c")("║  ") +
-      chalk.bold.white(template.name) +
-      chalk.dim(" - ") +
-      template.description.slice(0, 45).padEnd(45) +
-      chalk.hex("#ea580c")("  ║"),
-  );
-  console.log(
-    chalk.hex("#ea580c")("╠") +
-      chalk.hex("#ea580c")("═".repeat(68)) +
-      chalk.hex("#ea580c")("╣"),
-  );
+  const box = createBox();
 
-  // Category
+  console.log();
+  console.log(box.top());
   console.log(
-    chalk.hex("#ea580c")("║  ") +
-      chalk.dim("Category:".padEnd(14)) +
-      template.category.padEnd(52) +
-      chalk.hex("#ea580c")("║"),
+    box.row(
+      chalk.bold.white(template.name) +
+        chalk.dim(" - ") +
+        template.description.slice(0, 45),
+    ),
   );
+  console.log(box.divider());
+  console.log(box.labelValue("Category:", template.category));
 
   // Files structure
   if (template.files && template.files.length > 0) {
-    console.log(
-      chalk.hex("#ea580c")("║") + " ".repeat(68) + chalk.hex("#ea580c")("║"),
-    );
-    console.log(
-      chalk.hex("#ea580c")("║  ") +
-        chalk.dim("Structure:") +
-        " ".repeat(56) +
-        chalk.hex("#ea580c")("║"),
-    );
+    console.log(box.empty());
+    console.log(box.section("Structure:"));
 
-    // Build simple tree
     const sortedFiles = template.files.map((f) => f.path).sort();
-
     for (const filePath of sortedFiles) {
       const indent = filePath.split("/").length - 1;
       const fileName = filePath.split("/").pop() || filePath;
       const isDir = filePath.endsWith("/");
       const icon = isDir ? "📁" : "📄";
-      const prefix = "    " + "  ".repeat(indent);
-      const display = `${prefix}${icon} ${fileName}`;
-      console.log(
-        chalk.hex("#ea580c")("║") +
-          display.padEnd(68) +
-          chalk.hex("#ea580c")("║"),
-      );
+      const display = "  ".repeat(indent) + icon + " " + fileName;
+      console.log(box.listItem(display, chalk.white, 0));
     }
   }
 
   // Dependencies
   if (template.dependencies && template.dependencies.length > 0) {
-    console.log(
-      chalk.hex("#ea580c")("║") + " ".repeat(68) + chalk.hex("#ea580c")("║"),
-    );
-    console.log(
-      chalk.hex("#ea580c")("║  ") +
-        chalk.dim("Dependencies:") +
-        " ".repeat(53) +
-        chalk.hex("#ea580c")("║"),
-    );
+    console.log(box.empty());
+    console.log(box.section("Dependencies:"));
     for (const dep of template.dependencies) {
-      console.log(
-        chalk.hex("#ea580c")("║    ") +
-          chalk.green("• " + dep) +
-          " ".repeat(Math.max(0, 62 - dep.length)) +
-          chalk.hex("#ea580c")("║"),
-      );
+      console.log(box.listItem(dep, chalk.green));
     }
   }
 
   // Dev Dependencies
   if (template.devDependencies && template.devDependencies.length > 0) {
-    console.log(
-      chalk.hex("#ea580c")("║") + " ".repeat(68) + chalk.hex("#ea580c")("║"),
-    );
-    console.log(
-      chalk.hex("#ea580c")("║  ") +
-        chalk.dim("Dev Dependencies:") +
-        " ".repeat(49) +
-        chalk.hex("#ea580c")("║"),
-    );
+    console.log(box.empty());
+    console.log(box.section("Dev Dependencies:"));
     for (const dep of template.devDependencies) {
-      console.log(
-        chalk.hex("#ea580c")("║    ") +
-          chalk.blue("• " + dep) +
-          " ".repeat(Math.max(0, 62 - dep.length)) +
-          chalk.hex("#ea580c")("║"),
-      );
+      console.log(box.listItem(dep, chalk.blue));
     }
   }
 
   // Scripts
   if (template.scripts && Object.keys(template.scripts).length > 0) {
-    console.log(
-      chalk.hex("#ea580c")("║") + " ".repeat(68) + chalk.hex("#ea580c")("║"),
-    );
-    console.log(
-      chalk.hex("#ea580c")("║  ") +
-        chalk.dim("Scripts:") +
-        " ".repeat(58) +
-        chalk.hex("#ea580c")("║"),
-    );
+    console.log(box.empty());
+    console.log(box.section("Scripts:"));
     for (const [name, cmd] of Object.entries(template.scripts)) {
-      const display = `• ${name}: ${cmd}`;
-      console.log(
-        chalk.hex("#ea580c")("║    ") +
-          chalk.magenta(display.slice(0, 62)) +
-          " ".repeat(Math.max(0, 62 - display.length)) +
-          chalk.hex("#ea580c")("║"),
-      );
+      console.log(box.listItem(`${name}: ${cmd}`, chalk.magenta));
     }
   }
 
-  console.log(
-    chalk.hex("#ea580c")("╚") +
-      chalk.hex("#ea580c")("═".repeat(68)) +
-      chalk.hex("#ea580c")("╝"),
-  );
+  console.log(box.bottom());
   console.log();
 }

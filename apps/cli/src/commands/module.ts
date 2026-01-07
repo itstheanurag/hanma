@@ -126,6 +126,16 @@ export const module = new Command()
     const categories = options.category
       ? [options.category]
       : registry.categories;
+
+    if (options.category && !registry.categories.includes(options.category)) {
+      console.log(
+        chalk.red(
+          `Category '${options.category}' not found. Available: ${registry.categories.join(", ")}`,
+        ),
+      );
+      process.exit(1);
+    }
+
     for (const cat of categories) {
       if (registry.modules[cat]) {
         allModules.push(

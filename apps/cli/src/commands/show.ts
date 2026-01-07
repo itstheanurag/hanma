@@ -187,7 +187,10 @@ const showModules = new Command()
     let registry: ModulesRegistry | null;
     try {
       registry = await fetchModulesRegistry();
-      if (!registry) throw new Error("Modules registry is empty");
+      if (!registry) {
+        registrySpinner.fail("Modules registry is empty");
+        process.exit(1);
+      }
       registrySpinner.succeed("Modules fetched");
     } catch (error) {
       registrySpinner.fail("Failed to fetch modules registry");

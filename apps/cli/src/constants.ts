@@ -39,4 +39,4 @@ export const DOCS_URL = process.env.HANMA_DOCS_URL || `${BASE_URL}/docs`;
 /**
  * CLI Version
  */
-export const VERSION = "0.3.2";
+export const VERSION = "0.3.3";

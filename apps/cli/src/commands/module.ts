@@ -24,6 +24,10 @@ async function installModule(
 
   // 1. Write files
   const writeSpinner = ora("Writing files...").start();
+  if (!module.files || module.files.length === 0) {
+    console.log(chalk.yellow("No files to write for this module."));
+    return;
+  }
   for (const file of module.files) {
     let targetPath: string;
     if (file.path.startsWith("src/")) {
@@ -122,6 +126,16 @@ export const module = new Command()
     const categories = options.category
       ? [options.category]
       : registry.categories;
+
+    if (options.category && !registry.categories.includes(options.category)) {
+      console.log(
+        chalk.red(
+          `Category '${options.category}' not found. Available: ${registry.categories.join(", ")}`,
+        ),
+      );
+      process.exit(1);
+    }
+
     for (const cat of categories) {
       if (registry.modules[cat]) {
         allModules.push(
@@ -175,6 +189,11 @@ export const module = new Command()
       });
       if (!selected) process.exit(0);
       selectedModule = selected;
+    }
+
+    if (!selectedModule) {
+      console.log(chalk.yellow("No module selected."));
+      process.exit(0);
     }
 
     await installModule(selectedModule!, options.path || config.componentsPath);

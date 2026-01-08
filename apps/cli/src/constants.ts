@@ -39,7 +39,7 @@ export const DOCS_URL = process.env.HANMA_DOCS_URL || `${BASE_URL}/docs`;
 /**
  * CLI Version
  */
-export const VERSION = "1.0.0";
+export const VERSION = "0.3.3";
 
 /**
  * Cache TTL (24 hours in milliseconds)

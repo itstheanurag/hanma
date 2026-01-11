@@ -10,6 +10,7 @@ import {
   addons,
   help,
   update,
+  sync,
 } from "./commands";
 import { VERSION } from "./constants";
 
@@ -28,6 +29,7 @@ program.addCommand(show);
 program.addCommand(tooling);
 program.addCommand(addons);
 program.addCommand(update);
+program.addCommand(sync);
 program.addCommand(help);
 
 program.parse();

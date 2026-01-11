@@ -40,3 +40,13 @@ export const DOCS_URL = process.env.HANMA_DOCS_URL || `${BASE_URL}/docs`;
  * CLI Version
  */
 export const VERSION = "0.3.3";
+
+/**
+ * Cache TTL (24 hours in milliseconds)
+ */
+export const CACHE_TTL = 24 * 60 * 60 * 1000;
+
+/**
+ * Bypass cache with environment variable
+ */
+export const BYPASS_CACHE = process.env.HANMA_NO_CACHE === "true";

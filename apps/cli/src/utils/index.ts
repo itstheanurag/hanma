@@ -5,3 +5,4 @@ export * from "./init-config";
 export * from "./get-user-pkg-manager";
 export * from "./pkg-manager-check";
 export * from "./shared";
+export * from "./cache";

@@ -7,3 +7,4 @@ export * from "./show";
 export * from "./tooling";
 export * from "./addons";
 export * from "./update";
+export * from "./sync";

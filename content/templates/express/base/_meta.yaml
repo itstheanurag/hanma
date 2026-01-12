@@ -16,12 +16,12 @@ includes:
     path: tsconfig.json
     
 dependencies:
-  - zod
+  - zod@^3.25.51
 
 devDependencies:
-  - typescript
-  - "@types/node"
-  - tsx
+  - typescript@^5.8.3
+  - "@types/node@^22.15.21"
+  - tsx@^4.21.0
 
 scripts:
   dev: "tsx watch src/index.ts"

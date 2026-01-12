@@ -12,12 +12,12 @@ includes:
     path: src/libs/cors.ts
 
 dependencies:
-  - helmet
-  - cors
-  - express-rate-limit
+  - helmet@^8.1.0
+  - cors@^2.8.5
+  - express-rate-limit@^7.7.0
 
 devDependencies:
-  - "@types/cors"
+  - "@types/cors@^2.8.18"
 
 envVars:
   - CORS_ORIGIN=http://localhost:3000

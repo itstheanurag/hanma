@@ -12,13 +12,13 @@ includes:
     path: tsconfig.json
     
 dependencies:
-  - elysia
-  - "@elysiajs/swagger"
-  - "@elysiajs/cors"
-  - zod
+  - elysia@^1.3.3
+  - "@elysiajs/swagger@^1.2.4"
+  - "@elysiajs/cors@^1.2.0"
+  - zod@^3.25.51
 
 devDependencies:
-  - bun-types
+  - bun-types@^1.2.17
 
 scripts:
   dev: "bun run --watch src/index.ts"

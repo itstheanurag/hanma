@@ -18,18 +18,17 @@ includes:
     path: src/middleware/compression.ts
 
 dependencies:
-  - helmet
-  - cors
-  - express-rate-limit
-  - sanitize-html
-  - compression
-  - uuid
+  - helmet@^8.1.0
+  - cors@^2.8.5
+  - express-rate-limit@^7.7.0
+  - sanitize-html@^2.17.0
+  - compression@^1.8.0
+  - uuid@^11.1.0
 
 devDependencies:
-  - "@types/cors"
-  - "@types/sanitize-html"
-  - "@types/compression"
-  - "@types/uuid"
+  - "@types/cors@^2.8.18"
+  - "@types/sanitize-html@^2.13.0"
+  - "@types/compression@^1.7.5"
 
 envVars:
   - CORS_ORIGIN=http://localhost:3000

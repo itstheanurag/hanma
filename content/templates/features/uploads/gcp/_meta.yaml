@@ -8,7 +8,7 @@ includes:
     path: src/libs/upload.ts
 
 dependencies:
-  - "@google-cloud/storage"
+  - "@google-cloud/storage@^7.17.0"
 
 envVars:
   - GCP_PROJECT_ID=

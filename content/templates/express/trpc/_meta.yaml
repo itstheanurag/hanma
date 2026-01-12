@@ -11,18 +11,18 @@ includes:
     path: tsconfig.json
 
 dependencies:
-  - express
-  - "@trpc/server"
-  - zod
-  - cors
-  - dotenv
+  - express@^5.1.0
+  - "@trpc/server@^11.3.0"
+  - zod@^3.25.51
+  - cors@^2.8.5
+  - dotenv@^16.5.0
 
 devDependencies:
-  - typescript
-  - "@types/node"
-  - "@types/express"
-  - "@types/cors"
-  - tsx
+  - typescript@^5.8.3
+  - "@types/node@^22.15.21"
+  - "@types/express@^5.0.3"
+  - "@types/cors@^2.8.18"
+  - tsx@^4.21.0
 
 scripts:
   dev: "tsx watch src/index.ts"

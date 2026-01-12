@@ -12,11 +12,11 @@ includes:
     path: tsconfig.json
     
 dependencies:
-  - hono
-  - zod
+  - hono@^4.7.11
+  - zod@^3.25.51
 
 devDependencies:
-  - bun-types
+  - bun-types@^1.2.17
 
 scripts:
   dev: "bun run --watch src/index.ts"

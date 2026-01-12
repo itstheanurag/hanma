@@ -8,10 +8,10 @@ includes:
     path: src/libs/mailer.ts
 
 dependencies:
-  - nodemailer
+  - nodemailer@^7.0.5
 
 devDependencies:
-  - "@types/nodemailer"
+  - "@types/nodemailer@^6.4.17"
 
 envVars:
   - SMTP_HOST=smtp.example.com

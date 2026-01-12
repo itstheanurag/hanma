@@ -8,7 +8,7 @@ includes:
     path: src/libs/mailer.ts
 
 dependencies:
-  - "@aws-sdk/client-ses"
+  - "@aws-sdk/client-ses@^3.810.0"
 
 envVars:
   - AWS_REGION=us-east-1

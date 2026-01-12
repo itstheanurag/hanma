@@ -8,7 +8,7 @@ includes:
     path: src/libs/upload.ts
 
 dependencies:
-  - cloudinary
+  - cloudinary@^2.6.0
 
 envVars:
   - CLOUDINARY_CLOUD_NAME=

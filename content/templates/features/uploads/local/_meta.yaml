@@ -9,10 +9,10 @@ includes:
     path: src/libs/upload.ts
 
 dependencies:
-  - multer
+  - multer@^1.4.5-lts.2
 
 devDependencies:
-  - "@types/multer"
+  - "@types/multer@^1.4.12"
 
 envVars:
   - UPLOAD_DIR=uploads

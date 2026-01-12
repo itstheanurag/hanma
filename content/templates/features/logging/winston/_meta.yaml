@@ -9,11 +9,11 @@ includes:
     path: src/libs/logger.ts
 
 dependencies:
-  - winston
-  - morgan
+  - winston@^3.17.0
+  - morgan@^1.10.0
 
 devDependencies:
-  - "@types/morgan"
+  - "@types/morgan@^1.9.9"
 
 envVars:
   - LOG_LEVEL=info

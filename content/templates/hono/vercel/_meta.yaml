@@ -12,14 +12,14 @@ includes:
     path: tsconfig.json
     
 dependencies:
-  - hono
-  - "@hono/vercel"
-  - zod
+  - hono@^4.7.11
+  - "@hono/vercel@^1.0.1"
+  - zod@^3.25.51
 
 devDependencies:
-  - typescript
-  - "@types/node"
-  - vercel
+  - typescript@^5.8.3
+  - "@types/node@^22.15.21"
+  - vercel@^44.1.0
 
 scripts:
   dev: "vercel dev"

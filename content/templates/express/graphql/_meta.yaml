@@ -11,18 +11,18 @@ includes:
     path: tsconfig.json
 
 dependencies:
-  - express
-  - "@apollo/server"
-  - graphql
-  - cors
-  - dotenv
+  - express@^5.1.0
+  - "@apollo/server@^4.12.2"
+  - graphql@^16.11.0
+  - cors@^2.8.5
+  - dotenv@^16.5.0
 
 devDependencies:
-  - typescript
-  - "@types/node"
-  - "@types/express"
-  - "@types/cors"
-  - tsx
+  - typescript@^5.8.3
+  - "@types/node@^22.15.21"
+  - "@types/express@^5.0.3"
+  - "@types/cors@^2.8.18"
+  - tsx@^4.21.0
 
 scripts:
   dev: "tsx watch src/index.ts"

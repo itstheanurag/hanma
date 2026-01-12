@@ -9,7 +9,7 @@ includes:
     path: src/libs/sentry.ts
 
 dependencies:
-  - "@sentry/node"
+  - "@sentry/node@^9.33.0"
 
 envVars:
   - SENTRY_DSN=

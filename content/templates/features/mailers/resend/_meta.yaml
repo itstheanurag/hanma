@@ -8,7 +8,7 @@ includes:
     path: src/libs/mailer.ts
 
 dependencies:
-  - resend
+  - resend@^4.7.0
 
 envVars:
   - RESEND_API_KEY=

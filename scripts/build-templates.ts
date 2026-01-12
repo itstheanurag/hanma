@@ -9,6 +9,7 @@ import {
   MODULES_DIR,
   DOCS_REGISTRY_DIR,
   parseSnippetFile,
+  normalizeDependencies,
 } from "./utils";
 
 const TEMPLATES_OUTPUT_DIR = path.join(
@@ -75,8 +76,8 @@ async function buildTemplateBlock(
     description: meta.description || "",
     framework: meta.framework,
     version: meta.version,
-    dependencies: [...(meta.dependencies || [])],
-    devDependencies: [...(meta.devDependencies || [])],
+    dependencies: normalizeDependencies(meta.dependencies),
+    devDependencies: normalizeDependencies(meta.devDependencies),
     scripts: meta.scripts,
     envVars: [...(meta.envVars || [])],
     files: [],
@@ -179,8 +180,12 @@ async function buildTemplateBlock(
       }
 
       // Merge module's own dependencies
-      if (moduleMeta.dependencies) {
-        for (const dep of moduleMeta.dependencies) {
+      const normalizedModuleDeps = normalizeDependencies(
+        moduleMeta.dependencies,
+      );
+      
+      if (normalizedModuleDeps.length > 0) {
+        for (const dep of normalizedModuleDeps) {
           if (!block.dependencies!.includes(dep)) block.dependencies!.push(dep);
         }
       }

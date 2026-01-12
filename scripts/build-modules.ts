@@ -8,6 +8,7 @@ import {
   SHARED_DIR,
   DOCS_REGISTRY_DIR,
   parseSnippetFile,
+  normalizeDependencies,
 } from "./utils";
 
 const MODULES_OUTPUT_DIR = path.join(
@@ -88,8 +89,8 @@ async function buildModuleBlock(
     category,
     framework: meta.framework,
     version: meta.version,
-    dependencies: [...(meta.dependencies || [])],
-    devDependencies: [...(meta.devDependencies || [])],
+    dependencies: normalizeDependencies(meta.dependencies),
+    devDependencies: normalizeDependencies(meta.devDependencies),
     scripts: meta.scripts,
     envVars: [...(meta.envVars || [])],
     files: [],

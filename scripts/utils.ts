@@ -43,6 +43,24 @@ export interface ParsedSnippet {
 }
 
 /**
+ * Normalizes dependencies from various formats (array or object) to string array
+ */
+export function normalizeDependencies(deps: any): string[] {
+  if (!deps) return [];
+  if (Array.isArray(deps)) return deps;
+  if (typeof deps === "object") {
+    return Object.entries(deps).map(([name, version]) => {
+      if (typeof version === "string" && version.length > 0) {
+        // If version already has @ or ^ prefix that's fine, but we need to join with @
+        return `${name}@${version}`;
+      }
+      return name;
+    });
+  }
+  return [];
+}
+
+/**
  * Parses a snippet .hbs file and extracts frontmatter + body
  */
 export async function parseSnippetFile(
@@ -67,6 +85,11 @@ export async function parseSnippetFile(
 
   try {
     const meta = yaml.load(metadataRaw) as SnippetMeta;
+
+    // Normalize dependencies
+    meta.dependencies = normalizeDependencies(meta.dependencies);
+    meta.devDependencies = normalizeDependencies(meta.devDependencies);
+
     return { meta, body: bodyContent };
   } catch (e) {
     console.error(`  ⚠ Error parsing snippet ${filePath}:`, e);

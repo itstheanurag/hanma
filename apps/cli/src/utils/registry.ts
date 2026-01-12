@@ -218,7 +218,6 @@ export async function refreshAllRegistries(): Promise<RefreshResult> {
   const taskDefinitions = [
     { name: "templates", fn: () => fetchTemplatesRegistry("", true) },
     { name: "modules", fn: () => fetchModulesRegistry(true) },
-    { name: "tooling", fn: () => fetchToolingRegistry(true) },
     { name: "addons", fn: () => fetchAddonsRegistry(true) },
     ...frameworks.map((f) => ({
       name: `registry-${f}`,

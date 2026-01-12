@@ -10,150 +10,153 @@ devDependencies:
 files:
   - name: libs/servers/trpc-server.ts
 ---
-import { initTRPC, TRPCError } from '@trpc/server';
-import { createExpressMiddleware } from '@trpc/server/adapters/express';
-import express from 'express';
-import { z } from 'zod';
+import { initTRPC, TRPCError } from "@trpc/server";
+import { createExpressMiddleware } from "@trpc/server/adapters/express";
+import express from "express";
+import { z } from "zod";
+import type { Server } from "http";
 
 /**
  * Context creation function
- * Called for each request, provides context to all procedures
  */
-const createContext = ({ req, res }: { req: express.Request; res: express.Response }) => {
-  // Extract user from auth header if present
-  // const token = req.headers.authorization?.split(' ')[1];
-  // const user = token ? verifyToken(token) : null;
-  
-  return {
-    req,
-    res,
-    // user,
-  };
+const createContext = ({
+  req,
+  res,
+}: {
+  req: express.Request;
+  res: express.Response;
+}) => {
+  return { req, res };
 };
 
 type Context = Awaited<ReturnType<typeof createContext>>;
 
 /**
- * Initialize tRPC with context
+ * Initialize tRPC
  */
 const t = initTRPC.context<Context>().create({
-  errorFormatter({ shape, error }) {
+  errorFormatter({ shape }) {
     return {
       ...shape,
       data: {
         ...shape.data,
-        // Add custom error data here
       },
     };
   },
 });
 
 /**
- * Reusable middleware
+ * Middleware
  */
 const isAuthenticated = t.middleware(({ ctx, next }) => {
-  // if (!ctx.user) {
-  //   throw new TRPCError({ code: 'UNAUTHORIZED' });
-  // }
-  return next({
-    ctx: {
-      ...ctx,
-      // user: ctx.user,
-    },
-  });
+  return next({ ctx });
 });
 
-/**
- * Procedure builders
- */
 export const router = t.router;
 export const publicProcedure = t.procedure;
 export const protectedProcedure = t.procedure.use(isAuthenticated);
 
 /**
- * Example router with procedures
+ * Router
  */
 const appRouter = router({
-  // Health check
   health: publicProcedure.query(() => ({
-    status: 'ok',
+    status: "ok",
     timestamp: new Date().toISOString(),
   })),
 
-  // Example public procedure
   hello: publicProcedure
     .input(z.object({ name: z.string().optional() }))
     .query(({ input }) => {
-      return { greeting: `Hello ${input.name || 'World'}!` };
+      return { greeting: `Hello ${input.name || "World"}!` };
     }),
 
-  // Example mutation
   createItem: publicProcedure
-    .input(z.object({
-      title: z.string().min(1).max(100),
-      description: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        title: z.string().min(1).max(100),
+        description: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
-      // Save to database
-      const item = {
+      return {
         id: Math.random().toString(36).slice(2),
         ...input,
         createdAt: new Date(),
       };
-      return item;
     }),
 
-  // Nested routers
   user: router({
     list: publicProcedure.query(() => {
-      return [{ id: '1', name: 'John' }];
+      return [{ id: "1", name: "John" }];
     }),
     byId: publicProcedure
       .input(z.object({ id: z.string() }))
       .query(({ input }) => {
-        return { id: input.id, name: 'John' };
+        return { id: input.id, name: "John" };
       }),
   }),
 });
 
-/**
- * Export type for client usage
- */
 export type AppRouter = typeof appRouter;
 
 /**
- * Create and start tRPC server with Express
+ * ===== SERVER LIFECYCLE STATE =====
  */
-export const createTRPCServer = (port = 4000) => {
+let httpServer: Server | null = null;
+let shuttingDown = false;
+
+/**
+ * Create and start server
+ */
+export const startTRPCServer = (port = 4000) => {
   const app = express();
 
-  // Health check endpoint
-  app.get('/health', (_req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  app.get("/health", (_req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
-  // tRPC middleware
   app.use(
-    '/trpc',
+    "/trpc",
     createExpressMiddleware({
       router: appRouter,
       createContext,
       onError({ error, path }) {
         console.error(`[ERROR] tRPC error on ${path}:`, error.message);
       },
-    })
+    }),
   );
 
-  const server = app.listen(port, () => {
+  httpServer = app.listen(port, () => {
     console.log(`tRPC server running at http://localhost:${port}/trpc`);
   });
 
-  return { app, server, router: appRouter };
+  return { app, server: httpServer, router: appRouter };
 };
 
 /**
- * Start the server
+ * Graceful shutdown exported from THIS file
  */
-if (require.main === module) {
-  createTRPCServer();
+export async function shutdownTRPCServer(signal: string) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+
+  console.log(`🧹 tRPC shutting down due to ${signal}`);
+
+  if (!httpServer) {
+    process.exit(0);
+  }
+
+  await new Promise<void>((resolve) => {
+    httpServer!.close((err) => {
+      if (err) {
+        console.error("Error closing server:", err);
+      } else {
+        console.log("🚪 HTTP server closed");
+      }
+      resolve();
+    });
+  });
+
+  process.exit(0);
 }

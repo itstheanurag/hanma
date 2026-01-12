@@ -12,6 +12,26 @@ interface CacheMeta {
 }
 
 /**
+ * Simple mutex for serializing metadata writes
+ */
+let metaLock: Promise<void> = Promise.resolve();
+
+async function withMetaLock<T>(fn: () => Promise<T>): Promise<T> {
+  // Chain onto the existing lock
+  const currentLock = metaLock;
+  let resolve: () => void;
+  metaLock = new Promise((r) => (resolve = r));
+
+  try {
+    // Wait for previous operation to complete
+    await currentLock;
+    return await fn();
+  } finally {
+    resolve!();
+  }
+}
+
+/**
  * Get the cache directory path based on platform
  */
 export function getCacheDir(): string {
@@ -47,10 +67,21 @@ function getMetaPath(): string {
  */
 async function readMeta(): Promise<CacheMeta> {
   const metaPath = getMetaPath();
-  if (await fs.pathExists(metaPath)) {
-    return fs.readJSON(metaPath);
+  const defaultMeta: CacheMeta = { version: "1.0", lastUpdate: 0, entries: {} };
+
+  if (!(await fs.pathExists(metaPath))) {
+    return defaultMeta;
   }
-  return { version: "1.0", lastUpdate: 0, entries: {} };
+
+  try {
+    return await fs.readJSON(metaPath);
+  } catch (error) {
+    // If JSON is corrupted, return default and log warning in dev
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Cache metadata corrupted, resetting...");
+    }
+    return defaultMeta;
+  }
 }
 
 /**
@@ -113,17 +144,19 @@ export async function writeCache<T>(key: string, data: T): Promise<void> {
   await fs.ensureDir(getCacheDir());
   await fs.writeJSON(cachePath, data);
 
-  // Update metadata
-  const meta = await readMeta();
-  const stat = await fs.stat(cachePath);
+  // Update metadata with lock to prevent race conditions
+  await withMetaLock(async () => {
+    const meta = await readMeta();
+    const stat = await fs.stat(cachePath);
 
-  meta.lastUpdate = Date.now();
-  meta.entries[key] = {
-    timestamp: Date.now(),
-    size: stat.size,
-  };
+    meta.lastUpdate = Date.now();
+    meta.entries[key] = {
+      timestamp: Date.now(),
+      size: stat.size,
+    };
 
-  await writeMeta(meta);
+    await writeMeta(meta);
+  });
 }
 
 /**

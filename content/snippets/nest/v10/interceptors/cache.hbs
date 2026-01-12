@@ -2,9 +2,10 @@
 name: cache-interceptor
 description: Response caching interceptor with TTL control and cache key generation
 dependencies:
-  - "@nestjs/cache-manager"
-  - "cache-manager"
-devDependencies: []
+  - "@nestjs/cache-manager@^2.3.0"
+  - "cache-manager@^5.7.0"
+devDependencies:
+  - "@types/cache-manager@^4.0.6"
 files:
   - name: interceptors/cache.interceptor.ts
 ---

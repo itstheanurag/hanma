@@ -2,8 +2,10 @@
 name: serialize-interceptor
 description: Response serialization interceptor using class-transformer for DTOs
 dependencies:
-  - "class-transformer"
-devDependencies: []
+  - "class-transformer@^0.5.1"
+  - "class-validator@^0.14.1"
+devDependencies:
+  - "@types/node@^22.10.5"
 files:
   - name: interceptors/serialize.interceptor.ts
 ---

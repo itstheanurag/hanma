@@ -6,12 +6,15 @@ A monorepo for sharing backend code snippets, modules, and templates across fram
 
 ```
 hanma/
+├── content/              # Source of truth for all shareable code
+│   ├── snippets/         # Atomic code pieces
+│   ├── modules/          # Feature bundles
+│   ├── shared/           # Cross-framework addons
+│   ├── templates/        # Project starters
+│   └── tooling/          # Dev tool configs
+│
 ├── apps/
 │   ├── cli/              # CLI tool (published to npm as 'hanma')
-│   │   ├── content/      # Source of truth for all shareable code
-│   │   │   ├── snippets/ # Atomic code pieces
-│   │   │   ├── modules/  # Feature bundles
-│   │   │   └── templates/# Project starters
 │   │   └── src/          # CLI source code
 │   │
 │   └── web/              # Website (deployed to cloud)
@@ -36,7 +39,7 @@ hanma/
 ```mermaid
 flowchart LR
     subgraph "Build Time"
-        A[apps/cli/content/] -->|scripts/build-*.ts| B[apps/web/public/registry/]
+        A[content/] -->|scripts/build-*.ts| B[apps/web/public/registry/]
     end
     
     subgraph "Production"
@@ -48,14 +51,14 @@ flowchart LR
     end
 ```
 
-### 1. Content Lives in CLI
+### 1. Content Lives at Root
 
-All snippets, modules, and templates are authored in `apps/cli/content/`. This keeps the source of truth in one place.
+All snippets, modules, and templates are authored in `content/`. This keeps the source of truth in one place and decoupled from the CLI.
 
 ### 2. Build Scripts Generate Registry
 
 The `scripts/` folder contains build scripts that:
-- Read `.hbs` files from `apps/cli/content/`
+- Read `.hbs` files from `content/`
 - Parse YAML frontmatter and code
 - Output JSON files to `apps/web/public/`
 
@@ -79,21 +82,21 @@ When users run `hanma add <snippet>`, the CLI fetches from the deployed web regi
 Individual code files with YAML frontmatter:
 
 ```
-apps/cli/content/snippets/<framework>/<version>/<category>/<name>.hbs
+content/snippets/<framework>/<version>/<category>/<name>.hbs
 ```
 
 ### Modules
 Feature bundles that reference multiple snippets:
 
 ```
-apps/cli/content/modules/<framework>/<version>/<feature>/_meta.yaml
+content/modules/<framework>/<version>/<feature>/_meta.yaml
 ```
 
 ### Templates
 Project starters that compose snippets/modules:
 
 ```
-apps/cli/content/templates/<category>/<variant>/_meta.yaml
+content/templates/<category>/<variant>/_meta.yaml
 ```
 
 ## Deployment
@@ -118,3 +121,4 @@ cd apps/web && pnpm build
 cd apps/cli && pnpm build
 npm publish
 ```
+

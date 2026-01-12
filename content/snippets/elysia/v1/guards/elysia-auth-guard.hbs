@@ -1,12 +1,16 @@
 ---
 name: elysia-auth-guard
 description: JWT authentication guard with type-safe user context injection
+
 dependencies:
-  - "@elysiajs/jwt"
+  "@elysiajs/jwt": "^1.0.0"
+
 devDependencies: []
+
 files:
   - name: src/guards/auth.ts
 ---
+
 import { Elysia, t } from "elysia";
 import { jwt } from "@elysiajs/jwt";
 

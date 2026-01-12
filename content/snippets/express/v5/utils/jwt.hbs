@@ -1,14 +1,18 @@
 ---
 name: jwt-utils
 description: JWT utility functions for signing and verifying tokens
+
 dependencies:
-  - "jsonwebtoken@^9.0.2"
+  "jsonwebtoken": "^9.0.2"
+
 devDependencies:
-  - "@types/jsonwebtoken@^9.0.7"
-  - "@types/node@^22.10.5"
+  "@types/jsonwebtoken": "^9.0.7"
+  "@types/node": "^22.10.5"
+
 files:
   - name: utils/jwt.ts
 ---
+
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'changeme-in-production';

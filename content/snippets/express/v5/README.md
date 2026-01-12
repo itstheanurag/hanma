@@ -476,9 +476,7 @@ Each snippet is a Handlebars template (`.hbs`) with YAML frontmatter containing:
 ---
 name: snippet-name
 description: Brief description
-dependencies:
   - runtime-dependency
-devDependencies:
   - dev-dependency
 files:
   - name: output/path.ts

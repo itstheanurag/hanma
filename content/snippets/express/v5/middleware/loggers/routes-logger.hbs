@@ -1,12 +1,16 @@
 ---
 name: routes-logger
 description: Utility to log all registered Express routes on startup
+
 dependencies: []
+
 devDependencies:
-  - "@types/express"
+  "@types/express": "^5.0.0"
+
 files:
   - name: middleware/routes-logger.ts
 ---
+
 import type { Express } from "express";
 
 /** Normalize and clean Express regex paths */

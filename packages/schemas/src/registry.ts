@@ -8,8 +8,8 @@ export const registryItemSchema = z.object({
   description: z.string(),
   type: z.enum(["snippet", "module", "addon", "tooling"]).default("snippet"),
   category: z.string().optional(),
-  dependencies: z.array(z.string()).optional(),
-  devDependencies: z.array(z.string()).optional(),
+  dependencies: z.array(z.string()).nullish(),
+  devDependencies: z.array(z.string()).nullish(),
   files: z.array(
     z.object({
       name: z.string(),

@@ -7,8 +7,8 @@
  * - HANMA_BASE_URL: Override both (if specific URLs not set)
  */
 
-const PRODUCTION_BASE_URL = "https://hanma-a2n.pages.dev";
-// const PRODUCTION_BASE_URL = "http://localhost:5173";
+// const PRODUCTION_BASE_URL = "https://hanma-a2n.pages.dev";
+const PRODUCTION_BASE_URL = "http://localhost:5173";
 
 // Default to production, only use local if explicitly in dev mode
 const BASE_URL = process.env.HANMA_BASE_URL || PRODUCTION_BASE_URL;

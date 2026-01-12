@@ -1,14 +1,18 @@
 ---
 name: sanitize-input
 description: Input sanitization middleware to prevent XSS attacks
+
 dependencies:
-  - sanitize-html@^2.14.0
+  "sanitize-html": "^2.14.0"
+
 devDependencies:
-  - "@types/sanitize-html@^2.13.0"
-  - "@types/express@^5.0.0"
+  "@types/sanitize-html": "^2.13.0"
+  "@types/express": "^5.0.0"
+
 files:
   - name: middleware/security/sanitize.ts
 ---
+
 import { Request, Response, NextFunction } from 'express';
 import sanitizeHtml from 'sanitize-html';
 

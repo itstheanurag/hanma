@@ -76,6 +76,11 @@ async function processDirectory(
       }
     }
 
+    // Cleanup empty dependencies to keep JSON clean
+    if (registryItem.dependencies === null) delete registryItem.dependencies;
+    if (registryItem.devDependencies === null)
+      delete registryItem.devDependencies;
+
     registry.push(registryItem);
   }
 

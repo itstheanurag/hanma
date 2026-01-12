@@ -13,7 +13,7 @@
 
 ---
 
-## ✨ What is Hanma?
+## What is Hanma?
 
 **Hanma** is a specialized CLI engine designed to eliminate the tedious "boilerplate phase" of backend development. Inspired by tools like shadcn/ui but built for the **server-side**, Hanma doesn't provide a library; it provides **source code**.
 
@@ -23,10 +23,11 @@
 - **Composable Architecture**: Mix and match templates. Need Express with Drizzle, Clerk Auth, and Socket.io? Hanma builds it for you.
 - **Framework Aware**: Hanma understands whether you're using Express, Hono, or Elysia and adapts the code it gives you accordingly.
 - **Production Grade**: Every snippet and module following industry best practices for security, types, and structure.
+- **Offline Aware & Faster**: Registry data is cached locally, allowing for instant lookups and fallback when offline.
 
 ---
 
-## 🏗️ Core Concepts
+## Core Concepts
 
 To get the most out of Hanma, it helps to understand the three types of code it provides:
 
@@ -44,7 +45,7 @@ The building blocks. Individual files or functions for specific tasks—CORS set
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Start the interactive project builder
@@ -56,11 +57,14 @@ npx hanma mod drizzle-postgres
 
 # Inject a specific utility snippet
 npx hanma add logger
+
+# Sync all registry metadata and verify cache
+npx hanma sync --info
 ```
 
 ---
 
-## 📖 Detailed Command Reference
+## Detailed Command Reference
 
 ### `create [name]`
 
@@ -97,6 +101,14 @@ The Discovery Engine. Browse the registry without leaving your terminal.
 - `hanma show modules`: See complex multi-file features.
 - `hanma show tooling`: Browse dev-tools configurations.
 
+### `sync`
+
+Registry & Cache Management. Keep your local registry metadata updated.
+
+- `hanma sync`: Refresh all registry metadata from the remote source.
+- `hanma sync --info`: View local cache statistics (size, files, last update).
+- `hanma sync --clear`: Wipe the local cache to force a fresh pull on next command.
+
 ### `update`
 
 Keep your CLI up to date.
@@ -111,7 +123,7 @@ hanma update
 
 ---
 
-## 📋 Compatibility Matrix
+## Compatibility Matrix
 
 Hanma is designed to grow. Here is the current state of support:
 
@@ -142,7 +154,7 @@ When you run `hanma init` or `hanma create`, a small configuration file is creat
 
 ---
 
-## 🌐 Documentation & Resources
+## Documentation & Resources
 
 - **Full Documentation**: [hanma-a2n.pages.dev/docs](https://hanma-a2n.pages.dev/docs)
 - **Code Patterns**: View the source of snippets at our [Web Registry](https://hanma-a2n.pages.dev/registry).
@@ -150,6 +162,6 @@ When you run `hanma init` or `hanma create`, a small configuration file is creat
 
 ---
 
-## 📄 License
+## License
 
 MIT © [Gaurav Kumar](https://github.com/itstheanurag)

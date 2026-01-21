@@ -1,41 +1,72 @@
-<!DOCTYPE html>
-<html lang="en" class="dark">
+<!doctype html>
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    
+
+    <!-- Theme Script - Prevent Flicker -->
+    <script>
+      (function () {
+        try {
+          const theme = localStorage.getItem("theme");
+          const supportDarkMode = window.matchMedia(
+            "(prefers-color-scheme: dark)",
+          ).matches;
+          if (theme === "dark" || (!theme && supportDarkMode)) {
+            document.documentElement.classList.add("dark");
+          } else {
+            document.documentElement.classList.remove("dark");
+          }
+        } catch (e) {}
+      })();
+    </script>
+
     <!-- Primary Meta Tags -->
     <title>Hanma | Copy-Paste Backend Snippets</title>
     <meta name="title" content="Hanma | Copy-Paste Backend Snippets" />
-    <meta name="description" content="Production-ready backend snippets for Express, Fastify, Hono & more. Authentication, database clients, middleware, utilities — just copy, paste, and ship." />
-    <meta name="keywords" content="backend Snippets, nodejs snippets, express middleware, fastify plugins, hono, authentication, jwt, prisma, drizzle, typescript, api development" />
+    <meta
+      name="description"
+      content="Production-ready backend snippets for Express, Fastify, Hono & more. Authentication, database clients, middleware, utilities — just copy, paste, and ship."
+    />
+    <meta
+      name="keywords"
+      content="backend Snippets, nodejs snippets, express middleware, fastify plugins, hono, authentication, jwt, prisma, drizzle, typescript, api development"
+    />
     <meta name="author" content="Gaurav Kumar" />
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
-    
+
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.png" />
-    
+
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://hanma.dev/" />
-    <meta property="og:title" content="Hanma | Copy-Paste Backend Snippets for Node.js" />
-    <meta property="og:description" content="Production-ready backend snippets for Express, Fastify, Hono & more. Authentication, database clients, middleware, utilities — just copy, paste, and ship." />
+    <meta
+      property="og:title"
+      content="Hanma | Copy-Paste Backend Snippets for Node.js"
+    />
+    <meta
+      property="og:description"
+      content="Production-ready backend snippets for Express, Fastify, Hono & more. Authentication, database clients, middleware, utilities — just copy, paste, and ship."
+    />
     <meta property="og:image" content="https://hanma.dev/og-image.png" />
     <meta property="og:site_name" content="Hanma" />
-    
+
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:url" content="https://hanma.dev/" />
-    <meta property="twitter:title" content="Hanma | Copy-Paste Backend Snippets for Node.js" />
-    <meta property="twitter:description" content="Production-ready backend snippets for Express, Fastify, Hono & more. Authentication, database clients, middleware, utilities — just copy, paste, and ship." />
+    <meta
+      property="twitter:title"
+      content="Hanma | Copy-Paste Backend Snippets for Node.js"
+    />
+    <meta
+      property="twitter:description"
+      content="Production-ready backend snippets for Express, Fastify, Hono & more. Authentication, database clients, middleware, utilities — just copy, paste, and ship."
+    />
     <meta property="twitter:image" content="https://hanma.dev/og-image.png" />
-    
-    <!-- Theme Color -->
-    <meta name="theme-color" content="#0a0a0a" />
-    <meta name="color-scheme" content="dark" />
-    
+
     <!-- Canonical URL -->
     <link rel="canonical" href="https://hanma.dev/" />
   </head>

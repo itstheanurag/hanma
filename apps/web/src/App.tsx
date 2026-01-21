@@ -66,7 +66,7 @@ function App() {
 
   return (
     <ThemeProvider>
-      <div className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground flex flex-col transition-colors duration-300">
+      <div className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground flex flex-col">
         {/* Search Modal in separate Suspense so it never blocks main content */}
         {isSearchOpen && (
           <Suspense fallback={null}>

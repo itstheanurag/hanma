@@ -1,12 +1,10 @@
 import { memo } from "react";
-import { LuMoon, LuSun } from "react-icons/lu";
+import { ThemeToggle } from "./theme/Toggle";
 import Logo from "./Logo";
-import { useTheme } from "./theme/ThemeContext";
 import { Link } from "react-router-dom";
 import { GITHUB, LINKS } from "@/constants";
 
 const NavbarComponent = () => {
-  const { theme, toggleTheme } = useTheme();
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
@@ -24,13 +22,8 @@ const NavbarComponent = () => {
 
         <div className="flex items-center gap-2">
           {/* Theme toggle */}
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-md hover:bg-surface hover:text-foreground transition-colors"
-            aria-label="Toggle theme"
-          >
-            {theme === "dark" ? <LuSun size={18} /> : <LuMoon size={18} />}
-          </button>
+          {/* Theme toggle */}
+          <ThemeToggle />
           {/* Project actions */}
           <div className="hidden md:flex items-center gap-1 p-1 rounded-md border border-border bg-surface text-xs">
             {/* GitHub */}

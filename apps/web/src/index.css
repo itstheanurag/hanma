@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Inter', sans-serif;
+  --font-sans: "Inter", sans-serif;
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-hover: var(--surface-hover);
@@ -22,10 +22,10 @@
     --border: oklch(0.92 0 0);
     --foreground: oklch(0.145 0.02 285);
     --muted: oklch(0.55 0.03 260);
-    
+
     --primary: oklch(0.205 0 0);
     --primary-foreground: oklch(0.985 0 0);
-    
+
     --secondary: oklch(0.96 0.01 285);
     --secondary-foreground: oklch(0.145 0.02 285);
   }
@@ -37,7 +37,7 @@
     --border: oklch(0.26 0.02 285);
     --foreground: oklch(0.985 0 0);
     --muted: oklch(0.7 0.02 260);
-    
+
     --primary: oklch(0.985 0 0); /* Keep primary constant or adjust if needed */
     --primary-foreground: oklch(0.145 0.02 285);
 
@@ -46,7 +46,22 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased transition-colors duration-300;
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  /* View Transitions API */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+    display: block;
+  }
+
+  ::view-transition-old(root) {
+    z-index: 1;
+  }
+  ::view-transition-new(root) {
+    z-index: 9999;
   }
 
   ::selection {
@@ -57,16 +72,24 @@
 @layer utilities {
   .bg-grid {
     background-size: 50px 50px;
-    background-image: linear-gradient(to right, var(--border) 1px, transparent 1px),
-                      linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+    background-image:
+      linear-gradient(to right, var(--border) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--border) 1px, transparent 1px);
     mask-image: linear-gradient(to bottom, transparent, black, transparent);
-    -webkit-mask-image: linear-gradient(to bottom, transparent 5%, black 40%, black 70%, transparent 95%);
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent 5%,
+      black 40%,
+      black 70%,
+      transparent 95%
+    );
   }
-  
+
   .bg-grid-small {
     background-size: 20px 20px;
-    background-image: linear-gradient(to right, var(--border) 1px, transparent 1px),
-                      linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+    background-image:
+      linear-gradient(to right, var(--border) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--border) 1px, transparent 1px);
   }
 
   .custom-scrollbar::-webkit-scrollbar {

@@ -1,0 +1,25 @@
+{
+  "name": "hanma-seo-build",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsx index.ts",
+    "build:frameworks": "tsx generators/framework-pages.ts",
+    "build:categories": "tsx generators/category-pages.ts",
+    "build:snippets": "tsx generators/snippet-pages.ts",
+    "build:use-cases": "tsx generators/use-case-pages.ts",
+    "build:comparisons": "tsx generators/comparison-pages.ts",
+    "build:tutorials": "tsx generators/tutorial-pages.ts",
+    "build:tags": "tsx generators/tag-pages.ts",
+    "build:search": "tsx generators/search-pages.ts",
+    "build:patterns": "tsx generators/pattern-pages.ts"
+  },
+  "dependencies": {
+    "glob": "^10.3.10",
+    "prettier": "^3.2.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.0"
+  }
+}

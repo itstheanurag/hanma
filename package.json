@@ -11,7 +11,8 @@
     "build:modules": "tsx scripts/build-modules.ts",
     "build:templates": "tsx scripts/build-templates.ts",
     "build:snippets": "tsx scripts/extract-snippets.ts",
-    "build:scripts": "pnpm build:registry && pnpm build:modules && pnpm build:templates && pnpm build:snippets"
+    "build:scripts": "pnpm build:registry && pnpm build:modules && pnpm build:templates && pnpm build:snippets",
+    "build:seo": "cd apps/web/scripts/seo-build && npm run build"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",

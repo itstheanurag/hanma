@@ -12,6 +12,7 @@ export const getFeaturesByType = (
 
 export const generateCommand = ({
   projectName,
+  selectedFramework,
   selectedBase,
   selectedDatabase,
   selectedAuth,
@@ -23,10 +24,11 @@ export const generateCommand = ({
 }: any) => {
   let cmd = `npx hanma create ${projectName}`;
 
-  if (selectedBase) cmd += ` --server ${selectedBase}`;
+  if (selectedFramework) cmd += ` --framework ${selectedFramework}`;
+  if (selectedBase) cmd += ` --template ${selectedBase}`;
   if (selectedDatabase) cmd += ` --db ${selectedDatabase}`;
   if (selectedAuth) cmd += ` --auth ${selectedAuth}`;
-  if (selectedPreset) cmd += ` --security ${selectedPreset}`;
+  if (selectedPreset) cmd += ` --preset ${selectedPreset}`;
   if (selectedMailer) cmd += ` --mailer ${selectedMailer}`;
   if (selectedUpload) cmd += ` --upload ${selectedUpload}`;
   if (selectedTooling) cmd += ` --tooling ${selectedTooling}`;

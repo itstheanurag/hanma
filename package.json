@@ -7,12 +7,13 @@
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
-    "build:registry": "tsx scripts/build-registry.ts",
-    "build:modules": "tsx scripts/build-modules.ts",
-    "build:templates": "tsx scripts/build-templates.ts",
-    "build:snippets": "tsx scripts/extract-snippets.ts",
+    "build:registry": "tsx scripts/helpers/registry.ts",
+    "build:modules": "tsx scripts/helpers/modules.ts",
+    "build:templates": "tsx scripts/helpers/templates.ts",
+    "build:snippets": "tsx scripts/helpers/extract-snippets.ts",
     "build:scripts": "pnpm build:registry && pnpm build:modules && pnpm build:templates && pnpm build:snippets",
-    "build:seo": "cd apps/web/scripts/seo-build && npm run build"
+    "build:seo": "cd apps/web/scripts/seo-build && npm run build",
+    "test:cli": "tsx scripts/tests/cli.ts"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",

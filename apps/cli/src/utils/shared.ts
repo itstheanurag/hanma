@@ -32,6 +32,16 @@ export async function fetchFrameworkWithPrompt(
     process.exit(1);
   }
 
+  if (frameworks.length === 0) {
+    spinner.fail("No frameworks found");
+    console.error(
+      chalk.yellow(
+        "Hanma could not find any frameworks in the registry. Try running 'hanma sync' or set HANMA_NO_CACHE=true and try again.",
+      ),
+    );
+    process.exit(1);
+  }
+
   const selected = await promptFramework(frameworks);
   if (!selected) {
     return null;

@@ -9,7 +9,7 @@ import {
   DOCS_REGISTRY_DIR,
   parseSnippetFile,
   normalizeDependencies,
-} from "./utils";
+} from "../utils";
 
 const MODULES_OUTPUT_DIR = path.join(
   path.dirname(DOCS_REGISTRY_DIR),

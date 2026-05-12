@@ -230,6 +230,7 @@ export default function TemplateBuilder() {
       {/* Terminal Dock */}
       <TerminalDock
         projectName={projectName}
+        selectedFramework={selectedFramework}
         selectedBase={selectedBase}
         selectedDatabase={selectedDatabase}
         selectedAuth={selectedAuth}

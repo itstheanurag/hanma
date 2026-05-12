@@ -6,12 +6,14 @@
     "module": "ESNext",
     "types": ["node"],
     "skipLibCheck": true,
+    "rootDir": ".",
 
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
+    "composite": true,
     "noEmit": true,
 
     /* Linting */

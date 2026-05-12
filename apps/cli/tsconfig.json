@@ -5,6 +5,7 @@
     "target": "es2022",
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "rootDir": "src",
     "outDir": "dist"
   },
   "include": ["src"],

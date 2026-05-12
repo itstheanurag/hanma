@@ -4,7 +4,7 @@ import ora from "ora";
 import prompts from "prompts";
 import fs from "fs-extra";
 import path from "path";
-import { TemplateBlock, CollectedBlockData } from "../types";
+import { TemplateBlock, CollectedBlockData, ModuleBlock } from "../types";
 import {
   promptProjectName,
   promptBlockSelection,
@@ -38,6 +38,14 @@ function buildPackageJson(projectName: string, data: CollectedBlockData) {
   };
 }
 
+function findBlockByName<T extends { name: string }>(
+  blocks: T[],
+  name?: string,
+): T | undefined {
+  if (!name) return undefined;
+  return blocks.find((block) => block.name === name);
+}
+
 async function runPackageInstall(projectPath: string, packageManager: string) {
   try {
     const { execSync } = await import("child_process");
@@ -54,6 +62,18 @@ export const create = new Command()
   .description("Create a new project from composable templates")
   .argument("[name]", "Project name")
   .option("--framework <framework>", "Base framework")
+  .option("--template <template>", "Base template")
+  .option("--server <template>", "Base template")
+  .option("--db <database>", "Database module")
+  .option("--database <database>", "Database module")
+  .option("--auth <auth>", "Authentication module")
+  .option("--preset <preset>", "Preset template")
+  .option("--security <preset>", "Preset template")
+  .option("--mailer <mailer>", "Mailer feature")
+  .option("--upload <upload>", "Upload feature")
+  .option("--cache <cache>", "Cache feature")
+  .option("--tooling <tooling>", "Tooling feature")
+  .option("--features <features>", "Comma-separated feature templates")
   .option("--pm <pm>", "Package manager")
   .option("--skip-install", "Skip package installation")
   .action(async (projectNameArg, options) => {
@@ -78,7 +98,14 @@ export const create = new Command()
     spinner.succeed("Registries loaded");
 
     // Framework selection
-    const selectedFramework = await fetchFrameworkWithPrompt(options.framework);
+    const selectedTemplateName = options.template || options.server;
+    const preselectedBase = findBlockByName(
+      templateRegistry.base,
+      selectedTemplateName,
+    );
+    const selectedFramework = await fetchFrameworkWithPrompt(
+      options.framework || preselectedBase?.framework,
+    );
     if (!selectedFramework) process.exit(0);
 
     // Template selection
@@ -90,17 +117,28 @@ export const create = new Command()
       process.exit(1);
     }
 
-    const selectedBase = await promptBlockSelection(
-      frameworkTemplates,
-      `Select ${selectedFramework} template:`,
-      options.template,
-    );
+    const selectedBase =
+      preselectedBase ??
+      (await promptBlockSelection(
+        frameworkTemplates,
+        `Select ${selectedFramework} template:`,
+        selectedTemplateName,
+      ));
     if (!selectedBase) process.exit(0);
 
     // Module selection (DB & Auth)
-    const selectModule = async (category: string, message: string) => {
+    const selectModule = async (
+      category: string,
+      message: string,
+      cliOption?: string,
+    ) => {
       const mods = modulesRegistry.modules[category] || [];
       if (mods.length === 0) return undefined;
+      if (cliOption) {
+        if (cliOption.toLowerCase() === "none") return undefined;
+        return findBlockByName(mods, cliOption);
+      }
+
       const { selected } = await prompts({
         type: "select",
         name: "selected",
@@ -117,15 +155,28 @@ export const create = new Command()
       return selected || undefined;
     };
 
-    const selectedDatabase = await selectModule("database", "Select database:");
-    const selectedAuth = await selectModule("auth", "Select authentication:");
+    const selectedDatabase = await selectModule(
+      "database",
+      "Select database:",
+      options.database || options.db,
+    );
+    const selectedAuth = await selectModule(
+      "auth",
+      "Select authentication:",
+      options.auth,
+    );
+    const selectedPreset = findBlockByName(
+      templateRegistry.presets ?? [],
+      options.preset || options.security,
+    );
 
     // Feature selection
-    let selectedFeatures: TemplateBlock[] = [];
+    const selectedFeatures: TemplateBlock[] = [];
     const featureCategories = [
       { type: "mailer", msg: "Select mailer:" },
       { type: "upload", msg: "Select upload provider:" },
       { type: "cache", msg: "Select cache:" },
+      { type: "tooling", msg: "Select tooling:" },
     ];
 
     for (const { type, msg } of featureCategories) {
@@ -135,11 +186,22 @@ export const create = new Command()
         const selected = await promptBlockSelection(
           catFeatures,
           msg,
-          undefined,
+          options[type],
           true,
         );
         if (selected) selectedFeatures.push(selected);
       }
+    }
+
+    if (options.features) {
+      const featureNames = String(options.features)
+        .split(",")
+        .map((name) => name.trim())
+        .filter(Boolean);
+      const extraFeatures = featureNames
+        .map((name) => findBlockByName(templateRegistry.features ?? [], name))
+        .filter(Boolean) as TemplateBlock[];
+      selectedFeatures.push(...extraFeatures);
     }
 
     // Tools & PM
@@ -153,8 +215,9 @@ export const create = new Command()
       selectedBase,
       selectedDatabase,
       selectedAuth,
+      selectedPreset,
       ...selectedFeatures,
-    ].filter(Boolean) as any[];
+    ].filter((block): block is TemplateBlock | ModuleBlock => Boolean(block));
     const blockData = collectBlockData(blocks);
     const packageJson = buildPackageJson(projectName, blockData);
 

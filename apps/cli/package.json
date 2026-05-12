@@ -1,7 +1,7 @@
 {
   "name": "hanma",
-  "version": "0.3.4",
-  "description": "CLI to download backend snippets",
+  "version": "0.3.5",
+  "description": "Composable backend scaffolding, modules, and snippets for server-side TypeScript projects",
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
@@ -14,13 +14,33 @@
     "lint": "eslint .",
     "check-types": "tsc --noEmit"
   },
-  "keywords": [],
+  "keywords": [
+    "backend",
+    "cli",
+    "express",
+    "hono",
+    "elysia",
+    "scaffold",
+    "typescript"
+  ],
   "author": "Gaurav Kumar",
   "license": "MIT",
+  "homepage": "https://hanma-a2n.pages.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/itstheanurag/hanma.git",
+    "directory": "apps/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/itstheanurag/hanma/issues"
+  },
   "files": [
     "dist",
     "README.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "chalk": "^5.3.0",
     "commander": "^11.1.0",

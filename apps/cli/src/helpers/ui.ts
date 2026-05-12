@@ -31,8 +31,11 @@ export async function promptBlockSelection(
   allowNone: boolean = false,
 ): Promise<TemplateBlock | undefined> {
   if (cliOption) {
+    if (cliOption.toLowerCase() === "none") return undefined;
     return blocks.find(
-      (b) => b.name === cliOption || b.name.includes(cliOption),
+      (b) =>
+        b.name === cliOption ||
+        b.name.toLowerCase().includes(cliOption.toLowerCase()),
     );
   }
 

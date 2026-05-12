@@ -33,7 +33,7 @@ To get the most out of Hanma, it helps to understand the three types of code it 
 
 ### 1. Composable Templates (`create`)
 
-Scaffolding a project isn't just picking a framework. It's picking a *stack*. The `create` command uses a composable engine that stitches together base frameworks with database ORMs, auth handlers, and middleware setups during initialization.
+Scaffolding a project isn't just picking a framework. It's picking a _stack_. The `create` command uses a composable engine that stitches together base frameworks with database ORMs, auth handlers, and middleware setups during initialization.
 
 ### 2. Modules (`module`)
 
@@ -48,8 +48,17 @@ The building blocks. Individual files or functions for specific tasks—CORS set
 ## Quick Start
 
 ```bash
+# Run without installing
+npx hanma@latest create my-project
+
+# Or install globally
+npm install -g hanma
+
 # Start the interactive project builder
 npx hanma create my-project
+
+# Create a project non-interactively
+npx hanma create my-api --framework express --template express --pm npm --skip-install
 
 # Add a module to an existing project
 cd my-project
@@ -68,17 +77,33 @@ npx hanma sync --info
 
 ### `create [name]`
 
-The entry point for new projects.
+The entry point for new projects. Run it interactively or pass flags for a reproducible scaffold command.
 
-| Flag | Description |
-|:---|:---|
-| `--framework <fw>` | Force a specific framework (e.g., `express`, `hono`, `elysia`) |
-| `--database <db>` | Pre-select database (e.g., `drizzle-postgres`, `prisma-mysql`) |
-| `--auth <auth>` | Pre-select auth provider (e.g., `better-auth`, `clerk`, `jwt`) |
-| `--pm <package-manager>` | Select package manager (only shows installed ones) |
-| `--skip-install` | Scaffold only, don't run the installer |
+| Flag                                        | Description                                                      |
+| :------------------------------------------ | :--------------------------------------------------------------- |
+| `--framework <fw>`                          | Force a specific framework (e.g., `express`, `hono`, `elysia`)   |
+| `--template <template>`                     | Pre-select the base template (e.g., `express`, `hono`, `elysia`) |
+| `--server <template>`                       | Backward-compatible alias for `--template`                       |
+| `--database <db>` / `--db <db>`             | Pre-select database (e.g., `drizzle-postgres`, `prisma-mysql`)   |
+| `--auth <auth>`                             | Pre-select auth provider (e.g., `better-auth`, `jwt-auth`)       |
+| `--preset <preset>` / `--security <preset>` | Pre-select a preset template                                     |
+| `--mailer <mailer>`                         | Pre-select a mailer feature                                      |
+| `--upload <upload>`                         | Pre-select an upload feature                                     |
+| `--cache <cache>`                           | Pre-select a cache feature                                       |
+| `--tooling <tooling>`                       | Pre-select a tooling feature                                     |
+| `--features <items>`                        | Add comma-separated feature templates                            |
+| `--pm <package-manager>`                    | Select package manager (only shows installed ones)               |
+| `--skip-install`                            | Scaffold only, don't run the installer                           |
 
 > **Note:** The CLI automatically detects which package managers are installed on your system and only shows those as options.
+
+Examples:
+
+```bash
+hanma create my-api --framework express --template express --pm npm
+hanma create edge-api --framework hono --template hono --pm pnpm --skip-install
+hanma create app --server express --db drizzle-postgres --auth jwt-auth
+```
 
 ### `add [snippets...]`
 
@@ -109,6 +134,13 @@ Registry & Cache Management. Keep your local registry metadata updated.
 - `hanma sync --info`: View local cache statistics (size, files, last update).
 - `hanma sync --clear`: Wipe the local cache to force a fresh pull on next command.
 
+If framework selection ever shows no results, refresh the local registry cache:
+
+```bash
+hanma sync --clear
+hanma sync
+```
+
 ### `update`
 
 Keep your CLI up to date.
@@ -127,13 +159,13 @@ hanma update
 
 Hanma is designed to grow. Here is the current state of support:
 
-| Feature Area | Express | Hono | Elysia | Fastify |
-|:---|:---:|:---:|:---:|:---:|
-| Core Scaffolding | ✅ | ✅ | ✅ | 🚧 |
-| Snippet Library | ✅ | ✅ | ✅ | ✅ |
-| Auth Modules | ✅ | ✅ | ✅ | 🚧 |
-| DB Integrations | ✅ | ✅ | ✅ | ✅ |
-| Tooling (Biome, etc) | ✅ | ✅ | ✅ | ✅ |
+| Feature Area         | Express | Hono | Elysia | Fastify |
+| :------------------- | :-----: | :--: | :----: | :-----: |
+| Core Scaffolding     |   ✅    |  ✅  |   ✅   |   🚧    |
+| Snippet Library      |   ✅    |  ✅  |   ✅   |   ✅    |
+| Auth Modules         |   ✅    |  ✅  |   ✅   |   🚧    |
+| DB Integrations      |   ✅    |  ✅  |   ✅   |   ✅    |
+| Tooling (Biome, etc) |   ✅    |  ✅  |   ✅   |   ✅    |
 
 ---
 

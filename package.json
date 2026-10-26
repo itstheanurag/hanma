@@ -2,7 +2,7 @@
   "name": "hanma",
   "private": true,
   "scripts": {
-    "build": "turbo run build",
+    "build": "pnpm build:scripts && turbo run build && pnpm build:seo",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
@@ -12,7 +12,7 @@
     "build:templates": "tsx scripts/helpers/templates.ts",
     "build:snippets": "tsx scripts/helpers/extract-snippets.ts",
     "build:scripts": "pnpm build:registry && pnpm build:modules && pnpm build:templates && pnpm build:snippets",
-    "build:seo": "cd apps/web/scripts/seo-build && npm run build",
+    "build:seo": "tsx apps/web/scripts/seo-build/index.ts",
     "test:cli": "tsx scripts/tests/cli.ts"
   },
   "devDependencies": {

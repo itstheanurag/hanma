@@ -1,285 +1,137 @@
 # Hanma SEO Build Scripts
 
-This directory contains scripts for generating SEO-optimized static pages for the Hanma project.
+Generates static, SEO-optimized pages for the Hanma snippet library. The output is written into the same directory as the Vite build so the SPA and the generated pages deploy together.
 
-## Overview
+## Commands
 
-The SEO build system generates static HTML pages targeting long-tail developer search queries. These pages are designed to improve search engine visibility and LLM (ChatGPT, Claude, etc.) citations.
+Run from the repository root:
+
+```bash
+# Generate only the SEO pages. Requires apps/web/dist to already exist.
+pnpm build:seo
+
+# Full deployable build:
+# 1. generate registry/docs files
+# 2. build the SPA with Turbo
+# 3. generate SEO pages into apps/web/dist
+pnpm build
+```
+
+The SEO build does not wipe `apps/web/dist`; it only clears the directories and files it owns:
+
+- `framework/`, `snippet/`, `use-case/`, `compare/`, `guide/`, `tag/`, `search/`, `pattern/`
+- `sitemap.xml`, `robots.txt`, `build-stats.json`
+
+If `apps/web/dist/index.html` is missing, the build still runs but prints a warning because the result is not a complete deployment.
 
 ## Architecture
 
 ```
 apps/web/scripts/seo-build/
-├── index.ts              # Main build orchestrator
-├── types.ts              # TypeScript type definitions
+├── index.ts              # Build orchestrator, sitemap, robots, stats
+├── paths.ts              # Location-independent filesystem paths
+├── constant.ts           # Canonical site URL
+├── types.ts              # Shared TypeScript types
 ├── utils/
-│   ├── content-loader.ts  # Load content from docs JSON
-│   ├── seo-metadata.ts   # Generate SEO metadata
-│   └── html-templates.ts # HTML template utilities
+│   ├── content-loader.ts # Loads docs JSON and snippet sources
+│   ├── seo-metadata.ts   # Titles, descriptions, canonicals, JSON-LD
+│   └── html-templates.ts # HTML head, footer, and page components
 └── generators/
-    ├── framework-pages.ts # Generate framework landing pages
-    ├── category-pages.ts  # Generate category landing pages
-    ├── snippet-pages.ts   # Generate snippet detail pages (TODO)
-    ├── use-case-pages.ts # Generate use case pages (TODO)
-    └── sitemap.ts        # Generate sitemaps (TODO)
+    ├── framework-pages.ts
+    ├── category-pages.ts
+    ├── snippet-pages.ts
+    ├── use-case-pages.ts
+    ├── comparison-pages.ts
+    ├── tutorial-pages.ts
+    ├── tag-pages.ts
+    ├── search-pages.ts
+    └── pattern-pages.ts
 ```
+
+All paths are resolved from `paths.ts`, so the build works regardless of the current working directory.
 
 ## Page Types
 
-### Phase 1 (Implemented)
+| Page type  | URL pattern                              | Source                               |
+| ---------- | ---------------------------------------- | ------------------------------------ |
+| Framework  | `/framework/:framework`                  | Framework definitions                |
+| Category   | `/framework/:framework/:category`        | Framework category JSON              |
+| Snippet    | `/snippet/:framework/:category/:snippet` | Snippet registry and source          |
+| Use case   | `/use-case/:framework/:use-case`         | Snippet purpose and features         |
+| Comparison | `/compare/:framework-vs-framework`       | Framework pairs                      |
+| Tutorial   | `/guide/:framework-topic`                | Tutorial topics and related snippets |
+| Tag        | `/tag/:framework/:tag`                   | Snippet tags                         |
+| Search     | `/search/:query`                         | Search query list                    |
+| Pattern    | `/pattern/:framework-pattern`            | Design patterns                      |
 
-| Page Type         | Count | URL Pattern                       | Status |
-| ----------------- | ----- | --------------------------------- | ------ |
-| Framework Landing | 5     | `/framework/:framework`           | ✅     |
-| Category Landing  | ~40   | `/framework/:framework/:category` | ✅     |
-
-### Phase 2 (Completed)
-
-| Page Type         | Count | URL Pattern                                 | Status |
-| ----------------- | ----- | ------------------------------------------- | ------ |
-| Framework Landing | 5     | `/framework/:framework`                     | ✅     |
-| Category Landing  | ~27   | `/framework/:framework/:category`           | ✅     |
-| Snippet Detail    | ~129  | `/snippet/:framework/:category/:snippet-id` | ✅     |
-| Use Case          | ~54   | `/use-case/:framework/:use-case-slug`       | ✅     |
-
-### Phase 3 (Completed)
-
-| Page Type      | Count | URL Pattern                | Status |
-| -------------- | ----- | -------------------------- | ------ |
-| Comparison     | 10    | `/compare/:f1-vs-:f2`      | ✅     |
-| Tutorial/Guide | 60    | `/guide/:framework/:topic` | ✅     |
-| Tag/Topic      | 100   | `/tag/:framework/:tag`     | ✅     |
-| Search Results | 40    | `/search/:query`           | ✅     |
-
-### Phase 4+ (Planned)
-
-| Page Type    | Count   | URL Pattern              | Status |
-| ------------ | ------- | ------------------------ | ------ |
-| Code Pattern | ~10,000 | `/pattern/:pattern-slug` | 📋     |
-
-## Usage
-
-### Install Dependencies
-
-```bash
-cd apps/web/scripts/seo-build
-npm install
-```
-
-### Run Full Build
-
-```bash
-npm run build
-```
-
-### Run Individual Generators
-
-```bash
-# Generate framework pages only
-npm run build:frameworks
-
-# Generate category pages only
-npm run build:categories
-
-# Generate snippet pages only
-npm run build:snippets
-
-# Generate sitemap only
-npm run build:sitemap
-```
+Counts depend on the current docs content. `build-stats.json` records the pages produced by the latest run.
 
 ## Output
 
-Generated pages are written to `apps/web/dist/seo/`:
-
-```
-dist/seo/
-├── framework/
-│   ├── express.html
-│   ├── hono.html
-│   ├── elysia.html
-│   ├── fastify.html
-│   └── nest/
-│       ├── middleware.html
-│       ├── routes.html
-│       └── ...
+```text
+apps/web/dist/
+├── index.html
+├── assets/
+├── framework/express.html
+├── framework/express/libs.html
+├── snippet/express/libs/express-server.html
+├── compare/express-js-vs-hono.html
+├── guide/express-setup-project.html
+├── tag/express/authentication.html
+├── pattern/express-repository-pattern.html
 ├── sitemap.xml
 ├── robots.txt
-└── build-stats.json
+├── og-image.png
+├── twitter-image.png
+├── favicon.svg
+├── favicon.png
+├── favicon.ico
+└── styles.css
 ```
 
-## SEO Features
+Generated pages use extensionless canonical URLs such as `/framework/express`. Static hosts including Cloudflare Pages serve `framework/express.html` for that path automatically.
 
-### Metadata
+## SEO Rules
 
-- **Title tags**: Optimized for search engines
-- **Meta descriptions**: Compelling descriptions with keywords
-- **Canonical URLs**: Prevent duplicate content issues
-- **Open Graph**: Social media sharing
-- **Twitter Cards**: Twitter sharing
-
-### Structured Data (JSON-LD)
-
-- **SoftwareSourceCode**: For code snippets
-- **SoftwareApplication**: For framework pages
-- **BreadcrumbList**: Navigation structure
-- **WebSite**: Site information
-
-### LLM Optimization
-
-- Clear, descriptive content
-- Well-documented code with JSDoc
-- FAQ sections on every page
-- Comparison content across frameworks
-- Problem/solution format
-
-## Development
-
-### Adding a New Page Type
-
-1. Create a new generator in `generators/`:
-
-   ```typescript
-   // generators/new-page-type.ts
-   export async function generateNewPages(): Promise<{
-     pages: GeneratedPage[];
-     stats: BuildStats;
-   }> {
-     // Implementation
-   }
-   ```
-
-2. Add to `index.ts`:
-
-   ```typescript
-   import { generateNewPages } from "./generators/new-page-type.js";
-
-   const newResult = await generateNewPages();
-   ```
-
-3. Add to `package.json`:
-   ```json
-   {
-     "scripts": {
-       "build:new-type": "tsx generators/new-page-type.ts"
-     }
-   }
-   ```
-
-### Testing
-
-```bash
-# Run build and check output
-npm run build
-
-# Check generated pages
-ls -la dist/seo/
-
-# Verify sitemap
-cat dist/seo/sitemap.xml
-```
+- Every page gets a canonical URL from `generateMetadata`.
+- `sitemap.xml` is built from canonical URLs only. It excludes pages marked `noindex` and includes the homepage.
+- Search result pages are generated but marked `noindex, nofollow`.
+- Tag pages with no matching snippets are skipped instead of being published as thin content.
+- Pattern pages with no related snippets are marked `noindex`.
+- Titles and descriptions use display names from the content data, not raw slugs.
+- Open Graph and Twitter tags point to the 1200x630 images in `apps/web/public`.
+- JSON-LD is serialized with `JSON.stringify` and each document is emitted in its own script tag.
+- `robots.txt` allows the SPA and keeps `/docs/` and `/builder/` out of the crawl path until they have route-level metadata.
 
 ## Deployment
 
-### Cloudflare Pages
+Use these Cloudflare Pages settings:
 
-The generated pages can be deployed to Cloudflare Pages:
+| Setting                | Value           |
+| ---------------------- | --------------- |
+| Framework preset       | None            |
+| Build command          | `pnpm build`    |
+| Build output directory | `apps/web/dist` |
+| Root directory         | repository root |
 
-1. Build the pages:
+Environment variables:
 
-   ```bash
-   npm run build
-   ```
+| Variable       | Value   |
+| -------------- | ------- |
+| `NODE_VERSION` | `22`    |
+| `PNPM_VERSION` | `9.0.0` |
 
-2. Deploy to Cloudflare Pages:
+`apps/web/public/_redirects` provides the SPA fallback. Cloudflare Pages serves existing static files before applying it, so generated pages keep their own URLs.
 
-   ```bash
-   # Using Wrangler
-   npx wrangler pages deploy dist/seo --project-name=hanma-seo
-   ```
+## Custom Domain
 
-3. Configure routing in `_redirects`:
-   ```
-   /framework/* /framework/:splat 200
-   /snippet/* /snippet/:splat 200
-   /use-case/* /use-case/:splat 200
-   ```
+The canonical URL is defined in `constant.ts`, and absolute image/canonical URLs for the SPA are in `apps/web/index.html`. Update both when the production domain changes.
 
-## Monitoring
+## Adding a Generator
 
-### Build Stats
+1. Use `DIST_DIR` from `../paths.js` as the output root.
+2. Build metadata with `generateMetadata` and pass display names through `additionalData`.
+3. Return `GeneratedPage` objects containing the filesystem path, HTML, and metadata.
+4. Register the generator in `index.ts` and add its stats to the build summary.
 
-After each build, `build-stats.json` is generated:
-
-```json
-{
-  "buildDate": "2024-01-15T10:30:00.000Z",
-  "totalPages": 45,
-  "pagesByType": {
-    "framework": 5,
-    "category": 40
-  },
-  "buildTime": 1234
-}
-```
-
-### Google Search Console
-
-1. Add `sitemap.xml` to GSC
-2. Monitor indexing status
-3. Track keyword rankings
-4. Monitor crawl errors
-
-## Troubleshooting
-
-### Build Fails
-
-```bash
-# Check if dependencies are installed
-npm list
-
-# Reinstall dependencies
-rm -rf node_modules package-lock.json
-npm install
-```
-
-### Pages Not Generated
-
-```bash
-# Check content files exist
-ls -la ../src/docs/snippets/
-
-# Verify content loader works
-node -e "import('./utils/content-loader.js').then(m => m.loadAllFrameworks().then(console.log))"
-```
-
-### Linting Errors
-
-```bash
-# Run linter
-npm run lint
-
-# Fix automatically
-npm run lint:fix
-```
-
-## Next Steps
-
-- [x] Implement snippet detail pages generator
-- [x] Implement use case pages generator
-- [x] Implement comparison pages generator
-- [x] Implement tutorial/guide pages generator
-- [x] Implement tag pages generator
-- [x] Implement search result pages generator
-- [ ] Implement code pattern pages generator
-- [ ] Add CSS styling for generated pages
-- [ ] Set up Cloudflare Pages deployment
-- [ ] Configure analytics tracking
-- [ ] Monitor indexing and performance
-
-## Resources
-
-- [Programmatic SEO Strategy](../../../plans/programmatic-seo-strategy.md)
-- [Google SEO Starter Guide](https://developers.google.com/search/docs)
-- [Schema.org Documentation](https://schema.org/)
-- [Open Graph Protocol](https://ogp.me/)
+Page files are written by each generator. The orchestrator only generates the sitemap, robots file, and build stats.

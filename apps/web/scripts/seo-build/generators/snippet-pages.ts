@@ -26,8 +26,9 @@ import {
 } from "../utils/html-templates.js";
 import { GeneratedPage, BuildStats } from "../types.js";
 import { SITE_URL } from "../constant.js";
+import { DIST_DIR } from "../paths.js";
 
-const OUTPUT_DIR = join(process.cwd(), "../../dist/seo");
+const OUTPUT_DIR = DIST_DIR;
 
 interface SnippetData {
   id: string;
@@ -128,7 +129,12 @@ async function generateSnippetPage(
   const metadata = generateMetadata(
     "snippet",
     { framework: framework.id, category: category.id, snippet: snippet.id },
-    { snippetData: snippet },
+    {
+      snippetName: snippet.displayName,
+      categoryName: category.title,
+      frameworkName: framework.name,
+      snippetData: snippet,
+    },
   );
 
   const breadcrumb = generateBreadcrumb([
@@ -242,11 +248,10 @@ ${breadcrumb}
     },
   ]);
 
-  const fullPage = generateFullPage(
-    metadata,
-    content,
-    `${jsonLd}\n${breadcrumbJsonLd}`,
-  );
+  const fullPage = generateFullPage(metadata, content, [
+    jsonLd,
+    breadcrumbJsonLd,
+  ]);
 
   return {
     path: join(

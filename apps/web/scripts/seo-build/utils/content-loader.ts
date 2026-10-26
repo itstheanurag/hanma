@@ -12,8 +12,7 @@ import {
   Snippet,
   Module,
 } from "../types.js";
-
-const DOCS_DIR = join(process.cwd(), "../../src/docs");
+import { DOCS_DIR } from "../paths.js";
 
 /**
  * Load all framework content

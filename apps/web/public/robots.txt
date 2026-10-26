@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+Disallow: /docs/
+Disallow: /builder/
+
+Sitemap: https://hanma-a2n.pages.dev/sitemap.xml

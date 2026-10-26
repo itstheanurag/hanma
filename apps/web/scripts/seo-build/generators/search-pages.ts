@@ -12,6 +12,7 @@ import {
 import {
   generateMetadata,
   slugify,
+  humanize,
   generateBreadcrumbJsonLd,
 } from "../utils/seo-metadata.js";
 import {
@@ -21,8 +22,9 @@ import {
 } from "../utils/html-templates.js";
 import { GeneratedPage, BuildStats, Snippet } from "../types.js";
 import { SITE_URL } from "../constant.js";
+import { DIST_DIR } from "../paths.js";
 
-const OUTPUT_DIR = join(process.cwd(), "../../dist/seo");
+const OUTPUT_DIR = DIST_DIR;
 
 // Common search queries
 const SEARCH_QUERIES = [
@@ -177,9 +179,8 @@ const SEARCH_QUERIES = [
   "nestjs production deployment",
   "nestjs microservices",
   "nestjs kafka",
-  "nestjs redis cache"
+  "nestjs redis cache",
 ];
-
 
 interface SearchResult {
   snippet: Snippet;
@@ -239,19 +240,19 @@ function findMatchingSnippets(
  */
 function generateSearchContent(query: string, results: SearchResult[]): string {
   const slug = slugify(query);
+  const displayQuery = humanize(query);
 
   return `<header class="page-header">
-  <h1>Search Results: ${query}</h1>
+  <h1>Search Results: ${displayQuery}</h1>
   <p class="page-description">
-    Found ${results.length} code snippets matching "${query}".
+    Found ${results.length} code snippets matching "${displayQuery}".
     Browse below to find the perfect solution for your needs.
   </p>
 </header>
 
 ${generateBreadcrumb([
   { name: "Home", url: "/" },
-  { name: "Search", url: "/search" },
-  { name: query, url: `/search/${slug}` },
+  { name: displayQuery, url: `/search/${slug}` },
 ])}
 
 <main class="page-content">
@@ -288,7 +289,7 @@ ${generateBreadcrumb([
       : `
   <section class="no-results">
     <h2>No Results Found</h2>
-    <p>We couldn't find any snippets matching "${query}".</p>
+    <p>We couldn't find any snippets matching "${displayQuery}".</p>
     <div class="suggestions">
       <h3>Suggestions:</h3>
       <ul>
@@ -351,15 +352,17 @@ async function generateSearchPage(query: string): Promise<GeneratedPage> {
   const metadata = generateMetadata(
     "search",
     { query: slug },
-    { searchQuery: query, resultCount: allResults.length },
+    { searchQuery: humanize(query), resultCount: allResults.length },
   );
 
   const content = generateSearchContent(query, allResults);
 
   const jsonLd = generateBreadcrumbJsonLd([
     { name: "Home", url: SITE_URL },
-    { name: "Search", url: `${SITE_URL}/search` },
-    { name: query, url: `${SITE_URL}/search/${slug}` },
+    {
+      name: humanize(query),
+      url: `${SITE_URL}/search/${slug}`,
+    },
   ]);
 
   const fullPage = generateFullPage(metadata, content, jsonLd);

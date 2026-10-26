@@ -22,8 +22,9 @@ import {
 } from "../utils/html-templates.js";
 import { GeneratedPage, BuildStats } from "../types.js";
 import { SITE_URL } from "../constant.js";
+import { DIST_DIR } from "../paths.js";
 
-const OUTPUT_DIR = join(process.cwd(), "../../dist/seo");
+const OUTPUT_DIR = DIST_DIR;
 
 /**
  * Generate framework landing page
@@ -45,7 +46,10 @@ async function generateFrameworkPage(framework: {
   const metadata = generateMetadata(
     "framework",
     { framework: framework.id },
-    { frameworkDescription: framework.description },
+    {
+      frameworkName: framework.name,
+      frameworkDescription: framework.description,
+    },
   );
 
   const breadcrumb = generateBreadcrumb([
@@ -129,6 +133,7 @@ ${frameworkNav}
     framework.name,
     framework.description,
     totalSnippets,
+    metadata.canonical,
   );
   const breadcrumbJsonLd = generateBreadcrumbJsonLd([
     { name: "Home", url: SITE_URL },
@@ -138,11 +143,10 @@ ${frameworkNav}
     },
   ]);
 
-  const fullPage = generateFullPage(
-    metadata,
-    content,
-    `${jsonLd}\n${breadcrumbJsonLd}`,
-  );
+  const fullPage = generateFullPage(metadata, content, [
+    jsonLd,
+    breadcrumbJsonLd,
+  ]);
 
   return {
     path: join(OUTPUT_DIR, "framework", `${framework.id}.html`),

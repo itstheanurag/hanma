@@ -12,6 +12,7 @@ import {
 import {
   generateMetadata,
   slugify,
+  humanize,
   generateBreadcrumbJsonLd,
 } from "../utils/seo-metadata.js";
 import {
@@ -21,8 +22,9 @@ import {
 } from "../utils/html-templates.js";
 import { GeneratedPage, BuildStats, Snippet } from "../types.js";
 import { SITE_URL } from "../constant.js";
+import { DIST_DIR } from "../paths.js";
 
-const OUTPUT_DIR = join(process.cwd(), "../../dist/seo");
+const OUTPUT_DIR = DIST_DIR;
 
 // Common tags/topics
 const TAGS = [
@@ -88,7 +90,7 @@ const TAGS = [
   "configuration",
   "environment-variables",
   "deployment",
-  "production"
+  "production",
 ];
 
 /**
@@ -172,11 +174,12 @@ function generateTagContent(
   snippets: Array<{ snippet: Snippet; category: string }>,
 ): string {
   const slug = slugify(tag);
+  const displayTag = humanize(tag);
 
   return `<header class="page-header">
-  <h1>${tag.charAt(0).toUpperCase() + tag.slice(1).replace("-", " ")} in ${framework.name}</h1>
+  <h1>${displayTag} in ${framework.name}</h1>
   <p class="page-description">
-    Explore ${snippets.length} code snippets for ${tag.replace("-", " ")} in ${framework.name}.
+    Explore ${snippets.length} code snippets for ${displayTag.toLowerCase()} in ${framework.name}.
     Find the perfect solution for your next project.
   </p>
 </header>
@@ -184,15 +187,14 @@ function generateTagContent(
 ${generateBreadcrumb([
   { name: "Home", url: "/" },
   { name: framework.name, url: `/framework/${framework.id}` },
-  { name: "Tags", url: `/tag/${framework.id}` },
-  { name: tag, url: `/tag/${framework.id}/${slug}` },
+  { name: displayTag, url: `/tag/${framework.id}/${slug}` },
 ])}
 
 <main class="page-content">
   <section class="tag-overview">
     <h2>Overview</h2>
     <p>
-      This page collects ${snippets.length} code snippets related to ${tag.replace("-", " ")}
+      This page collects ${snippets.length} code snippets related to ${displayTag.toLowerCase()}
       for ${framework.name}. Browse below to find the perfect solution for your needs.
     </p>
   </section>
@@ -236,7 +238,7 @@ ${generateBreadcrumb([
 
   ${generateFaqSection([
     {
-      question: `How do I implement ${tag.replace("-", " ")} in ${framework.name}?`,
+      question: `How do I implement ${displayTag.toLowerCase()} in ${framework.name}?`,
       answer: `Browse the snippets above and select the one that best fits your needs. Each snippet includes installation instructions and usage examples.`,
     },
     {
@@ -258,7 +260,7 @@ ${generateBreadcrumb([
 async function generateTagPage(
   tag: string,
   framework: { id: string; name: string; description: string },
-): Promise<GeneratedPage> {
+): Promise<GeneratedPage | null> {
   const categories = await loadFrameworkCategories(framework.id);
   const allSnippets = categories.flatMap((cat) => cat.snippets);
 
@@ -271,11 +273,18 @@ async function generateTagPage(
           ?.id || "general",
     }));
 
+  // Empty tag pages are thin content with no useful result for searchers.
+  if (taggedSnippets.length === 0) return null;
+
   const slug = slugify(tag);
   const metadata = generateMetadata(
     "tag",
     { tag: slug, framework: framework.id },
-    { tagName: tag, snippetCount: taggedSnippets.length },
+    {
+      tagName: humanize(tag),
+      frameworkName: framework.name,
+      snippetCount: taggedSnippets.length,
+    },
   );
 
   const content = generateTagContent(tag, framework, taggedSnippets);
@@ -283,8 +292,10 @@ async function generateTagPage(
   const jsonLd = generateBreadcrumbJsonLd([
     { name: "Home", url: SITE_URL },
     { name: framework.name, url: `${SITE_URL}/framework/${framework.id}` },
-    { name: "Tags", url: `${SITE_URL}/tag/${framework.id}` },
-    { name: tag, url: `${SITE_URL}/tag/${framework.id}/${slug}` },
+    {
+      name: humanize(tag),
+      url: `${SITE_URL}/tag/${framework.id}/${slug}`,
+    },
   ]);
 
   const fullPage = generateFullPage(metadata, content, jsonLd);
@@ -311,9 +322,14 @@ export async function generateTagPages(): Promise<{
   const frameworks = await loadAllFrameworks();
 
   for (const framework of frameworks) {
+    let generatedForFramework = 0;
+
     for (const tag of TAGS) {
       const page = await generateTagPage(tag, framework);
+      if (!page) continue;
+
       pages.push(page);
+      generatedForFramework += 1;
 
       // Ensure output directory exists
       await mkdir(join(OUTPUT_DIR, "tag", framework.id), { recursive: true });
@@ -322,7 +338,9 @@ export async function generateTagPages(): Promise<{
       await writeFile(page.path, page.content, "utf-8");
     }
 
-    console.log(`  Generated ${TAGS.length} tag pages for ${framework.name}`);
+    console.log(
+      `  Generated ${generatedForFramework} tag pages for ${framework.name}`,
+    );
   }
 
   const stats: BuildStats = {

@@ -13,6 +13,7 @@
     "build:snippets": "tsx scripts/helpers/extract-snippets.ts",
     "build:scripts": "pnpm build:registry && pnpm build:modules && pnpm build:templates && pnpm build:snippets",
     "build:seo": "tsx apps/web/scripts/seo-build/index.ts",
+    "release": "tsx scripts/release.ts",
     "test:cli": "tsx scripts/tests/cli.ts"
   },
   "devDependencies": {

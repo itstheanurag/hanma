@@ -75,13 +75,13 @@ pnpm dev  # or npx hanma <command>
 
 Available environment variables:
 
-| Variable | Description |
-|----------|-------------|
-| `HANMA_BASE_URL` | Override all URLs (registry, templates, modules, docs) |
-| `HANMA_REGISTRY_URL` | Override only the registry URL |
-| `HANMA_TEMPLATES_URL` | Override only the templates URL |
-| `HANMA_MODULES_URL` | Override only the modules URL |
-| `HANMA_DOCS_URL` | Override only the docs URL |
+| Variable              | Description                                            |
+| --------------------- | ------------------------------------------------------ |
+| `HANMA_BASE_URL`      | Override all URLs (registry, templates, modules, docs) |
+| `HANMA_REGISTRY_URL`  | Override only the registry URL                         |
+| `HANMA_TEMPLATES_URL` | Override only the templates URL                        |
+| `HANMA_MODULES_URL`   | Override only the modules URL                          |
+| `HANMA_DOCS_URL`      | Override only the docs URL                             |
 
 ## Code Guidelines
 
@@ -104,6 +104,35 @@ Available environment variables:
 2. Update documentation if needed
 3. Fill out the PR template completely
 4. Wait for review
+
+## Releasing the CLI
+
+`apps/cli/package.json` is the single source of truth for the published version. The CLI reads it at runtime, so there is no second version constant to update.
+
+Start from a clean `main` branch and log in to npm, then run:
+
+```bash
+pnpm release current
+pnpm release patch
+pnpm release minor
+pnpm release major
+pnpm release 0.4.0
+```
+
+Use `current` when the version already in `apps/cli/package.json` has not been published yet. This publishes it without bumping and creates the matching git tag.
+
+The release script runs lint, type checks, and the build, verifies that the built CLI reports the version being released, then commits and tags when needed, pushes, and publishes to npm.
+
+Useful flags:
+
+| Flag             | Purpose                                                              |
+| ---------------- | -------------------------------------------------------------------- |
+| `--dry-run`      | Print the release plan without changing anything                     |
+| `--no-publish`   | Validate, build, commit/tag when needed, and push without publishing |
+| `--no-git`       | Skip commit, tag, and push                                           |
+| `--skip-checks`  | Skip lint and type checks (the build still runs)                     |
+| `--allow-branch` | Allow releasing from a branch other than `main`                      |
+| `--yes`          | Skip the confirmation prompt                                         |
 
 ## Questions?
 

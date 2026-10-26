@@ -7,6 +7,8 @@
  * - HANMA_BASE_URL: Override both (if specific URLs not set)
  */
 
+import { readFileSync } from "node:fs";
+
 const PRODUCTION_BASE_URL = "https://hanma-a2n.pages.dev";
 // const PRODUCTION_BASE_URL = "http://localhost:5173";
 
@@ -38,8 +40,16 @@ export const DOCS_URL = process.env.HANMA_DOCS_URL || `${BASE_URL}/docs`;
 
 /**
  * CLI Version
+ *
+ * Read from package.json so the published package and `--version` output can
+ * never drift apart. `dist/index.js` resolves this to the package root when
+ * installed, and to `apps/cli/package.json` when running from source.
  */
-export const VERSION = "0.3.5";
+const cliPackage = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf-8"),
+) as { version: string };
+
+export const VERSION = cliPackage.version;
 
 /**
  * Cache TTL (24 hours in milliseconds)

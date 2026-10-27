@@ -151,7 +151,7 @@ Environment variables:
 | `NODE_VERSION` | `22`    |
 | `PNPM_VERSION` | `9.0.0` |
 
-`apps/web/public/_redirects` provides the SPA fallback. Cloudflare Pages serves existing static files before applying it, so generated pages keep their own URLs.
+Cloudflare Pages assumes a single-page application when no top-level `404.html` exists, so it serves the SPA for client-side routes while static generated pages keep their own URLs. No `_redirects` fallback is needed.
 
 ## Custom Domain
 

@@ -19,12 +19,12 @@ export const help = new Command()
     ${chalk.yellow("addons")} [snippets...]    Add cross-framework shared snippets (addons)
     ${chalk.yellow("tooling")} [configs...]    Add development tooling configurations
     ${chalk.yellow("show")} <type>             View snippets, templates, addons, or tooling
-    ${chalk.yellow("docs")}                    Display documentation and guides
+    ${chalk.yellow("update")}                  Update the CLI to the latest version
+    ${chalk.yellow("sync")}                    Sync the local registry cache
     ${chalk.yellow("help")}                    Display this help message
 
   ${chalk.bold("ALIASES")}
     ${chalk.dim("mod")} → module
-    ${chalk.dim("mod add")} → addons
 
   ${chalk.bold("ADD OPTIONS")}
     ${chalk.dim("-a, --all")}             Add all snippets (use with --category)

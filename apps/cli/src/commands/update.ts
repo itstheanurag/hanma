@@ -15,6 +15,25 @@ async function fetchLatestVersion(): Promise<string | null> {
   }
 }
 
+function compareVersions(left: string, right: string): number {
+  const parse = (version: string): number[] =>
+    version
+      .split(".")
+      .slice(0, 3)
+      .map((part) => Number.parseInt(part, 10) || 0);
+
+  const a = parse(left);
+  const b = parse(right);
+
+  for (let index = 0; index < 3; index += 1) {
+    if (a[index] !== b[index]) {
+      return a[index]! - b[index]!;
+    }
+  }
+
+  return 0;
+}
+
 export const update = new Command()
   .name("update")
   .description("Update Hanma CLI to the latest version")
@@ -31,6 +50,14 @@ export const update = new Command()
 
     if (latestVersion === VERSION) {
       spinner.succeed(`Already on the latest version (${VERSION})`);
+      return;
+    }
+
+    const comparison = compareVersions(latestVersion, VERSION);
+    if (comparison < 0) {
+      spinner.succeed(
+        `Running ${VERSION}; the latest published version is ${latestVersion}`,
+      );
       return;
     }
 

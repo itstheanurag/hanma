@@ -8,6 +8,13 @@ import { promptInitConfig } from "../helpers";
  * Returns the created config or null if cancelled
  */
 export async function initHanmaConfig(): Promise<HanmaConfig | null> {
+  if (!process.stdin.isTTY) {
+    console.error(
+      chalk.red("Initialization requires an interactive terminal."),
+    );
+    return null;
+  }
+
   console.log(chalk.bold.blue("Initializing Hanma..."));
 
   const response = await promptInitConfig();

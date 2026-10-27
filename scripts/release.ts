@@ -7,10 +7,13 @@
  *   pnpm release major
  *   pnpm release 0.4.0
  *
+ * By default the script bumps, validates, commits, tags, and pushes. Pushing the
+ * tag starts the GitHub Actions publish workflow, which authenticates to npm
+ * with OIDC trusted publishing. The script never publishes from this machine.
+ *
  * Flags:
  *   --dry-run       Print the release plan without changing anything.
- *   --no-publish    Bump, validate, commit, tag, and push without npm publish.
- *   --no-git        Skip commit, tag, and push.
+ *   --no-git        Bump and validate without committing, tagging, or pushing.
  *   --skip-checks   Skip lint and type checks (the build still runs).
  *   --allow-branch  Allow releasing from a branch other than main.
  *   --yes           Do not ask for confirmation.
@@ -29,12 +32,9 @@ const CLI_DIR = join(ROOT_DIR, "apps", "cli");
 const CLI_PACKAGE_PATH = join(CLI_DIR, "package.json");
 const CLI_ENTRY_PATH = join(CLI_DIR, "dist", "index.js");
 
-type BumpType = "patch" | "minor" | "major";
-
 interface ReleaseOptions {
   bump: string;
   dryRun: boolean;
-  publish: boolean;
   git: boolean;
   skipChecks: boolean;
   allowBranch: boolean;
@@ -52,14 +52,16 @@ function usage(): string {
 
 Options:
   --dry-run       Show the release plan without changing anything
-  --no-publish    Skip npm publish
-  --no-git        Skip commit, tag, and push
+  --no-git        Bump and validate without committing, tagging, or pushing
   --skip-checks   Skip lint and type checks
   --allow-branch  Allow releasing from a branch other than main
   --yes           Skip the confirmation prompt
   --help          Show this message
 
-Use "current" to publish the version already in apps/cli/package.json
+Pushing the tag starts .github/workflows/publish.yml, which publishes with
+npm OIDC trusted publishing. The script itself never runs npm publish.
+
+Use "current" to release the version already in apps/cli/package.json
 without bumping it, for example when a prepared version was never released.`;
 }
 
@@ -70,7 +72,6 @@ function parseArgs(args: string[]): ReleaseOptions {
     "--help",
     "-h",
     "--dry-run",
-    "--no-publish",
     "--no-git",
     "--skip-checks",
     "--allow-branch",
@@ -99,7 +100,6 @@ function parseArgs(args: string[]): ReleaseOptions {
   return {
     bump,
     dryRun: flags.has("--dry-run"),
-    publish: !flags.has("--no-publish"),
     git: !flags.has("--no-git"),
     skipChecks: flags.has("--skip-checks"),
     allowBranch: flags.has("--allow-branch"),
@@ -231,11 +231,6 @@ function assertGitPreflight(
 }
 
 function assertNpmPreflight(nextVersion: string): void {
-  const user = tryRun("npm", ["whoami"]);
-  if (!user) {
-    throw new Error("Not logged in to npm. Run `npm login` before releasing.");
-  }
-
   const existing = tryRun("npm", ["view", `hanma@${nextVersion}`, "version"]);
   if (existing) {
     throw new Error(`hanma@${nextVersion} is already published on npm.`);
@@ -282,7 +277,11 @@ function printPlan(
     }`,
   );
   console.log(
-    `  Publish:         ${options.publish ? `npm publish hanma@${nextVersion}` : "skipped"}`,
+    `  Publish:         ${
+      options.git
+        ? "GitHub Actions on tag push (npm OIDC)"
+        : "skipped (no tag pushed)"
+    }`,
   );
   console.log("");
 }
@@ -315,8 +314,6 @@ async function main(): Promise<void> {
 
   if (options.git) {
     assertGitPreflight(nextVersion, options);
-  }
-  if (options.publish) {
     assertNpmPreflight(nextVersion);
   }
 
@@ -369,16 +366,15 @@ async function main(): Promise<void> {
       run("git", ["commit", "-m", `chore(release): hanma v${nextVersion}`]);
     }
 
-    console.log("\nTagging and pushing...");
+    console.log(
+      "\nTagging and pushing (this starts the npm publish workflow)...",
+    );
     run("git", ["tag", "-a", tagName, "-m", `hanma v${nextVersion}`]);
     run("git", ["push", "origin", "HEAD"]);
     run("git", ["push", "origin", tagName]);
-  }
-
-  if (options.publish) {
-    console.log("\nPublishing to npm...");
-    run("npm", ["publish", "--access", "public"], { cwd: CLI_DIR });
-    console.log(`Published hanma@${nextVersion}.`);
+    console.log(
+      `\nPushed ${tagName}. GitHub Actions will publish hanma@${nextVersion} with npm OIDC.`,
+    );
   }
 
   console.log(`\nRelease ${nextVersion} complete.`);

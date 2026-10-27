@@ -109,7 +109,7 @@ Available environment variables:
 
 `apps/cli/package.json` is the single source of truth for the published version. The CLI reads it at runtime, so there is no second version constant to update.
 
-Start from a clean `main` branch and log in to npm, then run:
+Releases are tag-driven. Start from a clean `main` branch and run:
 
 ```bash
 pnpm release current
@@ -119,20 +119,35 @@ pnpm release major
 pnpm release 0.4.0
 ```
 
-Use `current` when the version already in `apps/cli/package.json` has not been published yet. This publishes it without bumping and creates the matching git tag.
+Use `current` when the version already in `apps/cli/package.json` has not been published yet. It releases that version without bumping.
 
-The release script runs lint, type checks, and the build, verifies that the built CLI reports the version being released, then commits and tags when needed, pushes, and publishes to npm.
+The release script runs lint, type checks, and the build, verifies that the built CLI reports the version being released, then commits and pushes the release commit and an annotated `vX.Y.Z` tag. The tag starts `.github/workflows/publish.yml`, which checks that the tag matches `apps/cli/package.json`, reruns lint, types, and build, and publishes `hanma` to npm.
+
+Publishing uses npm OIDC trusted publishing, so no `NPM_TOKEN` secret is stored. The workflow needs `id-token: write`, which is already configured.
 
 Useful flags:
 
-| Flag             | Purpose                                                              |
-| ---------------- | -------------------------------------------------------------------- |
-| `--dry-run`      | Print the release plan without changing anything                     |
-| `--no-publish`   | Validate, build, commit/tag when needed, and push without publishing |
-| `--no-git`       | Skip commit, tag, and push                                           |
-| `--skip-checks`  | Skip lint and type checks (the build still runs)                     |
-| `--allow-branch` | Allow releasing from a branch other than `main`                      |
-| `--yes`          | Skip the confirmation prompt                                         |
+| Flag             | Purpose                                                   |
+| ---------------- | --------------------------------------------------------- |
+| `--dry-run`      | Print the release plan without changing anything          |
+| `--no-git`       | Bump and validate without committing, tagging, or pushing |
+| `--skip-checks`  | Skip lint and type checks (the build still runs)          |
+| `--allow-branch` | Allow releasing from a branch other than `main`           |
+| `--yes`          | Skip the confirmation prompt                              |
+
+### One-time npm setup
+
+Before the first tag-triggered publish, configure a trusted publisher for `hanma` on npmjs.com under **Settings > Trusted Publishing**:
+
+- Repository: `itstheanurag/hanma`
+- Workflow: `publish.yml`
+- Environment: leave empty unless the workflow adds one
+
+The workflow uses Node.js 24, whose bundled npm supports OIDC trusted publishing.
+
+### Recovering a failed publish
+
+If the workflow fails after the tag was pushed, fix the cause and rerun the failed `Publish` workflow from the Actions tab. Do not create a new tag for the same version.
 
 ## Questions?
 

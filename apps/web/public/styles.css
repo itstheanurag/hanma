@@ -254,6 +254,7 @@ code {
 }
 
 .categories-grid,
+.framework-grid,
 .snippets-grid,
 .related-snippets-grid,
 .related-grid,
@@ -265,6 +266,7 @@ code {
 }
 
 .category-section,
+.framework-card,
 .snippet-card,
 .related-card,
 .related-snippet,
@@ -284,6 +286,7 @@ code {
 }
 
 .category-section:hover,
+.framework-card:hover,
 .snippet-card:hover,
 .related-card:hover,
 .related-snippet:hover,
@@ -298,6 +301,29 @@ code {
   display: grid;
   gap: 10px;
   margin-top: 16px;
+}
+
+.framework-card {
+  color: inherit;
+  text-decoration: none;
+}
+
+.framework-card h2 {
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+}
+
+.framework-card p {
+  margin: 0 0 14px;
+  color: var(--muted);
+}
+
+.framework-meta {
+  display: block;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.8rem;
 }
 
 .snippet-preview {

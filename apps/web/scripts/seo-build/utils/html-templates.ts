@@ -114,7 +114,7 @@ export function generateHtmlFooter(): string {
     <p>&copy; ${year} Hanma. Production-ready backend code snippets.</p>
     <nav aria-label="Footer">
       <a href="/">Home</a>
-      <a href="/framework">Frameworks</a>
+      <a href="/framework/">Frameworks</a>
       <a href="/docs">Documentation</a>
       <a href="https://github.com/itstheanurag/hanma" rel="noopener">GitHub</a>
     </nav>

@@ -16,7 +16,7 @@ export const footerLinks = [
     title: "Resources",
     links: [
       { label: "Snippets", to: "/docs/snippets/express", type: "internal" },
-      { label: "Frameworks", href: "/framework", type: "external" },
+      { label: "Frameworks", href: "/framework/", type: "external" },
       { label: "Templates", to: "/docs/templates", type: "internal" },
       { label: "Documentation", to: "/docs", type: "internal" },
       { label: "Blog", href: "#", type: "external" },

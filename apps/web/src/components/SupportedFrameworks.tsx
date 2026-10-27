@@ -16,7 +16,7 @@ const SupportedFrameworks = () => {
             </p>
           </div>
           <a
-            href="/framework"
+            href="/framework/"
             className="text-sm font-medium text-foreground hover:text-muted transition-colors flex items-center gap-2"
           >
             View all integrations <LuArrowRight size={16} />

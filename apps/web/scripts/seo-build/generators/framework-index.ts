@@ -38,11 +38,11 @@ export async function generateFrameworkIndexPage(): Promise<GeneratedPage> {
   const metadata: PageMetadata = {
     title: TITLE,
     description: DESCRIPTION,
-    canonical: `${SITE_URL}/framework`,
+    canonical: `${SITE_URL}/framework/`,
     ogTitle: TITLE,
     ogDescription: DESCRIPTION,
-    ogImage: getOgImageUrl(`${SITE_URL}/framework`),
-    twitterImage: getOgImageUrl(`${SITE_URL}/framework`),
+    ogImage: getOgImageUrl(`${SITE_URL}/framework/`),
+    twitterImage: getOgImageUrl(`${SITE_URL}/framework/`),
   };
 
   const cards = (
@@ -65,7 +65,7 @@ export async function generateFrameworkIndexPage(): Promise<GeneratedPage> {
 
   const breadcrumb = generateBreadcrumb([
     { name: "Home", url: "/" },
-    { name: "Frameworks", url: "/framework" },
+    { name: "Frameworks", url: "/framework/" },
   ]);
 
   const content = `<header class="page-header">
@@ -91,7 +91,7 @@ ${breadcrumb}
 
   const jsonLd = generateBreadcrumbJsonLd([
     { name: "Home", url: SITE_URL },
-    { name: "Frameworks", url: `${SITE_URL}/framework` },
+    { name: "Frameworks", url: `${SITE_URL}/framework/` },
   ]);
 
   const page: GeneratedPage = {

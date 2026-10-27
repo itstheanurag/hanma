@@ -63,7 +63,7 @@ function getPriority(canonical: string): number {
     : canonical;
 
   if (path === "/" || path === "") return 1;
-  if (path === "/framework") return 0.9;
+  if (path === "/framework" || path === "/framework/") return 0.9;
   if (/^\/framework\/[^/]+$/.test(path)) return 0.9;
   if (path.startsWith("/snippet/")) return 0.8;
   if (path.startsWith("/compare/")) return 0.6;

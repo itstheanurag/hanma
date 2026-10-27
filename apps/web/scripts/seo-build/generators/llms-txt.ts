@@ -52,7 +52,7 @@ Hanma is not a runtime framework or a dependency. Snippets are written into your
 ## Canonical resources
 
 - [Documentation](${SITE_URL}/docs): Guides for snippets, templates, and modules.
-- [Framework index](${SITE_URL}/framework): Entry point for all framework snippet collections.
+- [Framework index](${SITE_URL}/framework/): Entry point for all framework snippet collections.
 - [Sitemap](${SITE_URL}/sitemap.xml): Complete list of indexable pages.
 - [npm package](${NPM_URL}): Install with \`npx hanma\`.
 - [GitHub repository](${GITHUB_URL}): Source code, issues, and release history.

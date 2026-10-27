@@ -97,7 +97,7 @@ async function generateCategoryPage(
     }));
 
   const content = `<header class="page-header">
-  <h1>${category.title} ${framework.name} Snippets</h1>
+  <h1>${framework.name} ${category.title} Snippets</h1>
   <p class="page-description">${category.description}</p>
   <div class="stats">
     <span class="stat">

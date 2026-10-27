@@ -17,12 +17,14 @@
     "test:cli": "tsx scripts/tests/cli.ts"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@types/fs-extra": "^11.0.4",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^25.0.1",
     "fs-extra": "^11.3.2",
     "js-yaml": "^4.1.1",
     "prettier": "^3.7.4",
+    "satori": "^0.63.2",
     "tsx": "^4.21.0",
     "turbo": "^2.6.3",
     "typescript": "5.9.2"

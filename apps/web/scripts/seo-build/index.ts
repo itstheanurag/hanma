@@ -7,6 +7,7 @@ import { existsSync } from "fs";
 import { mkdir, rm, writeFile } from "fs/promises";
 import { join } from "path";
 import { generateFrameworkPages } from "./generators/framework-pages.js";
+import { generateFrameworkIndexPage } from "./generators/framework-index.js";
 import { generateCategoryPages } from "./generators/category-pages.js";
 import { generateSnippetPages } from "./generators/snippet-pages.js";
 import { generateUseCasePages } from "./generators/use-case-pages.js";
@@ -15,6 +16,8 @@ import { generateTutorialPages } from "./generators/tutorial-pages.js";
 import { generateTagPages } from "./generators/tag-pages.js";
 import { generateSearchPages } from "./generators/search-pages.js";
 import { generatePatternPages } from "./generators/pattern-pages.js";
+import { generateOgImages } from "./generators/og-images.js";
+import { generateLlmsTxt } from "./generators/llms-txt.js";
 import { SITE_URL } from "./constant.js";
 import { DIST_DIR } from "./paths.js";
 import { GeneratedPage, BuildStats, SitemapEntry } from "./types.js";
@@ -35,9 +38,15 @@ const GENERATED_DIRECTORIES = [
   "search",
   "pattern",
   "seo",
+  "og",
 ];
 
-const GENERATED_FILES = ["sitemap.xml", "robots.txt", "build-stats.json"];
+const GENERATED_FILES = [
+  "sitemap.xml",
+  "robots.txt",
+  "llms.txt",
+  "build-stats.json",
+];
 
 function escapeXml(value: string): string {
   return value
@@ -54,6 +63,7 @@ function getPriority(canonical: string): number {
     : canonical;
 
   if (path === "/" || path === "") return 1;
+  if (path === "/framework") return 0.9;
   if (/^\/framework\/[^/]+$/.test(path)) return 0.9;
   if (path.startsWith("/snippet/")) return 0.8;
   if (path.startsWith("/compare/")) return 0.6;
@@ -132,17 +142,20 @@ Sitemap: ${SITE_URL}/sitemap.xml
 /**
  * Generate build stats
  */
-async function generateBuildStats(stats: {
-  framework: BuildStats;
-  category: BuildStats;
-  snippet: BuildStats;
-  useCase: BuildStats;
-  comparison: BuildStats;
-  tutorial: BuildStats;
-  tag: BuildStats;
-  search: BuildStats;
-  pattern: BuildStats;
-}): Promise<void> {
+async function generateBuildStats(
+  stats: {
+    framework: BuildStats;
+    category: BuildStats;
+    snippet: BuildStats;
+    useCase: BuildStats;
+    comparison: BuildStats;
+    tutorial: BuildStats;
+    tag: BuildStats;
+    search: BuildStats;
+    pattern: BuildStats;
+  },
+  ogImageCount: number,
+): Promise<void> {
   const totalPages =
     stats.framework.totalPages +
     stats.category.totalPages +
@@ -168,6 +181,7 @@ async function generateBuildStats(stats: {
       search: stats.search.totalPages,
       pattern: stats.pattern.totalPages,
     },
+    ogImages: ogImageCount,
     buildTime:
       stats.framework.buildTime +
       stats.category.buildTime +
@@ -223,6 +237,11 @@ async function build(): Promise<void> {
 
   // Generate all page types
   const frameworkResult = await generateFrameworkPages();
+  const frameworkIndexPage = await generateFrameworkIndexPage();
+  frameworkResult.pages.push(frameworkIndexPage);
+  frameworkResult.stats.totalPages += 1;
+  frameworkResult.stats.pagesByType.framework += 1;
+  console.log("Framework index page generated");
   const categoryResult = await generateCategoryPages();
   const snippetResult = await generateSnippetPages();
   const useCaseResult = await generateUseCasePages();
@@ -245,22 +264,31 @@ async function build(): Promise<void> {
     ...patternResult.pages,
   ];
 
-  // Generate sitemap and robots.txt
+  // Generate social cards for the homepage and every generated page
+  console.log("\nGenerating social cards...");
+  const ogImageCount = await generateOgImages(allPages);
+
+  // Generate sitemap, robots.txt, and the AI answer-engine index
   await generateSitemap(allPages);
   await generateRobotsTxt();
+  await generateLlmsTxt();
+  console.log("Generated llms.txt");
 
   // Generate build stats
-  await generateBuildStats({
-    framework: frameworkResult.stats,
-    category: categoryResult.stats,
-    snippet: snippetResult.stats,
-    useCase: useCaseResult.stats,
-    comparison: comparisonResult.stats,
-    tutorial: tutorialResult.stats,
-    tag: tagResult.stats,
-    search: searchResult.stats,
-    pattern: patternResult.stats,
-  });
+  await generateBuildStats(
+    {
+      framework: frameworkResult.stats,
+      category: categoryResult.stats,
+      snippet: snippetResult.stats,
+      useCase: useCaseResult.stats,
+      comparison: comparisonResult.stats,
+      tutorial: tutorialResult.stats,
+      tag: tagResult.stats,
+      search: searchResult.stats,
+      pattern: patternResult.stats,
+    },
+    ogImageCount,
+  );
 
   const totalBuildTime = Date.now() - startTime;
   const indexablePages = allPages.filter((page) => !page.metadata.noindex);
@@ -279,6 +307,7 @@ async function build(): Promise<void> {
   console.log(`  Tag pages: ${tagResult.stats.totalPages}`);
   console.log(`  Search pages: ${searchResult.stats.totalPages}`);
   console.log(`  Pattern pages: ${patternResult.stats.totalPages}`);
+  console.log(`  Social cards: ${ogImageCount}`);
   console.log(`\nOutput directory: ${OUTPUT_DIR}`);
 }
 

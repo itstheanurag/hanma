@@ -20,7 +20,7 @@ pnpm build
 The SEO build does not wipe `apps/web/dist`; it only clears the directories and files it owns:
 
 - `framework/`, `snippet/`, `use-case/`, `compare/`, `guide/`, `tag/`, `search/`, `pattern/`
-- `sitemap.xml`, `robots.txt`, `build-stats.json`
+- `sitemap.xml`, `robots.txt`, `llms.txt`, `build-stats.json`
 
 If `apps/web/dist/index.html` is missing, the build still runs but prints a warning because the result is not a complete deployment.
 
@@ -35,9 +35,11 @@ apps/web/scripts/seo-build/
 ├── utils/
 │   ├── content-loader.ts # Loads docs JSON and snippet sources
 │   ├── seo-metadata.ts   # Titles, descriptions, canonicals, JSON-LD
-│   └── html-templates.ts # HTML head, footer, and page components
+│   ├── html-templates.ts # HTML head, footer, and page components
+│   └── og-image.ts       # Renders social cards with Satori + resvg
 └── generators/
     ├── framework-pages.ts
+    ├── framework-index.ts
     ├── category-pages.ts
     ├── snippet-pages.ts
     ├── use-case-pages.ts
@@ -45,24 +47,26 @@ apps/web/scripts/seo-build/
     ├── tutorial-pages.ts
     ├── tag-pages.ts
     ├── search-pages.ts
-    └── pattern-pages.ts
+    ├── pattern-pages.ts
+    └── og-images.ts
 ```
 
 All paths are resolved from `paths.ts`, so the build works regardless of the current working directory.
 
 ## Page Types
 
-| Page type  | URL pattern                              | Source                               |
-| ---------- | ---------------------------------------- | ------------------------------------ |
-| Framework  | `/framework/:framework`                  | Framework definitions                |
-| Category   | `/framework/:framework/:category`        | Framework category JSON              |
-| Snippet    | `/snippet/:framework/:category/:snippet` | Snippet registry and source          |
-| Use case   | `/use-case/:framework/:use-case`         | Snippet purpose and features         |
-| Comparison | `/compare/:framework-vs-framework`       | Framework pairs                      |
-| Tutorial   | `/guide/:framework-topic`                | Tutorial topics and related snippets |
-| Tag        | `/tag/:framework/:tag`                   | Snippet tags                         |
-| Search     | `/search/:query`                         | Search query list                    |
-| Pattern    | `/pattern/:framework-pattern`            | Design patterns                      |
+| Page type       | URL pattern                              | Source                               |
+| --------------- | ---------------------------------------- | ------------------------------------ |
+| Framework       | `/framework/:framework`                  | Framework definitions                |
+| Framework index | `/framework`                             | Framework definitions                |
+| Category        | `/framework/:framework/:category`        | Framework category JSON              |
+| Snippet         | `/snippet/:framework/:category/:snippet` | Snippet registry and source          |
+| Use case        | `/use-case/:framework/:use-case`         | Snippet purpose and features         |
+| Comparison      | `/compare/:framework-vs-framework`       | Framework pairs                      |
+| Tutorial        | `/guide/:framework-topic`                | Tutorial topics and related snippets |
+| Tag             | `/tag/:framework/:tag`                   | Snippet tags                         |
+| Search          | `/search/:query`                         | Search query list                    |
+| Pattern         | `/pattern/:framework-pattern`            | Design patterns                      |
 
 Counts depend on the current docs content. `build-stats.json` records the pages produced by the latest run.
 
@@ -81,6 +85,11 @@ apps/web/dist/
 ├── pattern/express-repository-pattern.html
 ├── sitemap.xml
 ├── robots.txt
+├── llms.txt
+├── og/
+│   ├── home.png
+│   ├── framework/express.png
+│   └── snippet/express/libs/express-server.png
 ├── og-image.png
 ├── twitter-image.png
 ├── favicon.svg
@@ -99,9 +108,30 @@ Generated pages use extensionless canonical URLs such as `/framework/express`. S
 - Tag pages with no matching snippets are skipped instead of being published as thin content.
 - Pattern pages with no related snippets are marked `noindex`.
 - Titles and descriptions use display names from the content data, not raw slugs.
-- Open Graph and Twitter tags point to the 1200x630 images in `apps/web/public`.
+- Every indexable page gets a unique 1200x630 social card under `/og`, generated at build time with Satori and resvg. Noindex pages reuse the homepage card.
+- Open Graph and Twitter tags point to the per-page card, with the static `og-image.png` and `twitter-image.png` kept as fallbacks.
 - JSON-LD is serialized with `JSON.stringify` and each document is emitted in its own script tag.
 - `robots.txt` allows the SPA and keeps `/docs/` and `/builder/` out of the crawl path until they have route-level metadata.
+
+## Answer and Generative Engine Optimization
+
+- `llms.txt` is generated with a concise project summary, canonical resource links, frameworks, categories, and CLI commands.
+- Any page that renders the shared FAQ section automatically emits `FAQPage` structured data. Questions and answers are extracted from the generated markup, so generators do not duplicate content.
+- Pages with FAQs also keep visible answers in the HTML rather than hiding them behind client-side state.
+- Canonical URLs, breadcrumbs, and `SoftwareSourceCode` / `CollectionPage` schema remain the source of truth for citations.
+- AI crawlers follow the same `robots.txt` rules as other crawlers. `/docs/` remains excluded until docs routes are prerendered with their own metadata.
+
+## Social Cards
+
+Each indexable page gets its own Open Graph and Twitter image:
+
+- Canonical `/framework/express` maps to `/og/framework/express.png`.
+- The homepage maps to `/og/home.png`.
+- Cards are rendered at build time with Satori (HTML/CSS to SVG) and `@resvg/resvg-js` (SVG to PNG). No headless browser is used.
+- `assets/fonts` contains the Inter WOFF files used by Satori. They are licensed under the SIL Open Font License; see `assets/fonts/OFL.txt`.
+- Search and other `noindex` pages reuse `/og/home.png`, so the number of cards matches the number of indexable pages.
+
+Adding a new page type only requires calling `generateMetadata`; the image URL and card are derived from the canonical URL automatically.
 
 ## Deployment
 

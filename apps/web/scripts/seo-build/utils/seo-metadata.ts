@@ -5,9 +5,23 @@
 import { SITE_URL } from "../constant.js";
 import { PageMetadata, PageContext } from "../types.js";
 
-const DEFAULT_OG_IMAGE = `${SITE_URL}/og-image.png`;
-const DEFAULT_TWITTER_IMAGE = `${SITE_URL}/twitter-image.png`;
 const MAX_DESCRIPTION_LENGTH = 160;
+
+/**
+ * Build the social image URL for a canonical page URL.
+ *
+ * Images are rendered at build time by the SEO build and mirror the canonical
+ * path under /og, so every indexable page can have its own social card.
+ */
+export function getOgImageUrl(canonical: string): string {
+  const path = canonical.startsWith(SITE_URL)
+    ? canonical.slice(SITE_URL.length)
+    : canonical;
+  const normalized = path.replace(/^\/+|\/+$/g, "");
+  return normalized
+    ? `${SITE_URL}/og/${normalized}.png`
+    : `${SITE_URL}/og/home.png`;
+}
 
 /**
  * Title templates for different page types.
@@ -50,7 +64,7 @@ const descriptionTemplates = {
       topFeatures.length > 0
         ? ` Includes ${topFeatures.slice(0, 3).join(", ")}.`
         : "";
-    return `Browse ${count} ${category} snippets for ${framework}.${featureText} Copy-paste ready code for your next project.`;
+    return `Browse ${count} ${framework} ${category} snippets.${featureText} Copy-paste ready code for your next project.`;
   },
   snippet: (
     snippet: {
@@ -319,6 +333,10 @@ export function generateMetadata(
   }
 
   const normalizedDescription = truncate(description, MAX_DESCRIPTION_LENGTH);
+  // Noindex pages reuse the homepage card so every page still has a valid image.
+  const socialImage = noindex
+    ? `${SITE_URL}/og/home.png`
+    : getOgImageUrl(canonical);
 
   return {
     title,
@@ -326,8 +344,8 @@ export function generateMetadata(
     canonical,
     ogTitle: title,
     ogDescription: normalizedDescription,
-    ogImage: DEFAULT_OG_IMAGE,
-    twitterImage: DEFAULT_TWITTER_IMAGE,
+    ogImage: socialImage,
+    twitterImage: socialImage,
     noindex,
   };
 }

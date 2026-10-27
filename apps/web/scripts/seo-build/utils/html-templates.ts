@@ -34,8 +34,14 @@ export function generateHtmlHead(
     inLanguage: "en",
     publisher: {
       "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
       name: "Hanma",
       url: `${SITE_URL}/`,
+      logo: `${SITE_URL}/favicon.png`,
+      sameAs: [
+        "https://github.com/itstheanurag/hanma",
+        "https://www.npmjs.com/package/hanma",
+      ],
     },
   });
   const additionalJsonLdScripts = normalizeJsonLd(additionalJsonLd)
@@ -55,6 +61,8 @@ export function generateHtmlHead(
   <meta name="description" content="${escapeHtml(description)}">
   <meta name="robots" content="${noindex ? "noindex, nofollow" : "index, follow"}">
   <link rel="canonical" href="${escapeHtml(canonical)}">
+  <link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml">
+  <meta name="author" content="Gaurav Kumar">
 
   <!-- Icons & theme -->
   <link rel="icon" href="/favicon.ico" sizes="any">
@@ -106,6 +114,7 @@ export function generateHtmlFooter(): string {
     <p>&copy; ${year} Hanma. Production-ready backend code snippets.</p>
     <nav aria-label="Footer">
       <a href="/">Home</a>
+      <a href="/framework">Frameworks</a>
       <a href="/docs">Documentation</a>
       <a href="https://github.com/itstheanurag/hanma" rel="noopener">GitHub</a>
     </nav>
@@ -367,7 +376,73 @@ export function generateFullPage(
   content: string,
   additionalJsonLd?: string | string[],
 ): string {
-  return `${generateHtmlHead(metadata, additionalJsonLd)}
+  const faqs = extractFaqItems(content);
+  const faqJsonLd = faqs.length > 0 ? generateFaqJsonLd(faqs) : null;
+  const jsonLd = faqJsonLd
+    ? [...normalizeJsonLd(additionalJsonLd), faqJsonLd]
+    : additionalJsonLd;
+
+  return `${generateHtmlHead(metadata, jsonLd)}
 ${content}
 ${generateHtmlFooter()}`;
+}
+
+interface FaqItem {
+  question: string;
+  answer: string;
+}
+
+function decodeHtml(value: string): string {
+  const entities: Record<string, string> = {
+    "&amp;": "&",
+    "&lt;": "<",
+    "&gt;": ">",
+    "&quot;": '"',
+    "&#39;": "'",
+  };
+
+  return value.replace(/&(amp|lt|gt|quot|#39);/g, (match) => entities[match]);
+}
+
+function toPlainText(html: string): string {
+  return decodeHtml(html.replace(/<[^>]+>/g, " "))
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Read FAQ items from generated page markup so any page that renders an FAQ
+ * section also emits matching FAQPage structured data.
+ */
+function extractFaqItems(content: string): FaqItem[] {
+  const faqPattern =
+    /<details class="faq-item"[^>]*>\s*<summary class="faq-question">([\s\S]*?)<\/summary>\s*<div class="faq-answer">([\s\S]*?)<\/div>\s*<\/details>/g;
+
+  const faqs: FaqItem[] = [];
+  for (const match of content.matchAll(faqPattern)) {
+    const question = toPlainText(match[1] ?? "");
+    const answer = toPlainText(match[2] ?? "");
+    if (question && answer) faqs.push({ question, answer });
+  }
+
+  return faqs;
+}
+
+function generateFaqJsonLd(faqs: FaqItem[]): string {
+  return JSON.stringify(
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: faqs.map((faq) => ({
+        "@type": "Question",
+        name: faq.question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: faq.answer,
+        },
+      })),
+    },
+    null,
+    2,
+  );
 }

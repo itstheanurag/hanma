@@ -44,6 +44,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build workspace dependencies
+        run: pnpm --filter @repo/schemas build
+
       - name: Lint
         run: pnpm --filter hanma lint
 

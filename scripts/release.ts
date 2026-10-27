@@ -329,6 +329,11 @@ async function main(): Promise<void> {
   }
 
   try {
+    // The CLI type checks and build resolve @repo/schemas from its dist output,
+    // so shared workspace packages must be built first on a clean checkout.
+    console.log("\nBuilding shared workspace packages...");
+    run("pnpm", ["--filter", "@repo/schemas", "build"]);
+
     if (!options.skipChecks) {
       console.log("\nRunning lint...");
       run("pnpm", ["--filter", "hanma", "lint"]);

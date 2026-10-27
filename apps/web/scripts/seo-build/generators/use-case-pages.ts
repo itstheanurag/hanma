@@ -21,8 +21,9 @@ import {
 } from "../utils/html-templates.js";
 import { GeneratedPage, BuildStats, Snippet } from "../types.js";
 import { SITE_URL } from "../constant.js";
+import { DIST_DIR } from "../paths.js";
 
-const OUTPUT_DIR = join(process.cwd(), "../../dist/seo");
+const OUTPUT_DIR = DIST_DIR;
 
 // Common use case keywords to target
 const COMMON_USE_CASES = [
@@ -152,11 +153,12 @@ function generateUseCaseContent(
   snippets: Array<{ snippet: Snippet; category: string }>,
 ): string {
   const slug = slugify(useCase);
+  const displayUseCase = useCase.charAt(0).toUpperCase() + useCase.slice(1);
 
   return `<header class="page-header">
-  <h1>${useCase.charAt(0).toUpperCase() + useCase.slice(1)} in ${framework.name}</h1>
+  <h1>${displayUseCase} in ${framework.name}</h1>
   <p class="page-description">
-    Explore ${snippets.length} code snippets for implementing ${useCase} in ${framework.name}.
+    Explore ${snippets.length} code snippets for implementing ${displayUseCase} in ${framework.name}.
     Copy-paste ready solutions for your production applications.
   </p>
 </header>
@@ -164,14 +166,14 @@ function generateUseCaseContent(
 ${generateBreadcrumb([
   { name: "Home", url: "/" },
   { name: framework.name, url: `/framework/${framework.id}` },
-  { name: useCase, url: `/use-case/${framework.id}/${slug}` },
+  { name: displayUseCase, url: `/use-case/${framework.id}/${slug}` },
 ])}
 
 <main class="page-content">
   <section class="use-case-overview">
     <h2>Overview</h2>
     <p>
-      This page contains ${snippets.length} code snippets for implementing ${useCase}
+      This page contains ${snippets.length} code snippets for implementing ${displayUseCase}
       in ${framework.name}. Each snippet is production-ready and can be copy-pasted
       directly into your project.
     </p>
@@ -206,7 +208,7 @@ ${generateBreadcrumb([
 
   ${generateFaqSection([
     {
-      question: `How do I implement ${useCase} in ${framework.name}?`,
+      question: `How do I implement ${displayUseCase} in ${framework.name}?`,
       answer: `Browse the snippets above and copy the code that matches your needs. Each snippet includes installation instructions and usage examples.`,
     },
     {
@@ -235,7 +237,11 @@ async function generateUseCasePage(
   const metadata = generateMetadata(
     "useCase",
     { useCase: slug, framework: framework.id },
-    { snippetCount: snippets.length },
+    {
+      useCaseName: useCase.charAt(0).toUpperCase() + useCase.slice(1),
+      frameworkName: framework.name,
+      snippetCount: snippets.length,
+    },
   );
 
   const content = generateUseCaseContent(useCase, framework, snippets);
@@ -243,7 +249,10 @@ async function generateUseCasePage(
   const jsonLd = generateBreadcrumbJsonLd([
     { name: "Home", url: SITE_URL },
     { name: framework.name, url: `${SITE_URL}/framework/${framework.id}` },
-    { name: useCase, url: `${SITE_URL}/use-case/${framework.id}/${slug}` },
+    {
+      name: useCase.charAt(0).toUpperCase() + useCase.slice(1),
+      url: `${SITE_URL}/use-case/${framework.id}/${slug}`,
+    },
   ]);
 
   const fullPage = generateFullPage(metadata, content, jsonLd);

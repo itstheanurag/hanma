@@ -108,7 +108,17 @@ export async function fetchAvailableFrameworks(
     if (t.framework) frameworks.add(t.framework);
   });
 
-  return Array.from(frameworks);
+  if (frameworks.size > 0) {
+    return Array.from(frameworks);
+  }
+
+  const registryIndex = await fetchJsonWithCache<string[]>(
+    `${REGISTRY_URL}/index.json`,
+    "registry-index",
+    forceRefresh,
+  );
+
+  return registryIndex ?? [];
 }
 
 export async function fetchRegistry(

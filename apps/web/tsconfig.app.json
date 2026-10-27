@@ -9,7 +9,7 @@
     "skipLibCheck": true,
 
     /* Path aliases */
-    "baseUrl": ".",
+    "rootDir": "src",
     "paths": {
       "@/*": ["./src/*"],
       "@public/*": ["./public/*"]
@@ -20,6 +20,7 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
+    "composite": true,
     "noEmit": true,
     "jsx": "react-jsx",
 

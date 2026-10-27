@@ -21,8 +21,9 @@ import {
 } from "../utils/html-templates.js";
 import { GeneratedPage, BuildStats, Snippet } from "../types.js";
 import { SITE_URL } from "../constant.js";
+import { DIST_DIR } from "../paths.js";
 
-const OUTPUT_DIR = join(process.cwd(), "../../dist/seo");
+const OUTPUT_DIR = DIST_DIR;
 
 // Framework pairs to compare (avoid duplicates like express-vs-hono vs hono-vs-express)
 const FRAMEWORK_PAIRS = [
@@ -145,7 +146,6 @@ function generateComparisonContent(
 
 ${generateBreadcrumb([
   { name: "Home", url: "/" },
-  { name: "Compare", url: "/compare" },
   { name: `${fw1.name} vs ${fw2.name}`, url: `/compare/${slug}` },
 ])}
 
@@ -293,16 +293,18 @@ async function generateComparisonPage(
 
   const slug = slugify(`${fw1.name}-vs-${fw2.name}`);
   const metadata = generateMetadata(
-    "framework",
-    { framework: slug },
-    { frameworkDescription: `${fw1.name} vs ${fw2.name} comparison` },
+    "comparison",
+    { comparison: slug },
+    {
+      firstFramework: fw1.name,
+      secondFramework: fw2.name,
+    },
   );
 
   const content = generateComparisonContent(fw1, fw2, comparisons);
 
   const jsonLd = generateBreadcrumbJsonLd([
     { name: "Home", url: SITE_URL },
-    { name: "Compare", url: `${SITE_URL}/compare` },
     { name: `${fw1.name} vs ${fw2.name}`, url: `${SITE_URL}/compare/${slug}` },
   ]);
 

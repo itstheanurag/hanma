@@ -71,7 +71,12 @@ export async function parseSnippetFile(
   }
 
   const content = await fs.readFile(filePath, "utf-8");
-  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+  // Allow leading blank lines before the frontmatter delimiter. Several tooling
+  // files start with an empty line, which previously made their metadata and
+  // files silently disappear from the generated registry.
+  const frontmatterMatch = content.match(
+    /^\s*---\n([\s\S]*?)\n---\n([\s\S]*)$/,
+  );
 
   if (!frontmatterMatch) {
     return {

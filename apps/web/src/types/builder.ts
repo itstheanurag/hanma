@@ -9,6 +9,7 @@ export type { TemplateBlock, TemplateRegistry } from "@repo/schemas";
 
 export interface TerminalDockProps {
   projectName: string;
+  selectedFramework: string;
   selectedBase: string;
   selectedDatabase: string;
   selectedAuth: string;

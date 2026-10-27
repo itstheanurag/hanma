@@ -15,16 +15,20 @@ const SupportedFrameworks = () => {
               wrappers, just idiomatic code.
             </p>
           </div>
-          <button className="text-sm font-medium text-foreground hover:text-muted transition-colors flex items-center gap-2">
+          <a
+            href="/framework/"
+            className="text-sm font-medium text-foreground hover:text-muted transition-colors flex items-center gap-2"
+          >
             View all integrations <LuArrowRight size={16} />
-          </button>
+          </a>
         </div>
 
         {/* Data-driven grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-border/60 border border-border/60 rounded-xl overflow-hidden">
           {frameworks.map((fw) => (
-            <div
+            <a
               key={fw.id}
+              href={`/framework/${fw.id}`}
               className="bg-surface p-8 group hover:bg-surface-hover transition-colors relative"
             >
               <div className="absolute top-2 right-2 w-32 h-32 transition-all group-hover:bg-background/10" />
@@ -49,7 +53,7 @@ const SupportedFrameworks = () => {
                   {fw.command.text}
                 </div>
               </div>
-            </div>
+            </a>
           ))}
         </div>
 

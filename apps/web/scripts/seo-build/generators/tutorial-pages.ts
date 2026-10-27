@@ -22,8 +22,9 @@ import {
 } from "../utils/html-templates.js";
 import { GeneratedPage, BuildStats, Snippet } from "../types.js";
 import { SITE_URL } from "../constant.js";
+import { DIST_DIR } from "../paths.js";
 
-const OUTPUT_DIR = join(process.cwd(), "../../dist/seo");
+const OUTPUT_DIR = DIST_DIR;
 
 // Common tutorial topics
 const TUTORIAL_TOPICS = [
@@ -93,10 +94,10 @@ const TUTORIAL_TOPICS = [
  * Find snippets related to a topic
  */
 function findRelatedSnippets(
-  snippets: Snippet[],
+  snippets: Array<{ snippet: Snippet; category: string }>,
   keywords: string[],
-): Snippet[] {
-  return snippets.filter((snippet) => {
+): Array<{ snippet: Snippet; category: string }> {
+  return snippets.filter(({ snippet }) => {
     const text = [
       snippet.purpose,
       snippet.description,
@@ -117,7 +118,7 @@ function findRelatedSnippets(
 function generateTutorialContent(
   topic: { id: string; title: string; keywords: string[] },
   framework: { id: string; name: string },
-  relatedSnippets: Snippet[],
+  relatedSnippets: Array<{ snippet: Snippet; category: string }>,
 ): string {
   const slug = slugify(`${framework.id}-${topic.id}`);
 
@@ -132,7 +133,6 @@ function generateTutorialContent(
 ${generateBreadcrumb([
   { name: "Home", url: "/" },
   { name: framework.name, url: `/framework/${framework.id}` },
-  { name: "Guides", url: `/guide/${framework.id}` },
   { name: topic.title, url: `/guide/${slug}` },
 ])}
 
@@ -164,7 +164,7 @@ ${generateBreadcrumb([
     <div class="step">
       <h3>Step 1: Install Dependencies</h3>
       <p>First, install any required dependencies for ${topic.title.toLowerCase()}:</p>
-      ${generateCodeBlock(`npm install ${relatedSnippets[0]?.dependencies.join(" ") || ""}`, "bash")}
+      ${generateCodeBlock(`npm install ${relatedSnippets[0]?.snippet.dependencies.join(" ") || ""}`, "bash")}
     </div>
 
     <div class="step">
@@ -174,9 +174,9 @@ ${generateBreadcrumb([
         ${relatedSnippets
           .slice(0, 3)
           .map(
-            (snippet) => `
+            ({ snippet, category }) => `
           <article class="snippet-card">
-            <a href="/snippet/${framework.id}/${snippet.id}" class="snippet-link">
+            <a href="/snippet/${framework.id}/${category}/${snippet.id}" class="snippet-link">
               <h4>${snippet.displayName}</h4>
               <p>${snippet.description}</p>
               <code>${snippet.command}</code>
@@ -203,9 +203,9 @@ ${generateBreadcrumb([
     <div class="snippets-list">
       ${relatedSnippets
         .map(
-          (snippet) => `
+          ({ snippet, category }) => `
         <article class="snippet-item">
-          <h3><a href="/snippet/${framework.id}/${snippet.id}">${snippet.displayName}</a></h3>
+          <h3><a href="/snippet/${framework.id}/${category}/${snippet.id}">${snippet.displayName}</a></h3>
           <p>${snippet.description}</p>
           <code>${snippet.command}</code>
         </article>
@@ -251,14 +251,20 @@ async function generateTutorialPage(
   framework: { id: string; name: string; description: string },
 ): Promise<GeneratedPage> {
   const categories = await loadFrameworkCategories(framework.id);
-  const allSnippets = categories.flatMap((cat) => cat.snippets);
+  const allSnippets = categories.flatMap((cat) =>
+    cat.snippets.map((snippet) => ({ snippet, category: cat.id })),
+  );
   const relatedSnippets = findRelatedSnippets(allSnippets, topic.keywords);
 
   const slug = slugify(`${framework.id}-${topic.id}`);
   const metadata = generateMetadata(
     "guide",
     { guide: slug, framework: framework.id },
-    { tutorialTopic: topic.title, snippetCount: relatedSnippets.length },
+    {
+      guideName: topic.title,
+      frameworkName: framework.name,
+      snippetCount: relatedSnippets.length,
+    },
   );
 
   const content = generateTutorialContent(topic, framework, relatedSnippets);
@@ -266,7 +272,6 @@ async function generateTutorialPage(
   const jsonLd = generateBreadcrumbJsonLd([
     { name: "Home", url: SITE_URL },
     { name: framework.name, url: `${SITE_URL}/framework/${framework.id}` },
-    { name: "Guides", url: `${SITE_URL}/guide/${framework.id}` },
     { name: topic.title, url: `${SITE_URL}/guide/${slug}` },
   ]);
 

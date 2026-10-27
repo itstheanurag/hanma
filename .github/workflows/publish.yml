@@ -1,0 +1,69 @@
+name: Publish
+
+# Publishing is driven by release tags. `pnpm release <bump>` creates vX.Y.Z,
+# pushes it, and this workflow publishes the matching CLI version to npm using
+# OIDC trusted publishing. No NPM_TOKEN secret is required.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
+
+      - name: Verify tag matches CLI version
+        run: |
+          version="$(node -p "require('./apps/cli/package.json').version")"
+          if [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match apps/cli/package.json version ${version}."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm --filter hanma lint
+
+      - name: Type check
+        run: pnpm --filter hanma check-types
+
+      - name: Build
+        run: pnpm --filter hanma build
+
+      - name: Verify built CLI version
+        run: |
+          version="$(node -p "require('./apps/cli/package.json').version")"
+          built="$(node apps/cli/dist/index.js --version)"
+          if [ "$built" != "$version" ]; then
+            echo "Built CLI reports ${built}, expected ${version}."
+            exit 1
+          fi
+
+      - name: Publish to npm
+        working-directory: apps/cli
+        run: npm publish --access public --provenance

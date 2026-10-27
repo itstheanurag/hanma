@@ -22,8 +22,9 @@ import {
 } from "../utils/html-templates.js";
 import { GeneratedPage, BuildStats, Snippet } from "../types.js";
 import { SITE_URL } from "../constant.js";
+import { DIST_DIR } from "../paths.js";
 
-const OUTPUT_DIR = join(process.cwd(), "../../dist/seo");
+const OUTPUT_DIR = DIST_DIR;
 
 // Software design patterns
 const PATTERNS = [
@@ -82,7 +83,7 @@ const PATTERNS = [
     keywords: ["unit of work", "transaction", "atomic", "batch"],
   },
   {
-    id: " cqrs",
+    id: "cqrs",
     name: "CQRS Pattern",
     description: "Separate read and write operations",
     keywords: ["cqrs", "command query", "separation", "read", "write"],
@@ -93,11 +94,11 @@ const PATTERNS = [
  * Find snippets related to a pattern
  */
 function findPatternSnippets(
-  snippets: Snippet[],
+  snippets: Array<{ snippet: Snippet; category: string }>,
   keywords: string[],
-): Array<{ snippet: Snippet; score: number }> {
+): Array<{ snippet: Snippet; category: string; score: number }> {
   return snippets
-    .map((snippet) => {
+    .map(({ snippet, category }) => {
       let score = 0;
       const text = [
         snippet.purpose,
@@ -115,7 +116,7 @@ function findPatternSnippets(
         }
       }
 
-      return { snippet, score };
+      return { snippet, category, score };
     })
     .filter((r) => r.score > 0)
     .sort((a, b) => b.score - a.score);
@@ -127,7 +128,7 @@ function findPatternSnippets(
 function generatePatternContent(
   pattern: (typeof PATTERNS)[0],
   framework: { id: string; name: string },
-  relatedSnippets: Array<{ snippet: Snippet; score: number }>,
+  relatedSnippets: Array<{ snippet: Snippet; category: string; score: number }>,
 ): string {
   const slug = slugify(`${framework.id}-${pattern.id}`);
 
@@ -142,7 +143,6 @@ function generatePatternContent(
 ${generateBreadcrumb([
   { name: "Home", url: "/" },
   { name: framework.name, url: `/framework/${framework.id}` },
-  { name: "Patterns", url: `/pattern/${framework.id}` },
   { name: pattern.name, url: `/pattern/${slug}` },
 ])}
 
@@ -175,9 +175,9 @@ ${generateBreadcrumb([
       ${relatedSnippets
         .slice(0, 6)
         .map(
-          ({ snippet }) => `
+          ({ snippet, category }) => `
         <article class="implementation-card">
-          <a href="/snippet/${framework.id}/${snippet.id}" class="implementation-link">
+          <a href="/snippet/${framework.id}/${category}/${snippet.id}" class="implementation-link">
             <h3>${snippet.displayName}</h3>
             <p>${snippet.description}</p>
             <code>${snippet.command}</code>
@@ -274,14 +274,20 @@ async function generatePatternPage(
   framework: { id: string; name: string; description: string },
 ): Promise<GeneratedPage> {
   const categories = await loadFrameworkCategories(framework.id);
-  const allSnippets = categories.flatMap((cat) => cat.snippets);
+  const allSnippets = categories.flatMap((cat) =>
+    cat.snippets.map((snippet) => ({ snippet, category: cat.id })),
+  );
   const relatedSnippets = findPatternSnippets(allSnippets, pattern.keywords);
 
   const slug = slugify(`${framework.id}-${pattern.id}`);
   const metadata = generateMetadata(
     "pattern",
     { pattern: slug, framework: framework.id },
-    { patternName: pattern.name, snippetCount: relatedSnippets.length },
+    {
+      patternName: pattern.name,
+      frameworkName: framework.name,
+      snippetCount: relatedSnippets.length,
+    },
   );
 
   const content = generatePatternContent(pattern, framework, relatedSnippets);
@@ -289,7 +295,6 @@ async function generatePatternPage(
   const jsonLd = generateBreadcrumbJsonLd([
     { name: "Home", url: SITE_URL },
     { name: framework.name, url: `${SITE_URL}/framework/${framework.id}` },
-    { name: "Patterns", url: `${SITE_URL}/pattern/${framework.id}` },
     { name: pattern.name, url: `${SITE_URL}/pattern/${slug}` },
   ]);
 

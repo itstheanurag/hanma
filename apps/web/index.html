@@ -22,60 +22,142 @@
     </script>
 
     <!-- Primary Meta Tags -->
-    <title>Hanma | Copy-Paste Backend Snippets</title>
-    <meta name="title" content="Hanma | Copy-Paste Backend Snippets" />
+    <title>Hanma | Copy-Paste Backend Snippets for Node.js</title>
+    <meta
+      name="title"
+      content="Hanma | Copy-Paste Backend Snippets for Node.js"
+    />
     <meta
       name="description"
-      content="Production-ready backend snippets for Express, Fastify, Hono & more. Authentication, database clients, middleware, utilities — just copy, paste, and ship."
+      content="Production-ready backend snippets for Express, Fastify, Hono, Elysia, and NestJS. Authentication, database clients, middleware, and utilities you can copy, paste, and ship."
     />
     <meta
       name="keywords"
-      content="backend Snippets, nodejs snippets, express middleware, fastify plugins, hono, authentication, jwt, prisma, drizzle, typescript, api development"
+      content="backend snippets, nodejs snippets, express middleware, fastify plugins, hono, elysia, nestjs, authentication, jwt, prisma, drizzle, typescript, api development"
     />
     <meta name="author" content="Gaurav Kumar" />
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
+    <meta name="application-name" content="Hanma" />
 
-    <!-- Favicon -->
+    <!-- Icons & theme -->
+    <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.png" />
+    <meta
+      name="theme-color"
+      content="#ffffff"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta
+      name="theme-color"
+      content="#0b0b12"
+      media="(prefers-color-scheme: dark)"
+    />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://hanma-a2n.pages.dev/" />
     <meta property="og:locale" content="en_US" />
+    <meta property="og:site_name" content="Hanma" />
     <meta
       property="og:title"
       content="Hanma | Copy-Paste Backend Snippets for Node.js"
     />
     <meta
       property="og:description"
-      content="Production-ready backend snippets for Express, Fastify, Hono & more. Authentication, database clients, middleware, utilities — just copy, paste, and ship."
+      content="Production-ready backend snippets for Express, Fastify, Hono, Elysia, and NestJS. Authentication, database clients, middleware, and utilities you can copy, paste, and ship."
     />
     <meta
       property="og:image"
-      content="https://hanma-a2n.pages.dev/og-image.png"
+      content="https://hanma-a2n.pages.dev/og/home.png"
     />
-    <meta property="og:site_name" content="Hanma" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Hanma: backend snippets. Copy. Paste. Ship."
+    />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="https://hanma-a2n.pages.dev/" />
     <meta
       name="twitter:title"
       content="Hanma | Copy-Paste Backend Snippets for Node.js"
     />
     <meta
       name="twitter:description"
-      content="Production-ready backend snippets for Express, Fastify, Hono & more. Authentication, database clients, middleware, utilities — just copy, paste, and ship."
+      content="Production-ready backend snippets for Express, Fastify, Hono, Elysia, and NestJS. Authentication, database clients, middleware, and utilities you can copy, paste, and ship."
     />
     <meta
       name="twitter:image"
-      content="https://hanma-a2n.pages.dev/og-image.png"
+      content="https://hanma-a2n.pages.dev/og/home.png"
+    />
+    <meta
+      name="twitter:image:alt"
+      content="Hanma: backend snippets. Copy. Paste. Ship."
     />
 
     <!-- Canonical URL -->
     <link rel="canonical" href="https://hanma-a2n.pages.dev/" />
+    <link
+      rel="sitemap"
+      type="application/xml"
+      title="Sitemap"
+      href="/sitemap.xml"
+    />
+
+    <!-- JSON-LD -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://hanma-a2n.pages.dev/#organization",
+            "name": "Hanma",
+            "url": "https://hanma-a2n.pages.dev/",
+            "logo": "https://hanma-a2n.pages.dev/favicon.png",
+            "sameAs": [
+              "https://github.com/itstheanurag/hanma",
+              "https://www.npmjs.com/package/hanma"
+            ]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://hanma-a2n.pages.dev/#website",
+            "name": "Hanma",
+            "url": "https://hanma-a2n.pages.dev/",
+            "description": "Production-ready backend code snippets for Express, Hono, Elysia, Fastify, and NestJS.",
+            "publisher": {
+              "@id": "https://hanma-a2n.pages.dev/#organization"
+            },
+            "inLanguage": "en"
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://hanma-a2n.pages.dev/#cli",
+            "name": "Hanma CLI",
+            "applicationCategory": "DeveloperApplication",
+            "operatingSystem": "Linux, macOS, Windows",
+            "description": "Command-line tool for scaffolding TypeScript backends and adding production-ready snippets, modules, and tooling.",
+            "url": "https://hanma-a2n.pages.dev/",
+            "downloadUrl": "https://www.npmjs.com/package/hanma",
+            "codeRepository": "https://github.com/itstheanurag/hanma",
+            "programmingLanguage": "TypeScript",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "publisher": {
+              "@id": "https://hanma-a2n.pages.dev/#organization"
+            }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -8,7 +8,7 @@ import {
   ensureDir,
   parseSnippetFile,
   findFiles,
-} from "./utils";
+} from "../utils";
 
 /**
  * Process a directory of .hbs files and return registry items

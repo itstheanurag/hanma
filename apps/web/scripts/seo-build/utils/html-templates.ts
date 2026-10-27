@@ -10,7 +10,7 @@ import { PageMetadata } from "../types.js";
  */
 export function generateHtmlHead(
   metadata: PageMetadata,
-  additionalJsonLd?: string,
+  additionalJsonLd?: string | string[],
 ): string {
   const {
     title,
@@ -19,44 +19,84 @@ export function generateHtmlHead(
     ogTitle,
     ogDescription,
     ogImage,
+    twitterImage,
     noindex,
   } = metadata;
+  const socialImage = ogImage || `${SITE_URL}/og-image.png`;
+  const twitterSocialImage = twitterImage || socialImage;
+  const websiteJsonLd = serializeJsonLd({
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Hanma",
+    url: `${SITE_URL}/`,
+    description:
+      "Production-ready backend code snippets for Express, Hono, Elysia, Fastify, and NestJS",
+    inLanguage: "en",
+    publisher: {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: "Hanma",
+      url: `${SITE_URL}/`,
+      logo: `${SITE_URL}/favicon.png`,
+      sameAs: [
+        "https://github.com/itstheanurag/hanma",
+        "https://www.npmjs.com/package/hanma",
+      ],
+    },
+  });
+  const additionalJsonLdScripts = normalizeJsonLd(additionalJsonLd)
+    .map(
+      (jsonLd) =>
+        `  <script type="application/ld+json">\n${serializeJsonLd(jsonLd)}\n  </script>`,
+    )
+    .join("\n");
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
   <title>${escapeHtml(title)}</title>
   <meta name="description" content="${escapeHtml(description)}">
-  <link rel="canonical" href="${canonical}">
-  ${noindex ? '<meta name="robots" content="noindex, nofollow">' : ""}
-  
+  <meta name="robots" content="${noindex ? "noindex, nofollow" : "index, follow"}">
+  <link rel="canonical" href="${escapeHtml(canonical)}">
+  <link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml">
+  <meta name="author" content="Gaurav Kumar">
+
+  <!-- Icons & theme -->
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" href="/favicon.png">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0b0b12" media="(prefers-color-scheme: dark)">
+
   <!-- Open Graph -->
+  <meta property="og:site_name" content="Hanma">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:type" content="website">
   <meta property="og:title" content="${escapeHtml(ogTitle || title)}">
   <meta property="og:description" content="${escapeHtml(ogDescription || description)}">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="${canonical}">
-  ${ogImage ? `<meta property="og:image" content="${ogImage}">` : ""}
-  
+  <meta property="og:url" content="${escapeHtml(canonical)}">
+  <meta property="og:image" content="${escapeHtml(socialImage)}">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Hanma: production-ready backend code snippets">
+
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${escapeHtml(ogTitle || title)}">
   <meta name="twitter:description" content="${escapeHtml(ogDescription || description)}">
-  ${ogImage ? `<meta name="twitter:image" content="${ogImage}">` : ""}
-  
+  <meta name="twitter:image" content="${escapeHtml(twitterSocialImage)}">
+  <meta name="twitter:image:alt" content="Hanma: production-ready backend code snippets">
+
   <!-- JSON-LD -->
   <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "Hanma",
-    "url": ${SITE_URL},
-    "description": "Production-ready backend code snippets for Express, Hono, Elysia, Fastify, and NestJS"
-  }
+${websiteJsonLd}
   </script>
-  ${additionalJsonLd ? `<script type="application/ld+json">${additionalJsonLd}</script>` : ""}
-  
+${additionalJsonLdScripts}
+
   <!-- Styles -->
   <link rel="stylesheet" href="/styles.css">
 </head>
@@ -67,16 +107,39 @@ export function generateHtmlHead(
  * Generate HTML footer
  */
 export function generateHtmlFooter(): string {
+  const year = new Date().getFullYear();
+
   return `<footer>
-  <div class="container">
-    <p>&copy; 2024 Hanma. Production-ready backend code snippets.</p>
-    <nav>
+  <div class="container footer-inner">
+    <p>&copy; ${year} Hanma. Production-ready backend code snippets.</p>
+    <nav aria-label="Footer">
       <a href="/">Home</a>
+      <a href="/framework/">Frameworks</a>
       <a href="/docs">Documentation</a>
-      <a href="https://github.com/itstheanurag/hanma">GitHub</a>
+      <a href="https://github.com/itstheanurag/hanma" rel="noopener">GitHub</a>
     </nav>
   </div>
 </footer>
+<script>
+  document.addEventListener("click", function (event) {
+    var button = event.target.closest(".copy-button");
+    if (!button) return;
+    var container = button.closest(
+      ".code-container, .command-block, .installation",
+    );
+    var code = container ? container.querySelector("pre code, code") : null;
+    if (!code || !navigator.clipboard) return;
+    navigator.clipboard.writeText(code.textContent || "").then(function () {
+      var label = button.querySelector("span");
+      if (!label) return;
+      var original = label.textContent;
+      label.textContent = "Copied";
+      setTimeout(function () {
+        label.textContent = original;
+      }, 1500);
+    });
+  });
+</script>
 </body>
 </html>`;
 }
@@ -270,6 +333,27 @@ export function generateCategoryNavigation(
 }
 
 /**
+ * Escape JSON-LD for safe embedding in a script tag.
+ * Replacing `<` prevents snippet content such as `</script>` from terminating
+ * the surrounding script element.
+ */
+function serializeJsonLd(jsonLd: string | object): string {
+  const serialized =
+    typeof jsonLd === "string" ? jsonLd : JSON.stringify(jsonLd, null, 2);
+  return serialized.replace(/</g, "\\u003c");
+}
+
+/**
+ * Normalize the additional JSON-LD input to a list of documents.
+ */
+function normalizeJsonLd(jsonLd?: string | string[]): string[] {
+  if (!jsonLd) return [];
+  return (Array.isArray(jsonLd) ? jsonLd : [jsonLd]).filter(
+    (item) => item.trim().length > 0,
+  );
+}
+
+/**
  * Escape HTML special characters
  */
 function escapeHtml(text: string): string {
@@ -290,9 +374,75 @@ function escapeHtml(text: string): string {
 export function generateFullPage(
   metadata: PageMetadata,
   content: string,
-  additionalJsonLd?: string,
+  additionalJsonLd?: string | string[],
 ): string {
-  return `${generateHtmlHead(metadata, additionalJsonLd)}
+  const faqs = extractFaqItems(content);
+  const faqJsonLd = faqs.length > 0 ? generateFaqJsonLd(faqs) : null;
+  const jsonLd = faqJsonLd
+    ? [...normalizeJsonLd(additionalJsonLd), faqJsonLd]
+    : additionalJsonLd;
+
+  return `${generateHtmlHead(metadata, jsonLd)}
 ${content}
 ${generateHtmlFooter()}`;
+}
+
+interface FaqItem {
+  question: string;
+  answer: string;
+}
+
+function decodeHtml(value: string): string {
+  const entities: Record<string, string> = {
+    "&amp;": "&",
+    "&lt;": "<",
+    "&gt;": ">",
+    "&quot;": '"',
+    "&#39;": "'",
+  };
+
+  return value.replace(/&(amp|lt|gt|quot|#39);/g, (match) => entities[match]);
+}
+
+function toPlainText(html: string): string {
+  return decodeHtml(html.replace(/<[^>]+>/g, " "))
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Read FAQ items from generated page markup so any page that renders an FAQ
+ * section also emits matching FAQPage structured data.
+ */
+function extractFaqItems(content: string): FaqItem[] {
+  const faqPattern =
+    /<details class="faq-item"[^>]*>\s*<summary class="faq-question">([\s\S]*?)<\/summary>\s*<div class="faq-answer">([\s\S]*?)<\/div>\s*<\/details>/g;
+
+  const faqs: FaqItem[] = [];
+  for (const match of content.matchAll(faqPattern)) {
+    const question = toPlainText(match[1] ?? "");
+    const answer = toPlainText(match[2] ?? "");
+    if (question && answer) faqs.push({ question, answer });
+  }
+
+  return faqs;
+}
+
+function generateFaqJsonLd(faqs: FaqItem[]): string {
+  return JSON.stringify(
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: faqs.map((faq) => ({
+        "@type": "Question",
+        name: faq.question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: faq.answer,
+        },
+      })),
+    },
+    null,
+    2,
+  );
 }

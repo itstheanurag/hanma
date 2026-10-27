@@ -64,6 +64,7 @@ export interface PageMetadata {
   ogTitle?: string;
   ogDescription?: string;
   ogImage?: string;
+  twitterImage?: string;
   noindex?: boolean;
 }
 
@@ -76,6 +77,7 @@ export interface PageContext {
   pattern?: string;
   tag?: string;
   query?: string;
+  comparison?: string;
 }
 
 export interface GeneratedPage {

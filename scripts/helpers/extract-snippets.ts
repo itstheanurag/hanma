@@ -8,7 +8,7 @@ import {
   parseSnippetFile,
   findFiles,
   ensureDir,
-} from "./utils";
+} from "../utils";
 
 // Framework snippets only - shared and tooling handled separately
 const FRAMEWORKS = ["express", "hono", "elysia", "fastify", "nest"];

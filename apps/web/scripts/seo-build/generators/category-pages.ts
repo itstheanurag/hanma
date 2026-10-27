@@ -20,8 +20,9 @@ import {
 } from "../utils/html-templates.js";
 import { GeneratedPage, BuildStats } from "../types.js";
 import { SITE_URL } from "../constant.js";
+import { DIST_DIR } from "../paths.js";
 
-const OUTPUT_DIR = join(process.cwd(), "../../dist/seo");
+const OUTPUT_DIR = DIST_DIR;
 
 interface SnippetData {
   id: string;
@@ -51,7 +52,12 @@ async function generateCategoryPage(
   const metadata = generateMetadata(
     "category",
     { framework: framework.id, category: category.id },
-    { snippetCount: category.snippets.length, topFeatures },
+    {
+      categoryName: category.title,
+      frameworkName: framework.name,
+      snippetCount: category.snippets.length,
+      topFeatures,
+    },
   );
 
   const breadcrumb = generateBreadcrumb([
@@ -91,7 +97,7 @@ async function generateCategoryPage(
     }));
 
   const content = `<header class="page-header">
-  <h1>${category.title} ${framework.name} Snippets</h1>
+  <h1>${framework.name} ${category.title} Snippets</h1>
   <p class="page-description">${category.description}</p>
   <div class="stats">
     <span class="stat">
